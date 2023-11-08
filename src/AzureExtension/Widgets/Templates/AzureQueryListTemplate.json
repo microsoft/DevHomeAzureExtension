@@ -1,0 +1,142 @@
+{
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "Container",
+      "items": [
+        {
+          "type": "TextBlock",
+          "weight": "bolder",
+          "size": "medium",
+          "text": "${widgetTitle}"
+        },
+        {
+          "type": "ColumnSet",
+          "$data": "${items}",
+          "style": "emphasis",
+          "selectAction": {
+            "type": "Action.OpenUrl",
+            "url": "${url}",
+            "tooltip": "%Widget_Template_Tooltip/ClickWorkItem%"
+          },
+          "columns": [
+            {
+              "type": "Column",
+              "width": "14px",
+              "items": [
+                {
+                  "type": "Image",
+                  "style": "Person",
+                  "url": "data:image/png;base64,${icon}"
+                }
+              ]
+            },
+            {
+              "type": "Column",
+              "items": [
+                {
+                  "type": "TextBlock",
+                  "maxLines": 2,
+                  "size": "medium",
+                  "weight": "bolder",
+                  "wrap": true,
+                  "text": "${number} ${title}"
+                },
+                {
+                  "type": "ColumnSet",
+                  "spacing": "None",
+                  "wrap": true,
+                  "columns": [
+                    {
+                      "type": "Column",
+                      "width": "12px",
+                      "items": [
+                        {
+                          "type": "Image",
+                          "style": "Person",
+                          "url": "${avatar}",
+                          "size": "small"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Column",
+                      "width": "stretch",
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "text": "${user}",
+                          "isSubtle": true,
+                          "size": "small",
+                          "spacing": "None",
+                          "weight": "bolder"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "ColumnSet",
+                  "spacing": "None",
+                  "wrap": true,
+                  "columns": [
+                    {
+                      "type": "Column",
+                      "width": "auto",
+                      "items": [
+                        {
+                          "type": "ColumnSet",
+                          "columns": [
+                            {
+                              "type": "Column",
+                              "verticalContentAlignment": "center",
+                              "items": [
+                                {
+                                  "type": "Image",
+                                  "style": "Person",
+                                  "url": "data:image/png;base64,${status_icon}",
+                                  "size": "small"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "Column",
+                              "items": [
+                                {
+                                  "type": "TextBlock",
+                                  "size": "small",
+                                  "text": "${status}",
+                                  "isSubtle": true,
+                                  "wrap": true
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Column",
+                      "items": [
+                        {
+                          "type": "TextBlock",
+                          "size": "small",
+                          "text": "%Widget_Template/Updated% ${date}",
+                          "isSubtle": true,
+                          "spacing": "small",
+                          "wrap": true
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5"
+}

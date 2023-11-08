@@ -1,0 +1,333 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Extension_Name.Azure" xml:space="preserve">
+    <value>Azure</value>
+    <comment>Shown in various places, is Azure even localized as a product name?</comment>
+  </data>
+  <data name="Widget_Template_Button.SignIn" xml:space="preserve">
+    <value>Sign in</value>
+    <comment>Shown in Widget, Button text</comment>
+  </data>
+  <data name="Widget_Template_Button.Submit" xml:space="preserve">
+    <value>Submit</value>
+    <comment>Shown in Widget, Button text</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.SignIn" xml:space="preserve">
+    <value>Click here to sign in on Azure</value>
+    <comment>Shown in Widget, Button tooltip</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.Submit" xml:space="preserve">
+    <value>Submit</value>
+    <comment>Shown in Widget, Tooltip text</comment>
+  </data>
+  <data name="Widget_Template.SignInRequired" xml:space="preserve">
+    <value>You must sign in to view this widget's content.</value>
+    <comment>Shown in Widget when user is not logged in.</comment>
+  </data>
+  <data name="Widget_Template_Loading" xml:space="preserve">
+    <value>Loading...</value>
+    <comment>Shown in Loading Widget, Message text</comment>
+  </data>
+  <data name="AppDisplayNameDev" xml:space="preserve">
+    <value>Dev Home Azure Extension (Dev)</value>
+    <comment>The name of our application when built for dev ring</comment>
+  </data>
+  <data name="AppDisplayNameCanary" xml:space="preserve">
+    <value>Dev Home Azure Extension (Canary)</value>
+    <comment>The name of our application when built for canary ring</comment>
+  </data>
+  <data name="AppDisplayNameStable" xml:space="preserve">
+    <value>Dev Home Azure Extension (Preview)</value>
+    <comment>The name of our application when built for stable ring</comment>
+  </data>
+  <data name="AppDescription" xml:space="preserve">
+    <value>Dev Home Azure Extension</value>
+    <comment>The name of our application</comment>
+  </data>
+  <data name="RepositoryProviderDisplayName" xml:space="preserve">
+    <value>Azure</value>
+    <comment>Shown in various places, is Azure even localized as a product name?</comment>
+  </data>
+  <data name="Widget_Template_DaysAgo" xml:space="preserve">
+    <value>{days, plural, =1 {# day ago} other {# days ago}}</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template_HoursAgo" xml:space="preserve">
+    <value>{hours, plural, =1 {# hour ago} other {# hours ago}}</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template_MinutesAgo" xml:space="preserve">
+    <value>{minutes, plural, =1 {# minute ago} other {# minutes ago}}</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template_SecondsAgo" xml:space="preserve">
+    <value>{seconds, plural, =1 {# second ago} other {# seconds ago}}</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template_Now" xml:space="preserve">
+    <value>now</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template_UnknownTime" xml:space="preserve">
+    <value>not known</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template.Loading" xml:space="preserve">
+    <value>Loading</value>
+  </data>
+  <data name="Widget_Template.Updated" xml:space="preserve">
+    <value>Updated</value>
+  </data>
+  <data name="Widget_Template_Button.Save" xml:space="preserve">
+    <value>Save</value>
+    <comment>Shown in Widget, Button text</comment>
+  </data>
+  <data name="Widget_Template_Button.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Shown in Widget, Button text</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.Save" xml:space="preserve">
+    <value>Save</value>
+    <comment>Shown in Widget, Button tooltip</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Shown in Widget, Button tooltip</comment>
+  </data>
+  <data name="Widget_Template.CanBePinned" xml:space="preserve">
+    <value>Widget can be pinned.</value>
+    <comment>Shown in Widget, configuration of Tiles</comment>
+  </data>
+  <data name="Widget_Template.ChooseAccountPlaceholder" xml:space="preserve">
+    <value>Please choose an account</value>
+    <comment>Shown in Widget configuration</comment>
+  </data>
+  <data name="Widget_Template.DevIDError" xml:space="preserve">
+    <value>Dev ID error</value>
+  </data>
+  <data name="Widget_Template.EnterURLPlaceholder" xml:space="preserve">
+    <value>Enter URL</value>
+    <comment>Shown in Widget, placeholder for Query or Repository URL</comment>
+  </data>
+  <data name="Widget_Template.NumberOfTiles" xml:space="preserve">
+    <value>Number of tiles:</value>
+    <comment>Shown in Widget, configuration of Tiles</comment>
+  </data>
+  <data name="Widget_Template.PRAll" xml:space="preserve">
+    <value>Assigned to team</value>
+    <comment>Shown in Pull Request Widget, filter for items</comment>
+  </data>
+  <data name="Widget_Template.PRAssigned" xml:space="preserve">
+    <value>Assigned to me</value>
+    <comment>Shown in Pull Request Widget, filter for items</comment>
+  </data>
+  <data name="Widget_Template.PRCreated" xml:space="preserve">
+    <value>created at</value>
+    <comment>Shown in Pull Request Widget before created date</comment>
+  </data>
+  <data name="Widget_Template.PRDefaultView" xml:space="preserve">
+    <value>Default view:</value>
+    <comment>Shown in Pull Request Widget, label for filter view</comment>
+  </data>
+  <data name="Widget_Template.PRInto" xml:space="preserve">
+    <value>in</value>
+    <comment>Shown in Pull Request Widget: "{branch1} in {branch2}"</comment>
+  </data>
+  <data name="Widget_Template.PRMine" xml:space="preserve">
+    <value>Created by me</value>
+    <comment>Shown in Pull Request Widget, filter for items</comment>
+  </data>
+  <data name="Widget_Template.QueryTitleLabel" xml:space="preserve">
+    <value>Title:</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template.QueryTitlePlaceholder" xml:space="preserve">
+    <value>Query title</value>
+    <comment>Shown in Widget, placeholder for query title</comment>
+  </data>
+  <data name="Widget_Template.QueryURLLabel" xml:space="preserve">
+    <value>Query URL:</value>
+    <comment>Shown in Widget</comment>
+  </data>
+  <data name="Widget_Template.RepositoryURLLabel" xml:space="preserve">
+    <value>Repository URL:</value>
+    <comment>Shown in Pull Request Widget</comment>
+  </data>
+  <data name="Widget_Template.WorkItems" xml:space="preserve">
+    <value>Work items</value>
+    <comment>Shown in Tiles Widget</comment>
+  </data>
+  <data name="Widget_Template_Button.AddTile" xml:space="preserve">
+    <value>Add tile</value>
+    <comment>Shown in Widget, configuration of Tiles</comment>
+  </data>
+  <data name="Widget_Template_Button.RemoveTile" xml:space="preserve">
+    <value>Remove tile</value>
+    <comment>Shown in Widget, configuration of Tiles</comment>
+  </data>
+  <data name="Widget_Template_ErrorMessage.QueryURL" xml:space="preserve">
+    <value>Provide the query's URL</value>
+    <comment>Shown in Widget, when widget doesn't provide query URL</comment>
+  </data>
+  <data name="Widget_Template_ErrorMessage.RepositoryURL" xml:space="preserve">
+    <value>Provide the repository's URL</value>
+    <comment>Shown in Pull Request Widget, when user don't provide the repository's URL</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.ClickPullRequest" xml:space="preserve">
+    <value>Click to go to pull request</value>
+    <comment>Shown in Widget, PR tooltip text</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.ClickTile" xml:space="preserve">
+    <value>Click to open this query</value>
+    <comment>Shown in Tiles Widget</comment>
+  </data>
+  <data name="Widget_Template_Tooltip.ClickWorkItem" xml:space="preserve">
+    <value>Click to go to work item</value>
+    <comment>Shown in Widget, Item tooltip text</comment>
+  </data>
+  <data name="ErrorMessage.CredentialUIRequired" xml:space="preserve">
+    <value>This account must be re-authenticated. This cannot be done automatically and requires user input in the Accounts Settings page. Please sign out and sign back in with this account.</value>
+  </data>
+  <data name="ErrorMessage.EmptyUri" xml:space="preserve">
+    <value>The URL is empty.</value>
+  </data>
+  <data name="ErrorMessage.FailedGettingClient" xml:space="preserve">
+    <value>Failed getting the information from the server.</value>
+  </data>
+  <data name="ErrorMessage.GenericCredentialFailure" xml:space="preserve">
+    <value>This account must be re-authenticated. This cannot be done automatically and requires user input in the Accounts Settings page. Please sign out and sign back in with this account.</value>
+  </data>
+  <data name="ErrorMessage.NullDeveloperId" xml:space="preserve">
+    <value>An account could not be found.</value>
+  </data>
+  <data name="ErrorMessage.QueryFailed" xml:space="preserve">
+    <value>Failed getting information about the query from the server.</value>
+  </data>
+  <data name="ErrorMessage.RepositoryFailed" xml:space="preserve">
+    <value>Failed getting information about the repository from the server.</value>
+  </data>
+  <data name="ErrorMessage.UriInvalidQuery" xml:space="preserve">
+    <value>The specified URL is not a query URL.</value>
+    <comment>Shown when configuring widgets, possible error message.</comment>
+  </data>
+  <data name="ErrorMessage.UriInvalidRepository" xml:space="preserve">
+    <value>The specified URL is not a repository URL.</value>
+  </data>
+</root>

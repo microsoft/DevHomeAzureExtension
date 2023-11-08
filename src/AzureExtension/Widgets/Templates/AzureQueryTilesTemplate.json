@@ -1,0 +1,61 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "ColumnSet",
+      "$data": "${lines}",
+      "$when": "${$index == 0 || ($index == 1 && $host.widgetSize != 'small') || ($index == 2 && $host.widgetSize == 'large')}",
+      "spacing": "small",
+      "columns": [
+        {
+          "type": "Column",
+          "$data": "${tiles}",
+          "width": "stretch",
+          "selectAction": {
+            "type": "Action.OpenUrl",
+            "url": "${url}",
+            "tooltip": "%Widget_Template_Tooltip/ClickTile%"
+          },
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "${title}",
+              "color": "dark",
+              "size": "Medium"
+            },
+            {
+              "type": "TextBlock",
+              "text": "${string(counter)}",
+              "size": "ExtraLarge",
+              "color": "dark",
+              "spacing": "Medium"
+            },
+            {
+              "type": "TextBlock",
+              "text": "%Widget_Template/WorkItems%",
+              "wrap": true,
+              "size": "Medium",
+              "color": "dark",
+              "spacing": "Medium"
+            }
+          ],
+          "backgroundImage": {
+              "url": "data:image/png;base64,${backgroundImage}"
+          },
+          "horizontalAlignment": "Left",
+          "verticalContentAlignment": "Center",
+          "spacing": "small",
+          "style": "emphasis"
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "spacing": "small",
+          "$when": "${count(tiles) == 1}" // Trick to prevent tile to expand horizontally
+        }
+      ]
+    }
+  ]
+}

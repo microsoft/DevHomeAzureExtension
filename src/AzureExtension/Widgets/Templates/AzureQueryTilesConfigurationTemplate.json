@@ -1,0 +1,207 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "Input.ChoiceSet",
+      "id": "account",
+      "placeholder": "%Widget_Template/ChooseAccountPlaceholder%",
+      "value": "${selectedDevId}",
+      "choices": [
+        {
+          "$data": "${accounts}",
+          "title": "${devId}",
+          "value": "${devId}"
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "%Widget_Template/NumberOfTiles%",
+              "wrap": true,
+              "size": "Medium"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "${string(count(tiles))}/6",
+              "wrap": true,
+              "horizontalAlignment": "Right",
+              "size": "Medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Container",
+      "$data": "${tiles}",
+      "items": [
+        {
+          "type": "Input.Text",
+          "placeholder": "%Widget_Template/EnterURLPlaceholder%",
+          "id": "query${$index}",
+          "label": "%Widget_Template/QueryURLLabel%",
+          "style": "Url",
+          "value": "${url}",
+          "inlineAction": {
+            "type": "Action.Execute",
+            "verb": "Submit",
+            "iconUrl": "data:image/png;base64,${arrow}"
+          }
+        },
+        {
+          "type": "Input.Text",
+          "placeholder": "%Widget_Template/QueryTitlePlaceholder%",
+          "id": "tileTitle${$index}",
+          "label": "%Widget_Template/QueryTitleLabel%",
+          "value": "${title}"
+        },
+        {
+          "type": "Container",
+          "$when": "${message != null}",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "${message}",
+              "wrap": true,
+              "size": "small"
+            }
+          ],
+          "style": "warning"
+        }
+      ],
+      "separator": true
+    },
+    {
+      "type": "Container",
+      "$when": "${!configuring}",
+      "items": [
+        {
+          "type": "TextBlock",
+          "text": "%Widget_Template/CanBePinned%",
+          "wrap": true,
+          "horizontalAlignment": "center"
+        }
+      ],
+      "style": "good",
+      "separator": true
+    },
+    {
+      "type": "ColumnSet",
+      "spacing": "Medium",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch"
+        },
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "Container",
+              "items": [
+                {
+                  "type": "ActionSet",
+                  "separator": true,
+                  "actions": [
+                    {
+                      "type": "Action.Execute",
+                      "title": "%Widget_Template_Button/Submit%",
+                      "verb": "Submit",
+                      "style": "positive",
+                      "role": "Button",
+                      "associatedInputs": "auto"
+                    },
+                    {
+                      "type": "Action.Execute",
+                      "title": "%Widget_Template_Button/AddTile%",
+                      "verb": "AddTile",
+                      "style": "positive",
+                      "role": "Button",
+                      "associatedInputs": "auto",
+                      "isEnabled": "${count(tiles) < 6}"
+                    },
+                    {
+                      "type": "Action.Execute",
+                      "title": "%Widget_Template_Button/RemoveTile%",
+                      "verb": "RemoveTile",
+                      "style": "destructive",
+                      "role": "Button",
+                      "associatedInputs": "auto",
+                      "isEnabled": "${count(tiles) > 0}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch"
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "spacing": "Medium",
+      "$when": "${$root.pinned}",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch"
+        },
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "Container",
+              "items": [
+                {
+                  "type": "ActionSet",
+                  "actions": [
+                    {
+                      "type": "Action.Execute",
+                      "title": "%Widget_Template_Button/Save%",
+                      "verb": "Save",
+                      "tooltip": "%Widget_Template_Tooltip/Save%",
+                      "style": "positive",
+                      "isEnabled": "${!$root.configuring}"
+                    },
+                    {
+                      "type": "Action.Execute",
+                      "title": "%Widget_Template_Button/Cancel%",
+                      "verb": "Cancel",
+                      "tooltip": "%Widget_Template_Tooltip/Cancel%",
+                      "style": "destructive"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch"
+        }
+      ]
+    }
+  ]
+}

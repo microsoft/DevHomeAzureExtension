@@ -1,0 +1,6 @@
+trigger:
+- staging
+
+steps:
+- script: echo Triggering Azure Build
+  displayName: 'Triggering Azure Build'
