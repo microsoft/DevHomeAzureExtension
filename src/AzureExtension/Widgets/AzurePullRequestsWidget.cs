@@ -333,6 +333,7 @@ internal class AzurePullRequestsWidget : AzureWidget
             }
         }
 
+        itemsData.Add("maxItemsDisplayed", AzureDataManager.PullRequestResultLimit);
         itemsData.Add("items", itemsArray);
         itemsData.Add("widgetTitle", widgetTitle);
 
