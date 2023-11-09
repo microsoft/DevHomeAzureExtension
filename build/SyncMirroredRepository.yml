@@ -33,6 +33,6 @@ extends:
             
         - template: /build/SyncMirror-Steps.yml@self
           parameters:
-            SourceRepository: "https://$(GitHubPAT)@github.com/microsoft/DevHomeAdoExtension.git"
+            SourceRepository: "https://$(GitHubPAT)@github.com/microsoft/DevHomeAzureExtension.git"
             TargetBranch: "$(SourceToTargetBranch)"
             SourceBranch: "$(SourceToTargetBranch)"
