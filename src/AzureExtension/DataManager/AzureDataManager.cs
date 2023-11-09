@@ -30,10 +30,10 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     public static readonly string WorkItemHtmlUrlFieldName = "DevHome.AzureExtension.WorkItemHtmlUrl";
 
     // Max number pull requests to fetch for a repository search.
-    private static readonly int PullRequestResultLimit = 25;
+    public static readonly int PullRequestResultLimit = 25;
 
     // Max number of query results to fetch for a given query.
-    private static readonly int QueryResultLimit = 25;
+    public static readonly int QueryResultLimit = 25;
 
     // Most data that has not been updated within this time will be removed.
     private static readonly TimeSpan DataRetentionTime = TimeSpan.FromDays(1);
