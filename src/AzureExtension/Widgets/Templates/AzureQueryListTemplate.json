@@ -11,6 +11,21 @@
           "text": "${widgetTitle}"
         },
         {
+          "type": "Container",
+          "$when": "${(count(items) == 0)}",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "%Widget_Template/EmptyWorkItems%",
+              "wrap": true,
+              "weight": "bolder",
+              "horizontalAlignment": "center"
+            }
+          ],
+          "spacing": "medium",
+          "verticalContentAlignment": "center"
+        },
+        {
           "type": "ColumnSet",
           "$data": "${items}",
           "style": "emphasis",
@@ -133,6 +148,21 @@
               ]
             }
           ]
+        },
+        {
+          "type": "Container",
+          "$when": "${(count(items) >= 25)}",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "%Widget_Template/NotShownItems%",
+              "wrap": true,
+              "weight": "bolder",
+              "horizontalAlignment": "center"
+            }
+          ],
+          "spacing": "medium",
+          "verticalContentAlignment": "center"
         }
       ]
     }
