@@ -89,6 +89,8 @@ public static class Resources
             "Widget_Template/CanBePinned",
             "Widget_Template/WorkItems",
             "Widget_Template_Tooltip/ClickTile",
+            "Widget_Template/EmptyWorkItems",
+            "Widget_Template/NotShownItems",
         };
     }
 }
