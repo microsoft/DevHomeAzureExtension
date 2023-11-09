@@ -2,8 +2,6 @@ Param(
     [string]$Platform = "x64",
     [string]$Configuration = "debug",
     [string]$Version,
-    [string]$ClientId,
-    [string]$ClientSecret,
     [string]$BuildStep = "all",
     [string]$AzureBuildingBranch = "main",
     [switch]$IsAzurePipelineBuild = $false,
@@ -35,12 +33,6 @@ Options:
       Example: -Configuration release
       Example: -Configuration "debug,release"
 
-  -ClientId <clientid>
-      Use this GitHub OAuth ClientId
-
-  -ClientSecret <clientsecret>
-      Use this GitHub OAuth ClientSecret
-
   -Help
       Display this usage message.
 "@
@@ -56,23 +48,6 @@ $env:Build_Platform = $Platform.ToLower()
 $env:Build_Configuration = $Configuration.ToLower()
 $env:msix_version = build\Scripts\CreateBuildInfo.ps1 -Version $Version -IsAzurePipelineBuild $IsAzurePipelineBuild
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')
-
-# Set GitHub OAuth Client App configuration if build-time parameters are present
-# TODO: These are not necessary for Azure, but leaving it for now so it can be replaced if something special is needed for Azure.
-$OAuthConfigFilePath = (Join-Path $env:Build_RootDirectory "src\AzureExtension\Configuration\OAuthConfiguration.cs")
-if (![string]::IsNullOrWhitespace($ClientId)) {
-    (Get-Content $OAuthConfigFilePath).Replace("%BUILD_TIME_GITHUB_CLIENT_ID_PLACEHOLDER%", $ClientId) | Set-Content $OAuthConfigFilePath
-}
-else {
-    Write-Host "ClientId not found at Build-time"
-}
-
-if (![string]::IsNullOrWhitespace($ClientSecret)) {
-    (Get-Content $OAuthConfigFilePath).Replace("%BUILD_TIME_GITHUB_CLIENT_SECRET_PLACEHOLDER%", $ClientSecret) | Set-Content $OAuthConfigFilePath
-}
-else {
-    Write-Host "ClientSecret not found at Build-time"
-}
 
 if ($IsAzurePipelineBuild) {
   Copy-Item (Join-Path $env:Build_RootDirectory "build\nuget.config.internal") -Destination (Join-Path $env:Build_RootDirectory "nuget.config")
