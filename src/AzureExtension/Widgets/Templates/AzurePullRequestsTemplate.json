@@ -16,7 +16,7 @@
           "items": [
             {
               "type": "TextBlock",
-              "text": "%Widget_Template/EmptyWorkItems%",
+              "text": "${if(is_loading_data, '%Widget_Template/ContentLoading%', '%Widget_Template/EmptyWorkItems%')}",
               "wrap": true,
               "weight": "bolder",
               "horizontalAlignment": "center"
@@ -85,7 +85,7 @@
         },
         {
           "type": "Container",
-          "$when": "${(count(items) >= 25)}",
+          "$when": "${(count(items) >= maxItemsDisplayed)}",
           "items": [
             {
               "type": "TextBlock",
