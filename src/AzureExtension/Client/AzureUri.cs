@@ -143,7 +143,7 @@ public class AzureUri
         {
             return AzureHostType.NotHosted;
         }
-        else if (Uri.Host.Equals("dev.azure.com", StringComparison.OrdinalIgnoreCase))
+        else if (Uri.Host.EndsWith("dev.azure.com", StringComparison.OrdinalIgnoreCase))
         {
             return AzureHostType.Modern;
         }
@@ -211,15 +211,26 @@ public class AzureUri
 
         try
         {
-            return HostType switch
+            switch (HostType)
             {
-                // https://dev.azure.com/{organization} (modern)
-                AzureHostType.Modern => Uri.Segments[1].Replace("/", string.Empty),
+                case AzureHostType.Modern:
+                    return Uri.Segments[1].Replace("/", string.Empty);
 
-                // https://{organization}.visualstudio.com (legacy)
-                AzureHostType.Legacy => Uri.Host.Replace(".visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase),
-                _ => string.Empty,
-            };
+                case AzureHostType.Legacy:
+                    // Legacy format can have "vssps" in the uri, which we need to ignore for
+                    // extracting the url
+                    if (Uri.Host.EndsWith(".vssps.visualstudio.com", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Uri.Host.Replace(".vssps.visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        return Uri.Host.Replace(".visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                default:
+                    return string.Empty;
+            }
         }
         catch (Exception e)
         {
@@ -423,6 +434,9 @@ public class AzureUri
             case AzureHostType.Legacy:
 
                 // Legacy format is just the authority, as the organization is in the subdomain.
+                // Note that Authority will not contain the port number unless the port
+                // number differs from the default port. So if Port 443 is specified, Authority will
+                // not list it as that is the default port for the https scheme.
                 var legacyUriString = Uri.Scheme + "://" + Uri.Authority;
                 legacyUriString = legacyUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(legacyUriString, UriKind.Absolute, out newUri))
