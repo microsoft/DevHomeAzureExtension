@@ -91,6 +91,7 @@ public static class Resources
             "Widget_Template_Tooltip/ClickTile",
             "Widget_Template/EmptyWorkItems",
             "Widget_Template/NotShownItems",
+            "Widget_Template/ContentLoading",
         };
     }
 }

@@ -271,82 +271,78 @@ internal class AzureQueryListWidget : AzureWidget
 
     public override void LoadContentData()
     {
-        var developerId = GetDevId(selectedDevId);
-        if (developerId == null)
-        {
-            // Should not happen, but may be possible in situations where the app is removed and
-            // the signed in account is not silently restorable.
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
-            return;
-        }
-
-        var azureUri = new AzureUri(selectedQueryUrl);
-        if (!azureUri.IsQuery)
-        {
-            Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedQueryUrl}");
-            return;
-        }
-
-        Query? queryInfo;
         try
         {
-            // This can throw if DataStore is not connected.
-            queryInfo = DataManager!.GetQuery(azureUri, developerId.LoginId);
-            if (queryInfo == null)
+            var developerId = GetDevId(selectedDevId);
+            if (developerId == null)
             {
-                // This is not always an error and this will happen for a new widget when it is first
-                // pinned before we actually have data populated. Treating this as an information log
-                // event rather than an error.
-                Log.Logger()?.ReportInfo(Name, ShortId, $"No query information found for query: {azureUri.Query}");
+                // Should not happen, but may be possible in situations where the app is removed and
+                // the signed in account is not silently restorable.
+                // This is also checked before on UpdateActivityState() method on base class.
+                Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
                 return;
             }
+
+            var azureUri = new AzureUri(selectedQueryUrl);
+
+            if (!azureUri.IsQuery)
+            {
+                // This should never happen. Already was validated on configuration.
+                Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedQueryUrl}");
+                return;
+            }
+
+            // This can throw if DataStore is not connected.
+            Query? queryInfo = DataManager!.GetQuery(azureUri, developerId.LoginId);
+
+            var queryResults = queryInfo is null ? new Dictionary<string, object>() : JsonConvert.DeserializeObject<Dictionary<string, object>>(queryInfo.QueryResults);
+
+            var itemsData = new JsonObject();
+            var itemsArray = new JsonArray();
+
+            foreach (var element in queryResults)
+            {
+                var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
+
+                if (workItem != null)
+                {
+                    // If we can't get the real date, it is better better to show a recent
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
+                    var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    var dateTime = dateTicks.ToDateTime();
+
+                    var item = new JsonObject
+                    {
+                        { "title", workItem["System.Title"]?.GetValue<string>() ?? string.Empty },
+                        { "url", workItem[AzureDataManager.WorkItemHtmlUrlFieldName]?.GetValue<string>() ?? string.Empty },
+                        { "icon", GetIconForType(workItem["System.WorkItemType"]?["Name"]?.GetValue<string>()) },
+                        { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
+                        { "number", element.Key },
+                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
+                        { "user", workItem["System.CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
+                        { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
+                        { "avatar", workItem["System.CreatedBy"]?["Avatar"]?.GetValue<string>() ?? string.Empty },
+                    };
+
+                    itemsArray.Add(item);
+                }
+            }
+
+            itemsData.Add("workItemCount", queryInfo is null ? 0 : (int)queryInfo.QueryResultCount);
+            itemsData.Add("maxItemsDisplayed", AzureDataManager.QueryResultLimit);
+            itemsData.Add("items", itemsArray);
+            itemsData.Add("widgetTitle", widgetTitle);
+            itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
+
+            ContentData = itemsData.ToJsonString();
+            UpdateActivityState();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, $"GetQuery failed.", ex);
+            Log.Logger()?.ReportError(Name, ShortId, "Error retrieving data.", e);
+            DataState = WidgetDataState.Failed;
             return;
         }
-
-        var queryResults = JsonConvert.DeserializeObject<Dictionary<string, object>>(queryInfo.QueryResults);
-
-        var itemsData = new JsonObject();
-        var itemsArray = new JsonArray();
-
-        foreach (var element in queryResults)
-        {
-            var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
-
-            if (workItem != null)
-            {
-                // If we can't get the real date, it is better better to show a recent
-                // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
-                var dateTime = dateTicks.ToDateTime();
-
-                var item = new JsonObject
-                {
-                    { "title", workItem["System.Title"]?.GetValue<string>() ?? string.Empty },
-                    { "url", workItem[AzureDataManager.WorkItemHtmlUrlFieldName]?.GetValue<string>() ?? string.Empty },
-                    { "icon", GetIconForType(workItem["System.WorkItemType"]?["Name"]?.GetValue<string>()) },
-                    { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
-                    { "number", element.Key },
-                    { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
-                    { "user", workItem["System.CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
-                    { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
-                    { "avatar", workItem["System.CreatedBy"]?["Avatar"]?.GetValue<string>() ?? string.Empty },
-                };
-
-                itemsArray.Add(item);
-            }
-        }
-
-        itemsData.Add("workItemCount", (int)queryInfo.QueryResultCount);
-        itemsData.Add("maxItemsDisplayed", AzureDataManager.QueryResultLimit);
-        itemsData.Add("items", itemsArray);
-        itemsData.Add("widgetTitle", widgetTitle);
-
-        ContentData = itemsData.ToJsonString();
-        UpdateActivityState();
     }
 
     // Overriding methods from Widget base

@@ -338,4 +338,8 @@
     <value>Other items not shown</value>
     <comment>Shown in Widget, when limit of items is reached </comment>
   </data>
+  <data name="Widget_Template.ContentLoading" xml:space="preserve">
+    <value>Loading content...</value>
+    <comment>Shown in Widget when first pinned while waiting for data to load.</comment>
+  </data>
 </root>
