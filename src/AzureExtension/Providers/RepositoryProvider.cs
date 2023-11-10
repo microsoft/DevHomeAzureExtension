@@ -78,10 +78,10 @@ public class RepositoryProvider : IRepositoryProvider
     /// <returns>A list of projects the organization has.</returns>
     private List<TeamProjectReference> GetProjects(Microsoft.VisualStudio.Services.Account.Account organization, DeveloperId.DeveloperId azureDeveloperId)
     {
-        var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organization.AccountUri, azureDeveloperId);
-
         try
         {
+            var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organization.AccountUri, azureDeveloperId);
+
             // connection can be null if the organization is disabled.
             if (connection != null)
             {
