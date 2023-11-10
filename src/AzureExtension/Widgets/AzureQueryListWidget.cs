@@ -328,6 +328,8 @@ internal class AzureQueryListWidget : AzureWidget
                 }
             }
 
+            itemsData.Add("workItemCount", (int)queryInfo.QueryResultCount);
+            itemsData.Add("maxItemsDisplayed", AzureDataManager.QueryResultLimit);
             itemsData.Add("items", itemsArray);
             itemsData.Add("widgetTitle", widgetTitle);
             itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
