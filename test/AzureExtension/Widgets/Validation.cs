@@ -193,7 +193,7 @@ public partial class WidgetTests
                 // We require https uri, therefore we must have port 443.
                 Assert.IsTrue(connectionUri.Port == 443);
 
-                // A properly constructed connectionUri will be contained within the original Uri string.
+                // A properly constructed connectionUri will be contained within the full Uri.
                 // We use a separate standard Uri to compare so we get expected Uri behavior w/r/t
                 // the Authority, which will not contain the port if it is the scheme's default.
 
@@ -244,12 +244,15 @@ public partial class WidgetTests
                     Assert.AreEqual("organization", azureUri.Organization);
                 }
 
-                // Test for equivalence of Connection Uris
+                // Test for equivalence of Connection Uris when the base Uri and the Connection
+                // should be equivalent.
                 if (azureUri.HostType == AzureHostType.Modern)
                 {
                     // Modern hosts have bare minimum Org requirement.
                     if (azureUri.Uri.Segments.Length == 2)
                     {
+                        // Exact equivalence may not be true depending on trailing slash in the
+                        // original Uri, but these are still functionally equivalent.
                         var normalizedOriginal = azureUri.Uri.ToString().Trim('/') + '/';
                         Assert.IsTrue(normalizedOriginal.Equals(azureUri.Connection.ToString(), StringComparison.OrdinalIgnoreCase));
                     }
