@@ -11,6 +11,7 @@ public partial class TestHelpers
 {
     private const string DataBaseFileName = "AzureExtension-Test.db";
     private const string LogFileName = "AzureExtension-{now}.log";
+    private const int CleanupRetryWaitTime = 1000 * 10;         // 10 seconds.
 
     public static void CleanupTempTestOptions(TestOptions options, TestContext context)
     {
@@ -19,19 +20,33 @@ public partial class TestHelpers
 
         // Directory delete will fail if a file has the name of the directory, so to be
         // thorough, check for file delete first.
-        if (File.Exists(path))
+        try
         {
-            context?.WriteLine($"Cleanup: Deleting file {path}");
-            File.Delete(path);
-        }
+            if (File.Exists(path))
+            {
+                context?.WriteLine($"Cleanup: Deleting file {path}");
+                File.Delete(path);
+            }
 
-        if (Directory.Exists(path))
+            if (Directory.Exists(path))
+            {
+                context?.WriteLine($"Cleanup: Deleting folder {path}");
+                Directory.Delete(path, true);
+            }
+        }
+        catch (IOException)
         {
-            context?.WriteLine($"Cleanup: Deleting folder {path}");
+            // Log writing being asychronous can sometimes lead to a test finishing before its
+            // log is done writing. This was leading to random intermittent test failures due
+            // to the log file being in use. If we encounter an IOException, wait a few seconds
+            // and try again.
+            Thread.Sleep(CleanupRetryWaitTime);
+            context?.WriteLine($"Cleanup: Retrying Deleting folder {path}");
             Directory.Delete(path, true);
-        }
 
-        // Intentionally not catching IO errors on cleanup, as that indicates a test problem.
+            // If it fails a second time we are intentionally not catching it, as that would
+            // indicate a test failure that wasn't just a race involving I/O writing.
+        }
     }
 
     public static TestOptions SetupTempTestOptions(TestContext context)
