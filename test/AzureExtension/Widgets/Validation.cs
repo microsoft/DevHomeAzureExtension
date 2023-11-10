@@ -13,6 +13,7 @@ public partial class WidgetTests
         Query,
         Repository,
         Unknown,
+        SignIn,
         Garbage,        // Anything that is expected to fail creation by a normal Uri.
     }
 
@@ -92,6 +93,43 @@ public partial class WidgetTests
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository", AzureUriType.Repository, true),
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository/", AzureUriType.Repository, true),
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository/some/other/stuff", AzureUriType.Repository, true),
+
+            // Azure DevOps services SignIn Uris
+            Tuple.Create("https://app.vssps.visualstudio.com/", AzureUriType.SignIn, true),
+            Tuple.Create("https://app.vssps.visualstudio.com/with/extra/stuff", AzureUriType.SignIn, true),
+            Tuple.Create("https://app.vssps.visualstudio.com:443/", AzureUriType.SignIn, true),
+            Tuple.Create("https://app.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, true),
+            Tuple.Create("https://organization.vssps.visualstudio.com/", AzureUriType.SignIn, true),
+            Tuple.Create("https://organization.vssps.visualstudio.com/with/extra/stuff", AzureUriType.SignIn, true),
+            Tuple.Create("https://organization.vssps.visualstudio.com:443/", AzureUriType.SignIn, true),
+            Tuple.Create("https://organization.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, true),
+
+            // Azure DevOps services SignIn Uris, modern format.
+            // Note port 443 is the default port for https, so Uri objects remove it.
+            Tuple.Create("https://vssps.dev.azure.com/organization", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com/organization/", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com:443/organization", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com:443/organization/", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com/organization/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com/organization/with/extra/stuff/", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com:443/organization/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://vssps.dev.azure.com:443/organization/with/extra/stuff/", AzureUriType.SignIn, false),
+
+            // Azure Devops SignIn Uris, legacy format.
+            // Note port 443 is the default port for https, so Uri objects remove it.
+            Tuple.Create("https://app.vssps.visualstudio.com/", AzureUriType.SignIn, false),
+            Tuple.Create("https://app.vssps.visualstudio.com:443/", AzureUriType.SignIn, false),
+            Tuple.Create("https://app.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com/", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com:443/", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://app.vssps.visualstudio.com:443/", AzureUriType.SignIn, false),
+            Tuple.Create("https://app.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com/", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com/with/extra/stuff", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com:443/", AzureUriType.SignIn, false),
+            Tuple.Create("https://organization.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, false),
         };
 
         var testUrisInvalid = new List<Tuple<string, AzureUriType, bool>>
@@ -122,14 +160,21 @@ public partial class WidgetTests
                 Assert.AreEqual(azureUri.Uri, uri);
             }
 
+            // All Valid inputs should be valid.
+            Assert.IsTrue(azureUri.IsValid);
+
+            // We only support hosted for now.
             Assert.IsTrue(azureUri.IsHosted);
-            var org = azureUri.Organization;
-            var project = azureUri.Project;
-            var repository = azureUri.Repository;
-            var query = azureUri.Query;
-            TestContext?.WriteLine($"Org: {org}  Project: {project}  Repository: {repository}  Query: {query}");
-            Assert.AreEqual("organization", org);
-            Assert.AreEqual("project", project);
+            TestContext?.WriteLine($"Org: {azureUri.Organization}  Project: {azureUri.Project}  Repository: {azureUri.Repository}  Query: {azureUri.Query}");
+
+            if (uriTuple.Item2 != AzureUriType.SignIn)
+            {
+                // Signin Uris may not have project.
+                // Signin Uris can also have "app" as the organization.
+                // Organization will be validated as part of that type.
+                Assert.AreEqual("organization", azureUri.Organization);
+                Assert.AreEqual("project", azureUri.Project);
+            }
 
             // Validate the constructor is identical if it is created from a Uri instead of a string.
             if (uriTuple.Item2 != AzureUriType.Garbage)
@@ -139,44 +184,87 @@ public partial class WidgetTests
                 Assert.AreEqual(azureUri.ToString(), uri.ToString());
                 Assert.AreEqual(azureUri.OriginalString, uri.OriginalString);
                 Assert.AreEqual(azureUri.Uri, uri);
+
+                var connectionUri = azureUri.Connection;
+                Assert.IsNotNull(connectionUri);
+                TestContext?.WriteLine($"Connection: {connectionUri}");
+
+                // All Https Uris have port 443 by default.
+                // We require https uri, therefore we must have port 443.
+                Assert.IsTrue(connectionUri.Port == 443);
+
+                // A properly constructed connectionUri will be contained within the full Uri.
+                // We use a separate standard Uri to compare so we get expected Uri behavior w/r/t
+                // the Authority, which will not contain the port if it is the scheme's default.
+
+                // The only modification is to enforce a trailing / which may or may not be there,
+                // but the trailing slash is part of the Authority and we normalize to that.
+                // We are testing for functional equivalence.
+                var normalizedOriginal = uri.ToString().Trim('/') + '/';
+                Assert.IsTrue(normalizedOriginal.StartsWith(connectionUri.ToString(), StringComparison.OrdinalIgnoreCase));
             }
 
             // Verify Query Uris have expected values.
             if (uriTuple.Item2 == AzureUriType.Query)
             {
                 Assert.IsTrue(azureUri.IsQuery);
-                Assert.AreEqual("12345678-1234-1234-1234-1234567890ab", query);
+                Assert.AreEqual("12345678-1234-1234-1234-1234567890ab", azureUri.Query);
             }
             else
             {
                 Assert.IsFalse(azureUri.IsQuery);
-                Assert.AreEqual(string.Empty, query);
+                Assert.AreEqual(string.Empty, azureUri.Query);
             }
 
             // Verify repository Uris have expected values.
             if (uriTuple.Item2 == AzureUriType.Repository)
             {
                 Assert.IsTrue(azureUri.IsRepository);
-                Assert.AreEqual("repository", repository);
+                Assert.AreEqual("repository", azureUri.Repository);
             }
             else
             {
                 Assert.IsFalse(azureUri.IsRepository);
-                Assert.AreEqual(string.Empty, repository);
+                Assert.AreEqual(string.Empty, azureUri.Repository);
             }
 
-            var connectionUri = azureUri.Connection;
-            Assert.IsNotNull(connectionUri);
-            TestContext?.WriteLine($"Connection: {connectionUri}");
+            if (uriTuple.Item2 == AzureUriType.SignIn)
+            {
+                if (azureUri.Organization.Equals("app", StringComparison.OrdinalIgnoreCase))
+                {
+                    // App is valid if it is parsed as an organization, but only
+                    // on legacy Uris. This directly validates that
+                    // app.vssps.visualstudio.com is a valid input uri.
+                    Assert.IsTrue(azureUri.HostType == AzureHostType.Legacy);
+                }
+                else
+                {
+                    // All other matches are assumed to be organization names.
+                    // This ensures we do not treat the "vssps" part as being part of the org name.
+                    Assert.AreEqual("organization", azureUri.Organization);
+                }
 
-            // Verify connection URI remains in the original format. Legacy URIs should use legacy connections.
-            if (azureUri.HostType == AzureHostType.Legacy)
-            {
-                Assert.AreEqual("https://organization.visualstudio.com/", connectionUri.ToString());
-            }
-            else
-            {
-                Assert.AreEqual("https://dev.azure.com/organization/", connectionUri.ToString());
+                // Test for equivalence of Connection Uris when the base Uri and the Connection
+                // should be equivalent.
+                if (azureUri.HostType == AzureHostType.Modern)
+                {
+                    // Modern hosts have bare minimum Org requirement.
+                    if (azureUri.Uri.Segments.Length == 2)
+                    {
+                        // Exact equivalence may not be true depending on trailing slash in the
+                        // original Uri, but these are still functionally equivalent.
+                        var normalizedOriginal = azureUri.Uri.ToString().Trim('/') + '/';
+                        Assert.IsTrue(normalizedOriginal.Equals(azureUri.Connection.ToString(), StringComparison.OrdinalIgnoreCase));
+                    }
+                }
+                else
+                {
+                    if (azureUri.Uri.Segments.Length < 2)
+                    {
+                        var normalizedOriginal = azureUri.Uri.ToString().Trim('/') + '/';
+                        Assert.IsTrue(normalizedOriginal.Equals(azureUri.Connection.ToString(), StringComparison.OrdinalIgnoreCase));
+                    }
+                }
             }
 
             TestContext?.WriteLine($"Valid: {uriTuple.Item1}");
