@@ -60,7 +60,7 @@
           "inlineAction": {
             "type": "Action.Execute",
             "verb": "Submit",
-            "iconUrl": "data:image/png;base64,${arrow}"
+            "iconUrl": "data:image/png;base64,${$root.arrow}"
           }
         },
         {
