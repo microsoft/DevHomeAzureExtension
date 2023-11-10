@@ -266,78 +266,74 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     public override void LoadContentData()
     {
-        var developerId = GetDevId(selectedDevId);
-        if (developerId == null)
-        {
-            // Should not happen
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
-            return;
-        }
-
-        var azureUri = new AzureUri(selectedRepositoryUrl);
-        if (!azureUri.IsRepository)
-        {
-            Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedRepositoryUrl}");
-            return;
-        }
-
-        PullRequests? pullRequests;
         try
         {
-            // This can throw if DataStore is not connected.
-            pullRequests = DataManager!.GetPullRequests(azureUri, developerId.LoginId, GetPullRequestView(selectedView));
-            if (pullRequests == null)
+            var developerId = GetDevId(selectedDevId);
+            if (developerId == null)
             {
-                // This is not always an error and this will happen for a new widget when it is first
-                // pinned before we actually have data populated. Treating this as an information log
-                // event rather than an error.
-                Log.Logger()?.ReportInfo(Name, ShortId, $"No pull request information found for {azureUri.Organization}/{azureUri.Project}/{azureUri.Repository}");
+                // Should not happen
+                Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
                 return;
             }
+
+            var azureUri = new AzureUri(selectedRepositoryUrl);
+            if (!azureUri.IsRepository)
+            {
+                Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedRepositoryUrl}");
+                return;
+            }
+
+            PullRequests? pullRequests;
+
+            // This can throw if DataStore is not connected.
+            pullRequests = DataManager!.GetPullRequests(azureUri, developerId.LoginId, GetPullRequestView(selectedView));
+
+            var pullRequestsResults = pullRequests is null ? new Dictionary<string, object>() : JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
+
+            var itemsData = new JsonObject();
+            var itemsArray = new JsonArray();
+
+            foreach (var element in pullRequestsResults)
+            {
+                var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
+
+                if (workItem != null)
+                {
+                    // If we can't get the real date, it is better better to show a recent
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
+                    var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    var dateTime = dateTicks.ToDateTime();
+
+                    var item = new JsonObject
+                    {
+                        { "title", workItem["Title"]?.GetValue<string>() ?? string.Empty },
+                        { "url", workItem["HtmlUrl"]?.GetValue<string>() ?? string.Empty },
+                        { "status_icon", GetIconForPullRequestStatus(workItem["Status"]?.GetValue<string>()) },
+                        { "number", element.Key },
+                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
+                        { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
+                        { "branch", workItem["TargetBranch"]?.GetValue<string>().Replace("refs/heads/", string.Empty) },
+                        { "avatar", workItem["CreatedBy"]?["Avatar"]?.GetValue<string>() },
+                    };
+
+                    itemsArray.Add(item);
+                }
+            }
+
+            itemsData.Add("maxItemsDisplayed", AzureDataManager.PullRequestResultLimit);
+            itemsData.Add("items", itemsArray);
+            itemsData.Add("widgetTitle", widgetTitle);
+            itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
+
+            ContentData = itemsData.ToJsonString();
+            UpdateActivityState();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, $"GetPullRequests failed.", ex);
+            Log.Logger()?.ReportError(Name, ShortId, "Error retrieving data.", e);
+            DataState = WidgetDataState.Failed;
             return;
         }
-
-        var pullRequestsResults = JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
-
-        var itemsData = new JsonObject();
-        var itemsArray = new JsonArray();
-
-        foreach (var element in pullRequestsResults)
-        {
-            var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
-
-            if (workItem != null)
-            {
-                // If we can't get the real date, it is better better to show a recent
-                // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
-                var dateTime = dateTicks.ToDateTime();
-
-                var item = new JsonObject
-                {
-                    { "title", workItem["Title"]?.GetValue<string>() ?? string.Empty },
-                    { "url", workItem["HtmlUrl"]?.GetValue<string>() ?? string.Empty },
-                    { "status_icon", GetIconForPullRequestStatus(workItem["Status"]?.GetValue<string>()) },
-                    { "number", element.Key },
-                    { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
-                    { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
-                    { "branch", workItem["TargetBranch"]?.GetValue<string>().Replace("refs/heads/", string.Empty) },
-                    { "avatar", workItem["CreatedBy"]?["Avatar"]?.GetValue<string>() },
-                };
-
-                itemsArray.Add(item);
-            }
-        }
-
-        itemsData.Add("items", itemsArray);
-        itemsData.Add("widgetTitle", widgetTitle);
-
-        ContentData = itemsData.ToJsonString();
-        UpdateActivityState();
     }
 
     // Overriding methods from Widget base

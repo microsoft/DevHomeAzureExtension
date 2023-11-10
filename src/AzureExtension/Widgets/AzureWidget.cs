@@ -165,6 +165,7 @@ public abstract class AzureWidget : WidgetImpl
             case WidgetAction.Save:
                 SavedConfigurationData = string.Empty;
                 ContentData = EmptyJson;
+                DataState = WidgetDataState.Unknown;
                 SetActive();
                 break;
 
