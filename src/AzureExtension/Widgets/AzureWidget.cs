@@ -234,7 +234,6 @@ public abstract class AzureWidget : WidgetImpl
         // User is not logged in if either there are zero DeveloperIds logged in, or the selected
         // DeveloperId for this widget is not logged in.
         var authProvider = DeveloperIdProvider.GetInstance();
-
         if (!authProvider.GetLoggedInDeveloperIds().DeveloperIds.Any())
         {
             return false;
