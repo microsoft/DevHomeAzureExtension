@@ -514,7 +514,6 @@ public abstract class AzureWidget : WidgetImpl
         {
             try
             {
-                // Determine if developerId changed is the selected.
                 var state = DeveloperIdProvider.GetInstance().GetDeveloperIdState(e);
                 if (state == AuthenticationState.LoggedIn)
                 {
