@@ -22,7 +22,6 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     // Widget Data
     private string widgetTitle = string.Empty;
-    private string selectedDevId = string.Empty;
     private string selectedRepositoryUrl = string.Empty;
     private string selectedRepositoryName = string.Empty;
     private string selectedView = DefaultSelectedView;
@@ -91,19 +90,19 @@ internal class AzurePullRequestsWidget : AzureWidget
         if (dataObject != null && dataObject["account"] != null && dataObject["query"] != null)
         {
             widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-            selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+            DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
             selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
             selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
-            SetDefaultDeveloperId();
-            if (selectedDevId != dataObject["account"]?.GetValue<string>())
+            SetDefaultDeveloperLoginId();
+            if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
             {
-                dataObject["account"] = selectedDevId;
+                dataObject["account"] = DeveloperLoginId;
                 data = dataObject.ToJsonString();
             }
 
             ConfigurationData = data;
 
-            var developerId = GetDevId(selectedDevId);
+            var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
                 message = Resources.GetResource(@"Widget_Template/DevIDError");
@@ -135,29 +134,21 @@ internal class AzurePullRequestsWidget : AzureWidget
         SetConfigure();
     }
 
-    // This method will attempt to select a DeveloperId if one is not already selected.
-    // It uses the input url and tries to find the most likely DeveloperId that corresponds to the
-    // url among the set of available DeveloperIds. If there is no best match it chooses the first
-    // available developerId or none if there are no DeveloperIds.
-    private void SetDefaultDeveloperId()
+    // Increase precision of SetDefaultDeveloperLoginId by matching the selectedRepositoryUrl's org
+    // with the first matching DeveloperId that contains that org.
+    protected override void SetDefaultDeveloperLoginId()
     {
-        if (!string.IsNullOrEmpty(selectedDevId))
-        {
-            return;
-        }
-
-        var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
-        if (devIds is null)
-        {
-            return;
-        }
-
-        // Set as the first DevId found, unless we find a better match from the Url.
-        selectedDevId = devIds.FirstOrDefault()?.LoginId ?? string.Empty;
+        base.SetDefaultDeveloperLoginId();
         var azureOrg = new AzureUri(selectedRepositoryUrl).Organization;
         if (!string.IsNullOrEmpty(azureOrg))
         {
-            selectedDevId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? selectedDevId;
+            var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
+            if (devIds is null)
+            {
+                return;
+            }
+
+            DeveloperLoginId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? DeveloperLoginId;
         }
     }
 
@@ -189,7 +180,7 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     public override void RequestContentData()
     {
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             // Should not happen
@@ -219,11 +210,11 @@ internal class AzurePullRequestsWidget : AzureWidget
         }
 
         widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-        selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+        DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
         selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
         selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
 
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             return;
@@ -251,7 +242,7 @@ internal class AzurePullRequestsWidget : AzureWidget
 
         configurationData.Add("accounts", developerIdsData);
 
-        configurationData.Add("selectedDevId", selectedDevId);
+        configurationData.Add("selectedDevId", DeveloperLoginId);
         configurationData.Add("url", selectedRepositoryUrl);
         configurationData.Add("selectedView", selectedView);
         configurationData.Add("message", message);
@@ -268,7 +259,7 @@ internal class AzurePullRequestsWidget : AzureWidget
     {
         try
         {
-            var developerId = GetDevId(selectedDevId);
+            var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
                 // Should not happen
