@@ -28,7 +28,7 @@
       <!-- _locComment_text="{MaxLength=10000} {Locked=Windows} App Description" -->Dev Home Azure Extension provides Azure integration into the Dev Home experience. This extension provides repository recommendations for Dev Home's machine configuration tool as well as Azure widgets for the dashboard. You will need Dev Home installed in order to use this extension.
 
 
-This is an open source project and we welcome community participation. To participate, please visit https://github.com/microsoft/devhomeadoextension </Description>
+This is an open source project and we welcome community participation. To participate, please visit https://github.com/microsoft/devhomeazureextension </Description>
   <ShortDescription _locID="App_ShortDescription">
     <!-- Only used for games. This description appears in the Information section of the Game Hub on Xbox One, and helps customers understand more about your game. -->
     <!-- _locComment_text="{MaxLength=500} App ShortDescription" -->
@@ -54,10 +54,10 @@ This is an open source project and we welcome community participation. To partic
   <ScreenshotCaptions>
     <!-- Valid length: 200 character limit, up to 9 elements per platform -->
     <!-- Valid attributes: any of DesktopImage, MobileImage, XboxImage, SurfaceHubImage, and HoloLensImage -->
-    <Caption DesktopImage="github-dashboard.png" _locID="App_caption1">
+    <Caption DesktopImage="azure-dashboard.png" _locID="App_caption1">
       <!-- _locComment_text="{MaxLength=200} Screenshot caption 1" -->
     </Caption>
-    <Caption DesktopImage="github-setup.png" _locID="App_caption2">
+    <Caption DesktopImage="azure-repo.png" _locID="App_caption2">
       <!-- _locComment_text="{MaxLength=200} Screenshot caption 2" -->
     </Caption>
   </ScreenshotCaptions>
@@ -80,7 +80,8 @@ This is an open source project and we welcome community participation. To partic
     <AppFeature _locID="App_feature2">
       <!-- _locComment_text="{MaxLength=200} App Feature 2" -->Azure widgets</AppFeature>
     <AppFeature _locID="App_feature3">
-      <!-- _locComment_text="{MaxLength=200} App Feature 3" -->Windows GitHub notifications</AppFeature>
+      <!-- _locComment_text="{MaxLength=200} App Feature 3" -->
+    </AppFeature>
     <AppFeature _locID="App_feature4">
       <!-- _locComment_text="{MaxLength=200} App Feature 4" -->
     </AppFeature>
@@ -148,9 +149,9 @@ This is an open source project and we welcome community participation. To partic
     <!-- _locComment_text="{MaxLength=10000} Additional License Terms" -->
   </AdditionalLicenseTerms>
   <WebsiteURL _locID="App_WebsiteURL">
-    <!-- _locComment_text="{MaxLength=2048} WebsiteURL" -->https://github.com/microsoft/devhomeadoextension</WebsiteURL>
+    <!-- _locComment_text="{MaxLength=2048} WebsiteURL" -->https://github.com/microsoft/devhomeazureextension</WebsiteURL>
   <SupportContactInfo _locID="App_SupportContactInfo">
-    <!-- _locComment_text="{MaxLength=2048} Support Contact Info" -->https://github.com/microsoft/devhomeadoextension/issues/new</SupportContactInfo>
+    <!-- _locComment_text="{MaxLength=2048} Support Contact Info" -->https://github.com/microsoft/devhomeazureextension/issues/new</SupportContactInfo>
   <PrivacyPolicyURL _locID="App_PrivacyURL">
     <!-- _locComment_text="{MaxLength=2048} Privacy Policy URL" -->https://go.microsoft.com/fwlink/?LinkID=521839</PrivacyPolicyURL>
 </ProductDescription>

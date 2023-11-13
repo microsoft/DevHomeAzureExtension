@@ -1,11 +1,11 @@
-![image](https://github.com/microsoft/devhomeadoextension/blob/main/src/AzureExtensionServer/Assets/StoreDisplay-150.png)
+![image](https://github.com/microsoft/devhomeazureextension/blob/main/src/AzureExtensionServer/Assets/StoreDisplay-150.png)
 
 # Welcome to the Dev Home Azure Extension repo
 
 
 This repository contains the source code for:
 
-* [Dev Home Azure Extension](https://aka.ms/devhomeadoextension)
+* [Dev Home Azure Extension](https://aka.ms/devhomeazureextension)
 * Dev Home Azure widgets
 
 Related repositories include:
@@ -23,13 +23,13 @@ This allows you to always be on the latest version when we release new builds wi
 
 This is our preferred method.
 
-You can also install the Dev Home Azure Extension from its own [Microsoft Store listing](https://aka.ms/devhomeadoextension).
+You can also install the Dev Home Azure Extension from its own [Microsoft Store listing](https://aka.ms/devhomeazureextension).
 
 ### Other install methods
 
 #### Via GitHub
 
-For users who are unable to install the Dev Home Azure Extension from the Microsoft Store, released builds can be manually downloaded from this repository's [Releases page](https://github.com/microsoft/devhomeadoextension/releases).
+For users who are unable to install the Dev Home Azure Extension from the Microsoft Store, released builds can be manually downloaded from this repository's [Releases page](https://github.com/microsoft/devhomeazureextension/releases).
 
 ---
 
@@ -57,7 +57,7 @@ Documentation for the Dev Home Azure Extension can be found at https://aka.ms/de
 
 We are excited to work alongside you, our amazing community, to build and enhance the Dev Home Azure Extension!
 
-***BEFORE you start work on a feature/fix***, please read & follow our [Contributor's Guide](https://github.com/microsoft/devhomeadoextension/blob/main/CONTRIBUTING.md) to help avoid any wasted or duplicate effort.
+***BEFORE you start work on a feature/fix***, please read & follow our [Contributor's Guide](https://github.com/microsoft/devhomeazureextension/blob/main/CONTRIBUTING.md) to help avoid any wasted or duplicate effort.
 
 ## Communicating with the team
 
@@ -67,9 +67,9 @@ Please file new issues, feature requests and suggestions, but **DO search for si
 
 If you would like to ask a question that you feel doesn't warrant an issue (yet), please reach out to us via Twitter:
 
-* Kayla Cinnamon, Product Manager: [@cinnamon_msft](https://twitter.com/cinnamon_msft)
-* Clint Rutkas, Senior Product Manager: [@crutkas](https://twitter.com/crutkas)
-* Ujjwal Chadha, Developer: [@ujjwalscript](https://twitter.com/ujjwalscript)
+* [Kayla Cinnamon](https://github.com/cinnamon-msft), Senior Product Manager: [@cinnamon_msft](https://twitter.com/cinnamon_msft)
+* [Clint Rutkas](https://github.com/crutkas), Principal Product Manager: [@clintrutkas](https://twitter.com/clintrutkas) 
+* [Leeza Mathew](https://github.com/mathewleeza), Engineering Lead: [@leezamathew](https://twitter.com/leezamathew)
 
 ## Developer guidance
 
