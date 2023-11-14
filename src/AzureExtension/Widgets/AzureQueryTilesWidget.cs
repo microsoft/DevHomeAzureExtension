@@ -138,7 +138,9 @@ internal class AzureQueryTilesWidget : AzureWidget
                 CanPin = true;
 
                 // Tiles were updated on Submit, restore them from the saved configuration data.
+                ResetNumberOfTilesFromData(ConfigurationData);
                 UpdateAllTiles(ConfigurationData);
+                ValidateConfigurationData();
                 SetActive();
                 break;
 
