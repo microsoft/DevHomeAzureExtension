@@ -66,20 +66,6 @@
                 }
               ],
               "width": "stretch"
-            },
-            {
-              "type": "Column",
-              "width": "auto",
-              "items": [
-                {
-                  "type": "Image",
-                  "url": "data:image/png;base64,${status_icon}",
-                  "style": "Person",
-                  "height": "15px"
-                }
-              ],
-              "verticalContentAlignment": "Center",
-              "horizontalAlignment": "Right"
             }
           ]
         },
