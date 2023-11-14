@@ -104,7 +104,7 @@
                           "columns": [
                             {
                               "type": "Column",
-                              "verticalContentAlignment": "center",
+                              "verticalContentAlignment": "top",
                               "items": [
                                 {
                                   "type": "Image",
