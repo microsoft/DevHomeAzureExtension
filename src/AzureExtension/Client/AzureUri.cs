@@ -40,6 +40,11 @@ public class AzureUri
 
     private readonly Lazy<Uri> _connection;
 
+    /// <summary>
+    /// ADO APIs need a specific URI for getting information about an organization.
+    /// </summary>
+    private readonly Lazy<Uri> _organizationLink;
+
     // Original input string, similar to Uri, but in cases of an invalid Uri they will be different.
     public string OriginalString { get; } = string.Empty;
 
@@ -80,6 +85,8 @@ public class AzureUri
     public string Query => _query.Value;
 
     public Uri Connection => _connection.Value;
+
+    public Uri OrganizationLink => _organizationLink.Value;
 
     // If an invalid input or Uri was passed in (null, empty string, etc), the object
     // is still valid, but the Uri will be DefaultUriString, not the original input,
@@ -135,6 +142,7 @@ public class AzureUri
         _isQuery = new Lazy<bool>(InitializeIsQuery);
         _query = new Lazy<string>(InitializeQuery);
         _connection = new Lazy<Uri>(InitializeConnection);
+        _organizationLink = new Lazy<Uri>(InitializeOrganizationLink);
     }
 
     private AzureHostType InitializeAzureHostType()
@@ -481,6 +489,49 @@ public class AzureUri
         else
         {
             return newUri;
+        }
+    }
+
+    private Uri InitializeOrganizationLink()
+    {
+        Uri? orgUri = null;
+        switch (HostType)
+        {
+            case AzureHostType.Legacy:
+
+                // https://organization@dev.azure.com/organization/project/_git/repository <- from clone window
+                // https://dev.azure.com/organization/project/_git/repository <- from repo url window
+                var legacyOrgUri = Uri.Scheme + "://" + Uri.Host;
+                if (!Uri.TryCreate(legacyOrgUri, UriKind.Absolute, out orgUri))
+                {
+                    Log.Logger()?.ReportError("Could not make Org Uri");
+                }
+
+                break;
+            case AzureHostType.Modern:
+
+                // https://organization@dev.azure.com/organization/project/_git/repository <- from clone window
+                // https://dev.azure.com/organization/project/_git/repository <- from repo url window
+                var modernOrgUri = Uri.Scheme + "://" + Uri.Host + "/" + Organization;
+                if (!Uri.TryCreate(modernOrgUri, UriKind.Absolute, out orgUri))
+                {
+                    Log.Logger()?.ReportError("Could not make Org Uri");
+                }
+
+                break;
+            default:
+                break;
+        }
+
+        // Always return a valid Uri object.
+        // Callers should verify it is valid using IsValid property.
+        if (orgUri is null)
+        {
+            return new(ValidUriString);
+        }
+        else
+        {
+            return orgUri;
         }
     }
 }

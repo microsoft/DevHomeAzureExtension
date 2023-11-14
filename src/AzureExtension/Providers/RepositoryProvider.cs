@@ -3,7 +3,6 @@
 
 using System.Security.Authentication;
 using System.Text;
-using AzureExtension.Providers;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
@@ -264,11 +263,11 @@ public class RepositoryProvider : IRepositoryProvider
                     return new RepositoryResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
                 }
 
-                var repoInformation = new RepositoryInformation(uri);
+                var repoInformation = new AzureUri(uri);
                 var connection = new VssConnection(repoInformation.OrganizationLink, new VssAadCredential(new VssAadToken("Bearer", authResult.AccessToken)));
 
                 GitHttpClient gitClient = connection.GetClient<GitHttpClient>();
-                var repo = gitClient.GetRepositoryAsync(repoInformation.Project, repoInformation.RepoName).Result;
+                var repo = gitClient.GetRepositoryAsync(repoInformation.Project, repoInformation.Repository).Result;
                 if (repo == null)
                 {
                     var exception = new LibGit2Sharp.NotFoundException("Could not find the repo.");
