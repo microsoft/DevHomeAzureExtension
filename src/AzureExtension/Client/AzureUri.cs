@@ -297,9 +297,9 @@ public class AzureUri
             // There is a special situation with Repository URLs where the project name is omitted
             // if the repository is the same name as the project. In this situation the segment
             // immediately preceding the _git segment must be the organization segment.
-            if (APISegment.Equals("_git", StringComparison.OrdinalIgnoreCase)
+            if ((APISegmentIndex == (2 + hostTypeOffset))
                 && (Uri!.Segments.Length > (APISegmentIndex + 1))
-                && (APISegmentIndex == (2 + hostTypeOffset)))
+                && APISegment.Equals("_git", StringComparison.OrdinalIgnoreCase))
             {
                 // The target segment is the repository name.
                 targetSegment = APISegmentIndex + 1;
