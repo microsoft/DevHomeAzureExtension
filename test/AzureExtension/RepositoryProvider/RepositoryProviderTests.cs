@@ -1,12 +1,76 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using System.Runtime.CompilerServices;
+using DevHomeAzureExtension.Client;
 using Microsoft.Windows.DevHome.SDK;
+using static DevHomeAzureExtension.Test.WidgetTests;
 
 namespace DevHomeAzureExtension.Test;
 
 public partial class RepositoryProviderTests
 {
+    private const string LegacyOrganizationLink = "https://organization.visualstudio.com";
+    private const string ModernOrganizationLink = "https://dev.azure.com/organization";
+    private const string OrganizationName = "organization";
+    private const string ProjectName = "project";
+    private const string RepositoryName = "repository";
+
+    private List<Tuple<string, bool>> _validUrls = new();
+
+    private List<Tuple<string, bool>> GetValidUrls()
+    {
+        if (_validUrls.Any())
+        {
+            return _validUrls;
+        }
+
+        List<Tuple<string, bool>> azureUris = new();
+        azureUris.Add(new Tuple<string, bool>("https://organization@dev.azure.com/organization/project/_git/repository", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization@dev.azure.com/organization/project/_git/repository/", false));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/project/_git/repository", false));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/project/_git/repository/", false));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/project/_git/repository/some/other/stuff", false));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/collection/project/_git/repository", false));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/collection/project/_git/repository/", false));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/collection/project/_git/repository/some/other/stuff", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/project/_git/repository", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/project/_git/repository/", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/project/_git/repository/some/other/stuff", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/collection/project/_git/repository", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/collection/project/_git/repository/", false));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/collection/project/_git/repository/some/other/stuff", false));
+
+        // Repositories where repository name = project name.
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/_git/project", true));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/_git/project/", true));
+        azureUris.Add(new Tuple<string, bool>("https://dev.azure.com/organization/_git/project/some/other/stuff", true));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/_git/project", true));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/_git/project/", true));
+        azureUris.Add(new Tuple<string, bool>("https://organization.visualstudio.com/_git/project/some/other/stuff", true));
+
+        _validUrls = azureUris;
+
+        return _validUrls;
+    }
+
+    private List<string> _invalidUrls = new();
+
+    private List<string> GetInvalidUrls()
+    {
+        if (_invalidUrls.Any())
+        {
+            return _invalidUrls;
+        }
+
+        // _invalidUrls.Add("https://www.microsoft.com");
+        // _invalidUrls.Add("https://github.com/owner/repo/pulls?q=is%3Aopen+mentions%3A%40me");
+        // _invalidUrls.Add(string.Empty);
+        _invalidUrls.Add("https://dev.azure.com/organization/project/_workitems/recentlyupdated/");
+
+        return _invalidUrls;
+    }
+
     [TestMethod]
     [TestCategory("Unit")]
     public void ValidateCanGetProvider()
@@ -20,14 +84,54 @@ public partial class RepositoryProviderTests
 
     [TestMethod]
     [TestCategory("Unit")]
-    public void CanParseGoodURL()
+    public void CanParseURL()
     {
-        // TO DO: Implement for Azure Extension
+        foreach (var azureUriTuple in GetValidUrls())
+        {
+            TestContext?.WriteLine($"Testing {azureUriTuple.Item1}");
+            var myAzureUri = new AzureUri(azureUriTuple.Item1);
+            Assert.IsTrue(myAzureUri.IsValid);
+            Assert.IsTrue(myAzureUri.IsRepository);
+
+            Assert.AreEqual(myAzureUri.Organization, OrganizationName);
+            Assert.AreEqual(myAzureUri.Project, ProjectName);
+
+            // The project is the same name as the repo
+            if (azureUriTuple.Item2)
+            {
+                Assert.AreEqual(myAzureUri.Repository, ProjectName);
+            }
+            else
+            {
+                Assert.AreEqual(myAzureUri.Repository, RepositoryName);
+            }
+
+            if (myAzureUri.HostType == AzureHostType.Legacy)
+            {
+                Assert.AreEqual(myAzureUri.OrganizationLink.OriginalString, LegacyOrganizationLink);
+            }
+            else if (myAzureUri.HostType == AzureHostType.Modern)
+            {
+                Assert.AreEqual(myAzureUri.OrganizationLink.OriginalString, ModernOrganizationLink);
+            }
+            else
+            {
+                Assert.Fail();
+            }
+        }
+
+        foreach (var invalidUrl in GetInvalidUrls())
+        {
+            TestContext?.WriteLine($"Testing {invalidUrl}");
+            var myAzureUri = new AzureUri(invalidUrl);
+            Assert.IsTrue(myAzureUri.IsValid);
+            Assert.IsFalse(myAzureUri.IsRepository);
+        }
     }
 
     [TestMethod]
     [TestCategory("Unit")]
-    public void CanClone()
+    public void TestIsUriSupported()
     {
         var manualResetEvent = new ManualResetEvent(false);
         var azureExtension = new AzureExtension(manualResetEvent);
@@ -37,9 +141,19 @@ public partial class RepositoryProviderTests
         var repositoryProvider = repositoryObject as IRepositoryProvider;
         Assert.IsNotNull(repositoryProvider);
 
-        // Not supported yet, verify the call to parse URI returns false.
-        var result = repositoryProvider.IsUriSupportedAsync(new Uri(WASDK_URL)).AsTask().Result;
-        Assert.IsFalse(result.IsSupported);
+        foreach (var azureUriTuple in GetValidUrls())
+        {
+            TestContext?.WriteLine($"Testing {azureUriTuple.Item1}");
+            var resultObject = repositoryProvider.IsUriSupportedAsync(new Uri(azureUriTuple.Item1)).AsTask().Result;
+            Assert.IsTrue(resultObject.IsSupported);
+        }
+
+        foreach (var invalidUrl in GetInvalidUrls())
+        {
+            TestContext?.WriteLine($"Testing {invalidUrl}");
+            var resultObject = repositoryProvider.IsUriSupportedAsync(new Uri(invalidUrl)).AsTask().Result;
+            Assert.IsFalse(resultObject.IsSupported);
+        }
     }
 
     [TestMethod]

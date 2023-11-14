@@ -84,8 +84,6 @@ public partial class WidgetTests
             // Repositories
             Tuple.Create("https://dev.azure.com/organization/project/_git/repository", AzureUriType.Repository, false),
             Tuple.Create("https://dev.azure.com/organization/project/_git/repository/", AzureUriType.Repository, false),
-            Tuple.Create("https://organization@dev.azure.com/organization/project/_git/repository", AzureUriType.Repository, false),
-            Tuple.Create("https://organization@dev.azure.com/organization/project/_git/repository/", AzureUriType.Repository, false),
             Tuple.Create("https://dev.azure.com/organization/project/_git/repository/some/other/stuff", AzureUriType.Repository, false),
             Tuple.Create("https://dev.azure.com/organization/collection/project/_git/repository", AzureUriType.Repository, false),
             Tuple.Create("https://dev.azure.com/organization/collection/project/_git/repository/", AzureUriType.Repository, false),
