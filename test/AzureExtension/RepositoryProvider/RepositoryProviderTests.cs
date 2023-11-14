@@ -63,12 +63,22 @@ public partial class RepositoryProviderTests
             return _invalidUrls;
         }
 
-        // _invalidUrls.Add("https://www.microsoft.com");
-        // _invalidUrls.Add("https://github.com/owner/repo/pulls?q=is%3Aopen+mentions%3A%40me");
-        // _invalidUrls.Add(string.Empty);
-        _invalidUrls.Add("https://dev.azure.com/organization/project/_workitems/recentlyupdated/");
-
+        _invalidUrls.Add("https://www.microsoft.com");
+        _invalidUrls.Add("https://github.com/owner/repo/pulls?q=is%3Aopen+mentions%3A%40me");
         return _invalidUrls;
+    }
+
+    private List<string> _validNotRepoUrls = new();
+
+    private List<string> GetValidNotRepoUrls()
+    {
+        if (_validNotRepoUrls.Any())
+        {
+            return _validNotRepoUrls;
+        }
+
+        _validNotRepoUrls.Add("https://dev.azure.com/organization/project/_workitems/recentlyupdated/");
+        return _validNotRepoUrls;
     }
 
     [TestMethod]
@@ -124,6 +134,14 @@ public partial class RepositoryProviderTests
         {
             TestContext?.WriteLine($"Testing {invalidUrl}");
             var myAzureUri = new AzureUri(invalidUrl);
+            Assert.IsFalse(myAzureUri.IsValid);
+            Assert.IsFalse(myAzureUri.IsRepository);
+        }
+
+        foreach (var validNotRepositoryUrl in GetValidNotRepoUrls())
+        {
+            TestContext?.WriteLine($"Testing {validNotRepositoryUrl}");
+            var myAzureUri = new AzureUri(validNotRepositoryUrl);
             Assert.IsTrue(myAzureUri.IsValid);
             Assert.IsFalse(myAzureUri.IsRepository);
         }
@@ -152,6 +170,13 @@ public partial class RepositoryProviderTests
         {
             TestContext?.WriteLine($"Testing {invalidUrl}");
             var resultObject = repositoryProvider.IsUriSupportedAsync(new Uri(invalidUrl)).AsTask().Result;
+            Assert.IsFalse(resultObject.IsSupported);
+        }
+
+        foreach (var validNotRepositoryUrl in GetValidNotRepoUrls())
+        {
+            TestContext?.WriteLine($"Testing {validNotRepositoryUrl}");
+            var resultObject = repositoryProvider.IsUriSupportedAsync(new Uri(validNotRepositoryUrl)).AsTask().Result;
             Assert.IsFalse(resultObject.IsSupported);
         }
     }
