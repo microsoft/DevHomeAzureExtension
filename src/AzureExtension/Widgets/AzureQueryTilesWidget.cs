@@ -139,7 +139,9 @@ internal class AzureQueryTilesWidget : AzureWidget
                 CanPin = true;
 
                 // Tiles were updated on Submit, restore them from the saved configuration data.
+                ResetNumberOfTilesFromData(ConfigurationData);
                 UpdateAllTiles(ConfigurationData);
+                ValidateConfigurationData();
                 SetActive();
                 break;
 
@@ -384,7 +386,7 @@ internal class AzureQueryTilesWidget : AzureWidget
                     // Uri was not changed by the user since the last update, so update the title
                     // if it is different, otherwise leave it alone so we only validate once.
                     // We just update the title if it is not empty.
-                    if (tile.Title != titleFromData && titleFromData.Any())
+                    if (tile.Title != titleFromData)
                     {
                         tile.Title = titleFromData;
                         tiles[i] = tile;
