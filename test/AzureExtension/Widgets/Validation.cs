@@ -12,6 +12,7 @@ public partial class WidgetTests
         WorkItem,
         Query,
         Repository,
+        RepositoryNoProject,
         Unknown,
         SignIn,
         Garbage,        // Anything that is expected to fail creation by a normal Uri.
@@ -94,6 +95,14 @@ public partial class WidgetTests
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository/", AzureUriType.Repository, true),
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository/some/other/stuff", AzureUriType.Repository, true),
 
+            // Repositories where repository name = project name.
+            Tuple.Create("https://dev.azure.com/organization/_git/repository", AzureUriType.RepositoryNoProject, false),
+            Tuple.Create("https://dev.azure.com/organization/_git/repository/", AzureUriType.RepositoryNoProject, false),
+            Tuple.Create("https://dev.azure.com/organization/_git/repository/some/other/stuff", AzureUriType.RepositoryNoProject, false),
+            Tuple.Create("https://organization.visualstudio.com/_git/repository", AzureUriType.RepositoryNoProject, true),
+            Tuple.Create("https://organization.visualstudio.com/_git/repository/", AzureUriType.RepositoryNoProject, true),
+            Tuple.Create("https://organization.visualstudio.com/_git/repository/some/other/stuff", AzureUriType.RepositoryNoProject, true),
+
             // Azure DevOps services SignIn Uris
             Tuple.Create("https://app.vssps.visualstudio.com/", AzureUriType.SignIn, true),
             Tuple.Create("https://app.vssps.visualstudio.com/with/extra/stuff", AzureUriType.SignIn, true),
@@ -167,13 +176,21 @@ public partial class WidgetTests
             Assert.IsTrue(azureUri.IsHosted);
             TestContext?.WriteLine($"Org: {azureUri.Organization}  Project: {azureUri.Project}  Repository: {azureUri.Repository}  Query: {azureUri.Query}");
 
-            if (uriTuple.Item2 != AzureUriType.SignIn)
+            if (uriTuple.Item2 != AzureUriType.SignIn && uriTuple.Item2 != AzureUriType.RepositoryNoProject)
             {
                 // Signin Uris may not have project.
+                // Some repository URIs will have a different project.
                 // Signin Uris can also have "app" as the organization.
                 // Organization will be validated as part of that type.
                 Assert.AreEqual("organization", azureUri.Organization);
                 Assert.AreEqual("project", azureUri.Project);
+            }
+
+            if (uriTuple.Item2 == AzureUriType.RepositoryNoProject)
+            {
+                // No project Uris have the repository name as the project.
+                Assert.AreEqual("organization", azureUri.Organization);
+                Assert.AreEqual("repository", azureUri.Project);
             }
 
             // Validate the constructor is identical if it is created from a Uri instead of a string.
@@ -217,7 +234,7 @@ public partial class WidgetTests
             }
 
             // Verify repository Uris have expected values.
-            if (uriTuple.Item2 == AzureUriType.Repository)
+            if (uriTuple.Item2 == AzureUriType.Repository || uriTuple.Item2 == AzureUriType.RepositoryNoProject)
             {
                 Assert.IsTrue(azureUri.IsRepository);
                 Assert.AreEqual("repository", azureUri.Repository);

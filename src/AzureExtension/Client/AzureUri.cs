@@ -294,10 +294,20 @@ public class AzureUri
         }
         else
         {
-            // Project must be the preceding segment, as long as it is either segment 2
-            // or segment 3.
-            if (targetSegment < (2 + hostTypeOffset) || targetSegment > (3 + hostTypeOffset))
+            // There is a special situation with Repository URLs where the project name is omitted
+            // if the repository is the same name as the project. In this situation the segment
+            // immediately preceding the _git segment must be the organization segment.
+            if (APISegment.Equals("_git", StringComparison.OrdinalIgnoreCase)
+                && (Uri!.Segments.Length > (APISegmentIndex + 1))
+                && (APISegmentIndex == (2 + hostTypeOffset)))
             {
+                // The target segment is the repository name.
+                targetSegment = APISegmentIndex + 1;
+            }
+            else if (targetSegment < (2 + hostTypeOffset) || targetSegment > (3 + hostTypeOffset))
+            {
+                // Project must be the preceding segment, as long as it is either segment 2
+                // or segment 3.
                 return string.Empty;
             }
         }
