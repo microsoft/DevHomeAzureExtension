@@ -6,7 +6,6 @@
     {
       "type": "ColumnSet",
       "$data": "${lines}",
-      "$when": "${$index == 0 || ($index == 1 && $host.widgetSize != 'small') || ($index == 2 && $host.widgetSize == 'large')}",
       "spacing": "small",
       "columns": [
         {
@@ -44,7 +43,6 @@
           "backgroundImage": {
               "url": "data:image/png;base64,${backgroundImage}"
           },
-          "horizontalAlignment": "Left",
           "verticalContentAlignment": "Center",
           "spacing": "small",
           "style": "emphasis"
