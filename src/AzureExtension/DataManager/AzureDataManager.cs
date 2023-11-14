@@ -695,7 +695,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Connections can go bad and throw VssUnauthorizedException after some time, even if
     // if HasAuthenticated is true. The forceNewConnection default parameter is set to true until
     // the bad connection issue can be reliably detected and solved.
-    // TODO: https://github.com/microsoft/DevHomeADOExtension/issues/63
     public static ConnectionResult GetConnection(Uri connectionUri, DeveloperId.DeveloperId developerId, bool forceNewConnection = true)
     {
         VssConnection? connection;

@@ -135,6 +135,7 @@ internal class AzureQueryTilesWidget : AzureWidget
                 // Put back the configuration data from before we started changing the widget.
                 ConfigurationData = SavedConfigurationData;
                 SavedConfigurationData = string.Empty;
+                CanPin = true;
 
                 // Tiles were updated on Submit, restore them from the saved configuration data.
                 UpdateAllTiles(ConfigurationData);
@@ -169,9 +170,6 @@ internal class AzureQueryTilesWidget : AzureWidget
 
                 // The DataManager log will have detailed exception info, use the short message.
                 Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
-
-                // TODO: Display error to user however design deems appropriate.
-                // https://github.com/microsoft/DevHomeADOExtension/issues/50
                 return;
             }
 

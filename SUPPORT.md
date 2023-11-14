@@ -10,8 +10,8 @@ For help and questions about using this project, please look at the [docs site f
 
 Support for Dev Home Azure Extension is limited to the resources listed above.
 
-[gh-issue]: https://github.com/microsoft/devhomeadoextension/issues/new/choose
-[gh-bug]: https://github.com/microsoft/devhomeadoextension/issues/new?assignees=&labels=Issue-Bug&projects=&template=Bug_Report.yml
-[gh-feature]: https://github.com/microsoft/devhomeadoextension/issues/new?assignees=&labels=Issue-Bug&projects=&template=Feature_Request.yml
-[docs]: https://docs.microsoft.com/windows/devhomeadoextension
-[contributor]: https://github.com/microsoft/devhomeadoextension/blob/main/CONTRIBUTING.md
+[gh-issue]: https://github.com/microsoft/devhomeazureextension/issues/new/choose
+[gh-bug]: https://github.com/microsoft/devhomeazureextension/issues/new?assignees=&labels=Issue-Bug&projects=&template=Bug_Report.yml
+[gh-feature]: https://github.com/microsoft/devhomeazureextension/issues/new?assignees=&labels=Issue-Bug&projects=&template=Feature_Request.yml
+[docs]: https://docs.microsoft.com/windows/devhomeazureextension
+[contributor]: https://github.com/microsoft/devhomeazureextension/blob/main/CONTRIBUTING.md
