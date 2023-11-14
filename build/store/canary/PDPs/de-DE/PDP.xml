@@ -29,7 +29,7 @@
   <Description _locID="App_Description">
       <!-- _locComment_text="{MaxLength=10000} {Locked=Windows} App Description" -->Die GitHub-Erweiterung für Dev Home bietet eine GitHub-Integration in die Dev Home-Umgebung. Diese Erweiterung bietet Repository-Empfehlungen für das Maschinenkonfigurationstool von Dev Home sowie GitHub-Widgets für das Dashboard. Sie müssen Dev Home installiert haben, um diese Erweiterung verwenden zu können.
 
-Dies ist ein Open-Source-Projekt und wir freuen uns über die Beteiligung der Community. Um teilzunehmen, besuchen Sie bitte https://github.com/microsoft/devhomegithubextension </Description>
+Dies ist ein Open-Source-Projekt und wir freuen uns über die Beteiligung der Community. Um teilzunehmen, besuchen Sie bitte https://github.com/microsoft/devhomeazureextension </Description>
   <ShortDescription _locID="App_ShortDescription">
     <!-- Only used for games. This description appears in the Information section of the Game Hub on Xbox One, and helps customers understand more about your game. -->
     <!-- _locComment_text="{MaxLength=500} App ShortDescription" -->
@@ -55,10 +55,10 @@ Dies ist ein Open-Source-Projekt und wir freuen uns über die Beteiligung der Co
   <ScreenshotCaptions>
     <!-- Valid length: 200 character limit, up to 9 elements per platform -->
     <!-- Valid attributes: any of DesktopImage, MobileImage, XboxImage, SurfaceHubImage, and HoloLensImage -->
-    <Caption DesktopImage="github-dashboard.png" _locID="App_caption1">
+    <Caption DesktopImage="azure-dashboard.png" _locID="App_caption1">
       <!-- _locComment_text="{MaxLength=200} Screenshot caption 1" -->
     </Caption>
-    <Caption DesktopImage="github-setup.png" _locID="App_caption2">
+    <Caption DesktopImage="azure-repo.png" _locID="App_caption2">
       <!-- _locComment_text="{MaxLength=200} Screenshot caption 2" -->
     </Caption>
   </ScreenshotCaptions>
@@ -79,9 +79,10 @@ Dies ist ein Open-Source-Projekt und wir freuen uns über die Beteiligung der Co
     <AppFeature _locID="App_feature1">
       <!-- _locComment_text="{MaxLength=200} App Feature 1" -->Repository-Empfehlungen</AppFeature>
     <AppFeature _locID="App_feature2">
-      <!-- _locComment_text="{MaxLength=200} App Feature 2" -->GitHub-Widgets</AppFeature>
+      <!-- _locComment_text="{MaxLength=200} App Feature 2" -->Azure-Widgets</AppFeature>
     <AppFeature _locID="App_feature3">
-      <!-- _locComment_text="{MaxLength=200} App Feature 3" -->Windows GitHub-Benachrichtigungen</AppFeature>
+      <!-- _locComment_text="{MaxLength=200} App Feature 3" -->
+    </AppFeature>
     <AppFeature _locID="App_feature4">
       <!-- _locComment_text="{MaxLength=200} App Feature 4" -->
     </AppFeature>
@@ -149,9 +150,9 @@ Dies ist ein Open-Source-Projekt und wir freuen uns über die Beteiligung der Co
     <!-- _locComment_text="{MaxLength=10000} Additional License Terms" -->
   </AdditionalLicenseTerms>
   <WebsiteURL _locID="App_WebsiteURL">
-    <!-- _locComment_text="{MaxLength=2048} WebsiteURL" -->https://github.com/microsoft/devhome</WebsiteURL>
+    <!-- _locComment_text="{MaxLength=2048} WebsiteURL" -->https://github.com/microsoft/devhomeazureextension</WebsiteURL>
   <SupportContactInfo _locID="App_SupportContactInfo">
-    <!-- _locComment_text="{MaxLength=2048} Support Contact Info" -->https://github.com/microsoft/devhome/issues/new</SupportContactInfo>
+    <!-- _locComment_text="{MaxLength=2048} Support Contact Info" -->https://github.com/microsoft/devhomeazureextension/issues/new</SupportContactInfo>
   <PrivacyPolicyURL _locID="App_PrivacyURL">
     <!-- _locComment_text="{MaxLength=2048} Privacy Policy URL" -->https://go.microsoft.com/fwlink/?LinkID=521839</PrivacyPolicyURL>
 </ProductDescription>
