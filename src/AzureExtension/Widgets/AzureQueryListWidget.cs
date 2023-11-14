@@ -4,7 +4,6 @@
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DataManager;
-using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.Widgets.Providers;
@@ -20,7 +19,6 @@ internal class AzureQueryListWidget : AzureWidget
 
     // Widget Data
     private string widgetTitle = string.Empty;
-    private string selectedDevId = string.Empty;
     private string selectedQueryUrl = string.Empty;
     private string selectedQueryId = string.Empty;
     private string? message;
@@ -90,17 +88,17 @@ internal class AzureQueryListWidget : AzureWidget
             CanPin = false;
             widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
             selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
-            selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
-            SetDefaultDeveloperId();
-            if (selectedDevId != dataObject["account"]?.GetValue<string>())
+            DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+            SetDefaultDeveloperLoginId();
+            if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
             {
-                dataObject["account"] = selectedDevId;
+                dataObject["account"] = DeveloperLoginId;
                 data = dataObject.ToJsonString();
             }
 
             ConfigurationData = data;
 
-            var developerId = GetDevId(selectedDevId);
+            var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
                 message = Resources.GetResource(@"Widget_Template/DevIDError");
@@ -137,29 +135,22 @@ internal class AzureQueryListWidget : AzureWidget
         SetConfigure();
     }
 
-    // This method will attempt to select a DeveloperId if one is not already selected.
-    // It uses the input url and tries to find the most likely DeveloperId that corresponds to the
-    // url among the set of available DeveloperIds. If there is no best match it chooses the first
-    // available developerId or none if there are no DeveloperIds.
-    private void SetDefaultDeveloperId()
+    // Increase precision of SetDefaultDeveloperLoginId by matching the selectedQueryUrl's org
+    // with the first matching DeveloperId that contains that org.
+    protected override void SetDefaultDeveloperLoginId()
     {
-        if (!string.IsNullOrEmpty(selectedDevId))
-        {
-            return;
-        }
+        base.SetDefaultDeveloperLoginId();
 
-        var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
-        if (devIds is null)
-        {
-            return;
-        }
-
-        // Set as the first DevId found, unless we find a better match from the Url.
-        selectedDevId = devIds.FirstOrDefault()?.LoginId ?? string.Empty;
         var azureOrg = new AzureUri(selectedQueryUrl).Organization;
         if (!string.IsNullOrEmpty(azureOrg))
         {
-            selectedDevId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? selectedDevId;
+            var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
+            if (devIds is null)
+            {
+                return;
+            }
+
+            DeveloperLoginId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? DeveloperLoginId;
         }
     }
 
@@ -191,7 +182,7 @@ internal class AzureQueryListWidget : AzureWidget
 
     public override void RequestContentData()
     {
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             // Should not happen
@@ -222,10 +213,10 @@ internal class AzureQueryListWidget : AzureWidget
         }
 
         widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-        selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+        DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
         selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
 
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             return;
@@ -257,7 +248,7 @@ internal class AzureQueryListWidget : AzureWidget
 
         configurationData.Add("accounts", developerIdsData);
 
-        configurationData.Add("selectedDevId", selectedDevId);
+        configurationData.Add("selectedDevId", DeveloperLoginId);
         configurationData.Add("url", selectedQueryUrl);
         configurationData.Add("message", message);
         configurationData.Add("widgetTitle", widgetTitle);
@@ -273,7 +264,7 @@ internal class AzureQueryListWidget : AzureWidget
     {
         try
         {
-            var developerId = GetDevId(selectedDevId);
+            var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
                 // Should not happen, but may be possible in situations where the app is removed and
@@ -293,7 +284,7 @@ internal class AzureQueryListWidget : AzureWidget
             }
 
             // This can throw if DataStore is not connected.
-            Query? queryInfo = DataManager!.GetQuery(azureUri, developerId.LoginId);
+            var queryInfo = DataManager!.GetQuery(azureUri, developerId.LoginId);
 
             var queryResults = queryInfo is null ? new Dictionary<string, object>() : JsonConvert.DeserializeObject<Dictionary<string, object>>(queryInfo.QueryResults);
 
