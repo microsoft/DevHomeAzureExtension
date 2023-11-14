@@ -135,6 +135,7 @@ internal class AzureQueryTilesWidget : AzureWidget
                 // Put back the configuration data from before we started changing the widget.
                 ConfigurationData = SavedConfigurationData;
                 SavedConfigurationData = string.Empty;
+                CanPin = true;
 
                 // Tiles were updated on Submit, restore them from the saved configuration data.
                 UpdateAllTiles(ConfigurationData);
