@@ -7,7 +7,6 @@ using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using DevHomeAzureExtension.Widgets.Enums;
-using Microsoft.TeamFoundation.Common;
 using Microsoft.Windows.Widgets.Providers;
 
 namespace DevHomeAzureExtension.Widgets;
