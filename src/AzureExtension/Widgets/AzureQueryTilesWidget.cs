@@ -22,8 +22,6 @@ internal class AzureQueryTilesWidget : AzureWidget
     protected static readonly new string Name = nameof(AzureQueryTilesWidget);
     private readonly List<QueryTile> tiles = new();
 
-    private string selectedDevId = string.Empty;
-
     // Creation and destruction methods
     public AzureQueryTilesWidget()
     : base()
@@ -185,7 +183,7 @@ internal class AzureQueryTilesWidget : AzureWidget
 
     public override void RequestContentData()
     {
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             // Should not happen
@@ -218,7 +216,7 @@ internal class AzureQueryTilesWidget : AzureWidget
         var data = new JsonObject();
         var linesArray = new JsonArray();
 
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             // Should not happen
@@ -284,8 +282,8 @@ internal class AzureQueryTilesWidget : AzureWidget
         CanPin = false;
         var pinIssueFound = false;
 
-        SetDefaultDeveloperId();
-        var developerId = GetDevId(selectedDevId);
+        SetDefaultDeveloperLoginId();
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             return;
@@ -351,29 +349,21 @@ internal class AzureQueryTilesWidget : AzureWidget
         }
     }
 
-    // This method will attempt to select a DeveloperId if one is not already selected.
-    // It uses the url of the first valid tile and  tries to find the most likely DeveloperId that
-    // among the set of available DeveloperIds. If there is no best match it chooses the first
-    // available developerId or none if there are no DeveloperIds.
-    private void SetDefaultDeveloperId()
+    // Increase precision of SetDefaultDeveloperLoginId by matching the first valid org in the
+    // tiles list with the first matching DeveloperId that contains that org.
+    protected override void SetDefaultDeveloperLoginId()
     {
-        if (!string.IsNullOrEmpty(selectedDevId))
-        {
-            return;
-        }
-
-        var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
-        if (devIds is null)
-        {
-            return;
-        }
-
-        // Set as the first DevId found, unless we find a better match to the first Org found.
-        selectedDevId = devIds.FirstOrDefault()?.LoginId ?? string.Empty;
+        base.SetDefaultDeveloperLoginId();
         var azureOrg = tiles.Where(i => i.AzureUri.IsValid).FirstOrDefault().AzureUri?.Organization ?? string.Empty;
         if (!string.IsNullOrEmpty(azureOrg))
         {
-            selectedDevId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? selectedDevId;
+            var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
+            if (devIds is null)
+            {
+                return;
+            }
+
+            DeveloperLoginId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? DeveloperLoginId;
         }
     }
 
@@ -407,11 +397,11 @@ internal class AzureQueryTilesWidget : AzureWidget
                 }
             }
 
-            selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
-            SetDefaultDeveloperId();
-            if (selectedDevId != dataObject["account"]?.GetValue<string>())
+            DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+            SetDefaultDeveloperLoginId();
+            if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
             {
-                dataObject["account"] = selectedDevId;
+                dataObject["account"] = DeveloperLoginId;
                 data = dataObject.ToJsonString();
             }
 
@@ -450,7 +440,7 @@ internal class AzureQueryTilesWidget : AzureWidget
         }
 
         configurationData.Add("tiles", tilesArray);
-        configurationData.Add("selectedDevId", selectedDevId);
+        configurationData.Add("selectedDevId", DeveloperLoginId);
         configurationData.Add("configuring", !CanPin);
         configurationData.Add("pinned", Pinned);
         configurationData.Add("arrow", IconLoader.GetIconAsBase64("arrow.png"));
