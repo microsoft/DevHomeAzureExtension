@@ -384,7 +384,6 @@ internal class AzureQueryTilesWidget : AzureWidget
                 {
                     // Uri was not changed by the user since the last update, so update the title
                     // if it is different, otherwise leave it alone so we only validate once.
-                    // We just update the title if it is not empty.
                     if (tile.Title != titleFromData)
                     {
                         tile.Title = titleFromData;
