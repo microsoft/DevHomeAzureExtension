@@ -7,6 +7,7 @@ using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using DevHomeAzureExtension.Widgets.Enums;
+using Microsoft.TeamFoundation.Common;
 using Microsoft.Windows.Widgets.Providers;
 
 namespace DevHomeAzureExtension.Widgets;
@@ -382,7 +383,8 @@ internal class AzureQueryTilesWidget : AzureWidget
                 {
                     // Uri was not changed by the user since the last update, so update the title
                     // if it is different, otherwise leave it alone so we only validate once.
-                    if (tile.Title != titleFromData)
+                    // We just update the title if it is not empty.
+                    if (tile.Title != titleFromData && titleFromData.Any())
                     {
                         tile.Title = titleFromData;
                         tiles[i] = tile;
