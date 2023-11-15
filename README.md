@@ -4,12 +4,14 @@
 
 This repository contains the source code for:
 
-* [Dev Home Azure Extension](https://aka.ms/devhomeazureextension)
+* Dev Home Azure Extension
 * Dev Home Azure widgets
 
 Related repositories include:
 
 * [Dev Home](https://github.com/microsoft/devhome)
+
+![image](https://github.com/microsoft/DevHomeAzureExtension/blob/main/build/store/preview/media/en-us/azure-dashboard.png)
 
 ## Installing and running Dev Home Azure Extension
 
@@ -20,7 +22,7 @@ You can install the Dev Home Azure Extension from the Extensions library within 
 
 ### Microsoft Store
 
-You can also install the Dev Home Azure Extension directly from its [Microsoft Store listing](https://aka.ms/devhomeazureextension).
+You can also install the Dev Home Azure Extension directly from its Microsoft Store listing.
 
 ### Other install methods
 
