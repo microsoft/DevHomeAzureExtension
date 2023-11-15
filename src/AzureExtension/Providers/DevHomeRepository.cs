@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
-using AzureExtension.Providers;
+using DevHomeAzureExtension.Client;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
 
 namespace DevHomeAzureExtension.Providers;
@@ -44,8 +44,8 @@ public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
             throw new ArgumentException("URl is null");
         }
 
-        var repoInformation = new RepositoryInformation(localUrl);
-        _owningAccountName = Path.Join(repoInformation.Organization, repoInformation.RepoName);
+        var repoInformation = new AzureUri(localUrl);
+        _owningAccountName = Path.Join(repoInformation.Organization, repoInformation.Repository);
 
         cloneUrl = localUrl;
 

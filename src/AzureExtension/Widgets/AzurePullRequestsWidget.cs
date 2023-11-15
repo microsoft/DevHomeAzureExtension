@@ -166,9 +166,6 @@ internal class AzurePullRequestsWidget : AzureWidget
 
                 // The DataManager log will have detailed exception info, use the short message.
                 Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
-
-                // TODO: Display error to user however design deems appropriate.
-                // https://github.com/microsoft/DevHomeADOExtension/issues/50
                 return;
             }
 
