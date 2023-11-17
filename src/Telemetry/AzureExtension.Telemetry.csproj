@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Identity.Client" Version="4.56.0" />
     <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.56.0" />
-    <PackageReference Include="Microsoft.Windows.DevHome.SDK" Version="0.100.254" />
+    <PackageReference Include="Microsoft.Windows.DevHome.SDK" Version="0.699.312.2024" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231008000" />
     <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="16.205.1" />
     <PackageReference Include="Microsoft.VisualStudio.Services.Client" Version="16.205.1" />
