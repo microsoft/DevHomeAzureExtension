@@ -1,9 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using AzureExtension.Contracts;
+using AzureExtension.DevBox;
+using AzureExtension.Services.DeveloperBox;
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.ExtensionServer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.VisualStudio.Services.Profile;
 using Microsoft.Windows.AppLifecycle;
 using Microsoft.Windows.AppNotifications;
 using Windows.ApplicationModel.Activation;
@@ -114,7 +120,10 @@ public sealed class Program
         // This could be called by either of the COM registrations, we will do them all to avoid deadlock and bind all on the extension's lifetime.
         using var extensionServer = new Microsoft.Windows.DevHome.SDK.ExtensionServer();
         var extensionDisposedEvent = new ManualResetEvent(false);
-        var extensionInstance = new AzureExtension(extensionDisposedEvent);
+
+        // Create host with dependency injection
+        using var host = CreateDIHost();
+        var extensionInstance = new AzureExtension(extensionDisposedEvent, host);
 
         // We are instantiating extension instance once above, and returning it every time the callback in RegisterExtension below is called.
         // This makes sure that only one instance of SampleExtension is alive, which is returned every time the host asks for the IExtension object.
@@ -202,5 +211,24 @@ public sealed class Program
         {
             Log.Logger()?.ReportError("Failed attempting to verify or perform database recreation.", ex);
         }
+    }
+
+    private static IHost CreateDIHost()
+    {
+        var host = Microsoft.Extensions.Hosting.Host.
+            CreateDefaultBuilder().
+            UseContentRoot(AppContext.BaseDirectory).
+            UseDefaultServiceProvider((context, options) =>
+            {
+                options.ValidateOnBuild = true;
+            }).
+            ConfigureServices((context, services) =>
+            {
+                // Dev Box
+                services.AddSingleton<IDevBoxRESTService, DevBoxRestService>();
+            }).
+        Build();
+
+        return host;
     }
 }

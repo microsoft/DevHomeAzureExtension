@@ -2,8 +2,10 @@
 // Licensed under the MIT license.
 
 using System.Runtime.InteropServices;
+using AzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Providers;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension;
@@ -14,10 +16,12 @@ namespace DevHomeAzureExtension;
 public sealed class AzureExtension : IExtension
 {
     private readonly ManualResetEvent _extensionDisposedEvent;
+    private readonly IHost _host;
 
-    public AzureExtension(ManualResetEvent extensionDisposedEvent)
+    public AzureExtension(ManualResetEvent extensionDisposedEvent, Microsoft.Extensions.Hosting.IHost host)
     {
         _extensionDisposedEvent = extensionDisposedEvent;
+        _host = host;
     }
 
     public object? GetProvider(ProviderType providerType)
@@ -30,6 +34,8 @@ public sealed class AzureExtension : IExtension
                 return new RepositoryProvider();
             case ProviderType.FeaturedApplications:
                 return new object();
+            case ProviderType.ComputeSystem:
+                return new DevBoxProvider(_host);
             default:
                 Providers.Log.Logger()?.ReportInfo("Invalid provider");
                 return null;
