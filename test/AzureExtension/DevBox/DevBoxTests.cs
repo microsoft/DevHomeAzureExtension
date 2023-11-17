@@ -3,7 +3,7 @@
 
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
-using AzureExtension.Services.DeveloperBox;
+using AzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -31,6 +31,6 @@ public partial class DevBoxTests
             Build();
 
         var instance = new DevBoxProvider(host);
-        Assert.IsNotNull(instance.GetTest());
+        Assert.IsNotNull(instance.DisplayName);
     }
 }

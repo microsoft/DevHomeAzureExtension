@@ -3,7 +3,7 @@
 
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
-using AzureExtension.Services.DeveloperBox;
+using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.ExtensionServer;

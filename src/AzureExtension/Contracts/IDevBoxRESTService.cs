@@ -7,7 +7,7 @@ namespace AzureExtension.Contracts;
 
 public interface IDevBoxRESTService
 {
-    JsonElement GetAllProjects();
+    Task<JsonElement> GetAllProjectsAsJSONAsync();
 
-    JsonElement GetBoxes();
+    Task<JsonElement> GetBoxesAsJSONAsync(string devCenterUri, string project);
 }
