@@ -5,7 +5,7 @@ using System.Text.Json;
 
 namespace AzureExtension.Contracts;
 
-public interface IDevBoxRESTService
+public interface IDevBoxManagementService
 {
     Task<JsonElement> GetAllProjectsAsJSONAsync();
 

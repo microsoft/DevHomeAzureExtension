@@ -11,11 +11,11 @@ using Microsoft.Extensions.Hosting;
 
 namespace AzureExtension.Services.DevBox;
 
-public class DevBoxRestService : IDevBoxRESTService
+public class ManagementService : IDevBoxManagementService
 {
     private readonly IHost _host;
 
-    public DevBoxRestService(IHost host)
+    public ManagementService(IHost host)
     {
         _host = host;
     }

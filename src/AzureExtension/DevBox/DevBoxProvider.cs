@@ -77,10 +77,10 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
     {
         var computeSystems = new List<IComputeSystem>();
 
-        var restSvc = _host.Services.GetService<IDevBoxRESTService>();
-        if (restSvc != null)
+        var mgmtSvc = _host.Services.GetService<IDevBoxManagementService>();
+        if (mgmtSvc != null)
         {
-            var projectJSONs = await restSvc.GetAllProjectsAsJSONAsync();
+            var projectJSONs = await mgmtSvc.GetAllProjectsAsJSONAsync();
 
             if (IsValid(projectJSONs))
             {
@@ -89,7 +89,7 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
                 {
                     var project = dataItem.GetProperty("name").ToString();
                     var devCenterUri = dataItem.GetProperty("properties").GetProperty("devCenterUri").ToString();
-                    var boxes = await restSvc.GetBoxesAsJSONAsync(devCenterUri, project);
+                    var boxes = await mgmtSvc.GetBoxesAsJSONAsync(devCenterUri, project);
                     if (IsValid(boxes))
                     {
                         Log.Logger()?.ReportInfo($"Found {boxes.EnumerateArray().Count()} boxes for project {project}");

@@ -225,7 +225,7 @@ public sealed class Program
             ConfigureServices((context, services) =>
             {
                 // Dev Box
-                services.AddSingleton<IDevBoxRESTService, DevBoxRestService>();
+                services.AddSingleton<IDevBoxManagementService, ManagementService>();
             }).
         Build();
 
