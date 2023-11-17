@@ -3,6 +3,7 @@
 
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
+using AzureExtension.Services.DevBox;
 using AzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,7 +16,7 @@ public partial class DevBoxTests
     [TestCategory("Manual")]
 
     // [Ignore("Comment out to run")]
-    public void DevBoxInstance()
+    public void DevBoxRest()
     {
         var host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
@@ -26,7 +27,32 @@ public partial class DevBoxTests
             }).
             ConfigureServices((context, services) =>
             {
-                services.AddSingleton<IDevBoxRESTService, DevBoxTestService>();
+                services.AddSingleton<IDevBoxRESTService, RestTestService>();
+            }).
+            Build();
+
+        var instance = new DevBoxProvider(host);
+        var systems = instance.GetComputeSystemsAsync().Result;
+        Assert.IsTrue(systems.Any());
+    }
+
+    [TestMethod]
+    [TestCategory("Manual")]
+
+    // [Ignore("Comment out to run")]
+    public void DevBoxAuth()
+    {
+        var host = Microsoft.Extensions.Hosting.Host.
+            CreateDefaultBuilder().
+            UseContentRoot(AppContext.BaseDirectory).
+            UseDefaultServiceProvider((context, options) =>
+            {
+                options.ValidateOnBuild = true;
+            }).
+            ConfigureServices((context, services) =>
+            {
+                services.AddSingleton<IDevBoxRESTService, DevBoxRestService>();
+                services.AddSingleton<IDevBoxAuthService, AuthTestService>();
             }).
             Build();
 

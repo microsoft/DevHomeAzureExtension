@@ -6,7 +6,7 @@ using AzureExtension.Contracts;
 
 namespace AzureExtension.Test.DevBox;
 
-public class DevBoxTestService : IDevBoxRESTService
+public class RestTestService : IDevBoxRESTService
 {
     public async Task<JsonElement> GetAllProjectsAsJSONAsync()
     {
