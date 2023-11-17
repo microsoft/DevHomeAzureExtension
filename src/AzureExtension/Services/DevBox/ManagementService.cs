@@ -13,11 +13,11 @@ namespace AzureExtension.Services.DevBox;
 
 public class ManagementService : IDevBoxManagementService
 {
-    private readonly IHost _host;
+    private readonly IDevBoxAuthService _authService;
 
-    public ManagementService(IHost host)
+    public ManagementService(IDevBoxAuthService authService)
     {
-        _host = host;
+        _authService = authService;
     }
 
     private static readonly string Query =
@@ -27,85 +27,63 @@ public class ManagementService : IDevBoxManagementService
     public async Task<JsonElement> GetAllProjectsAsJSONAsync()
     {
         JsonElement result = default;
-
-        var authSvc = _host.Services.GetService<IDevBoxAuthService>();
-
-        if (authSvc != null)
+        var httpManageClient = _authService.GetManagementClient();
+        if (httpManageClient != null)
         {
-            var httpManageClient = authSvc.GetManagementClient();
-            if (httpManageClient != null)
-            {
-                var projectQuery = new HttpRequestMessage(HttpMethod.Post, "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01");
-                projectQuery.Content = new StringContent(Query, Encoding.UTF8, "application/json");
+            var projectQuery = new HttpRequestMessage(HttpMethod.Post, "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01");
+            projectQuery.Content = new StringContent(Query, Encoding.UTF8, "application/json");
 
-                // Make the request
-                var response = await httpManageClient.SendAsync(projectQuery);
-                var content = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode && content.Length > 0)
-                {
-                    var root = JsonDocument.Parse(content).RootElement;
-                    root.TryGetProperty("data", out result);
-                }
-                else
-                {
-                    Log.Logger()?.ReportError($"Error getting projects: {response.StatusCode} {content}");
-                }
+            // Make the request
+            var response = await httpManageClient.SendAsync(projectQuery);
+            var content = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode && content.Length > 0)
+            {
+                var root = JsonDocument.Parse(content).RootElement;
+                root.TryGetProperty("data", out result);
             }
             else
             {
-                Log.Logger()?.ReportError($"Error getting projects: httpManageClient is null");
+                Log.Logger()?.ReportError($"Error getting projects: {response.StatusCode} {content}");
             }
-
-            return result;
         }
         else
         {
-            Log.Logger()?.ReportError($"Error getting projects: Auth Service not configured");
-            throw new ArgumentException($"Auth Service needs to be configured.");
+            Log.Logger()?.ReportError($"Error getting projects: httpManageClient is null");
         }
+
+        return result;
     }
 
     public async Task<JsonElement> GetBoxesAsJSONAsync(string devCenterUri, string project)
     {
         JsonElement result = default;
 
-        var authSvc = _host.Services.GetService<IDevBoxAuthService>();
-
-        if (authSvc != null)
+        // Todo: Remove EngProdADEPT as check
+        var httpDataClient = _authService.GetDataPlaneClient();
+        if (httpDataClient != null && project == "EngProdADEPT")
         {
-            // Todo: Remove EngProdADEPT as check
-            var httpDataClient = authSvc.GetDataPlaneClient();
+            var api = devCenterUri + "projects/" + project + "/users/me/devboxes?api-version=2023-07-01-preview";
+            var boxQuery = new HttpRequestMessage(HttpMethod.Get, api);
 
-            if (httpDataClient != null && project == "EngProdADEPT")
+            // Make the request
+            var response = await httpDataClient.SendAsync(boxQuery);
+            var content = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode && content.Length > 0)
             {
-                var api = devCenterUri + "projects/" + project + "/users/me/devboxes?api-version=2023-07-01-preview";
-                var boxQuery = new HttpRequestMessage(HttpMethod.Get, api);
-
-                // Make the request
-                var response = await httpDataClient.SendAsync(boxQuery);
-                var content = await response.Content.ReadAsStringAsync();
-                if (response.IsSuccessStatusCode && content.Length > 0)
-                {
-                    var root = JsonDocument.Parse(content).RootElement;
-                    root.TryGetProperty("value", out result);
-                }
-                else
-                {
-                    Log.Logger()?.ReportError($"Error getting boxes: {response.StatusCode} {content}");
-                }
+                var root = JsonDocument.Parse(content).RootElement;
+                root.TryGetProperty("value", out result);
             }
             else
             {
-                // Todo: Uncomment after testing
-                // Log.Logger()?.ReportError($"Error getting boxes: httpDataClient is null");
+                Log.Logger()?.ReportError($"Error getting boxes: {response.StatusCode} {content}");
             }
-
-            return result;
         }
         else
         {
-            Log.Logger()?.ReportError($"Error getting boxes: Auth Service not configured");
-            throw new ArgumentException($"Auth Service needs to be configured.");
+            // Todo: Uncomment after testing
+            // Log.Logger()?.ReportError($"Error getting boxes: httpDataClient is null");
         }
+
+        return result;
     }
 }
