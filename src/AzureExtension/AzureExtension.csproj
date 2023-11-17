@@ -54,6 +54,7 @@
       <PackageReference Include="MessageFormat" Version="6.0.2" />
       <PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.4" />
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
       <PackageReference Include="Microsoft.Identity.Client" Version="4.56.0" />
       <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.56.0" />
       <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />

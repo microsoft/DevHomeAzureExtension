@@ -225,6 +225,7 @@ public sealed class Program
             ConfigureServices((context, services) =>
             {
                 // Dev Box
+                services.AddHttpClient();
                 services.AddSingleton<IDevBoxManagementService, ManagementService>();
             }).
         Build();
