@@ -31,6 +31,7 @@ public partial class DevBoxTests
             Build();
 
         var instance = new DevBoxProvider(host);
-        Assert.IsNotNull(instance.DisplayName);
+        var systems = instance.GetComputeSystemsAsync().Result;
+        Assert.IsTrue(systems.Any());
     }
 }

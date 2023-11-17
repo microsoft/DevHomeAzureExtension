@@ -39,6 +39,40 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
         return jsonElement.ValueKind != JsonValueKind.Undefined;
     }
 
+    // Returns a DevBox object from a JSON object
+    // Can only be reached by GetComputeSystemsAsync() after checking
+    // that httpDataClient isn't null hence the warning suppression
+#pragma warning disable CS8604 // Possible null reference argument.
+    private DevBoxInstance? MakeDevBoxFromJson(JsonElement item, string project)
+    {
+        try
+        {
+            var uri = item.GetProperty("uri").ToString();
+            var name = item.GetProperty("name").ToString();
+            var uniqueId = item.GetProperty("uniqueId").ToString();
+            var actionState = item.GetProperty("actionState").ToString();
+            var vCPUs = item.GetProperty("hardwareProfile").GetProperty("vCPUs").ToString();
+            var memory = item.GetProperty("hardwareProfile").GetProperty("memoryGB").ToString();
+            var operatingSystem = item.GetProperty("imageReference").GetProperty("operatingSystem").ToString();
+
+            var webUrl = string.Empty;
+            var rdpUrl = string.Empty;
+
+            var httpDataClient = new HttpClient();
+
+            // GetRemoteLaunchURIs(uri, out webUrl, out rdpUrl);
+            Log.Logger()?.ReportInfo($"Created box {name} with id {uniqueId} with {actionState}, {vCPUs}, {memory}, {uri}, {operatingSystem}");
+
+            return new DevBoxInstance(name, uniqueId, project, actionState, vCPUs, memory, uri, webUrl, rdpUrl, operatingSystem, httpDataClient);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.Message}");
+            return null;
+        }
+    }
+#pragma warning restore CS8604 // Possible null reference argument.
+
     public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync()
     {
         var computeSystems = new List<IComputeSystem>();
@@ -60,14 +94,14 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
                     {
                         Log.Logger()?.ReportInfo($"Found {boxes.EnumerateArray().Count()} boxes for project {project}");
 
-                        // foreach (var item in boxes.EnumerateArray())
-                        // {
-                            // var box = MakeDevBoxFromJson(item, project);
-                            // if (box != null)
-                            // {
-                            //     computeSystems.Add(box);
-                            // }
-                        // }
+                        foreach (var item in boxes.EnumerateArray())
+                        {
+                            var box = MakeDevBoxFromJson(item, project);
+                            if (box != null)
+                            {
+                                computeSystems.Add(box);
+                            }
+                        }
                     }
                 }
             }

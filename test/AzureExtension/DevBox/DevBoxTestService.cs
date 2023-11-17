@@ -10,53 +10,60 @@ public class DevBoxTestService : IDevBoxRESTService
 {
     public async Task<JsonElement> GetAllProjectsAsJSONAsync()
     {
-        var jsonString = @"
-            ""totalRecords"": 17,
-            ""count"": 17,
-            ""data"": [
-            {
-              ""id"": ""/subscriptions/bddbc709-fb03-44af-acad-68d8ff6e4a8c/resourceGroups/o365core_devbox_rg/providers/Microsoft.DevCenter/projects/DevBoxBasic"",
-              ""location"": ""westus3"",
-              ""tenantId"": ""72f988bf-86f1-41af-91ab-2d7cd011db47"",
-              ""name"": ""DevBoxBasic"",
-              ""properties"": {
-                ""provisioningState"": ""Succeeded"",
-                ""description"": ""Plain devbox, just VS 2022, tools,  no enlistment"",
-                ""devCenterUri"": ""https://72f988bf-86f1-41af-91ab-2d7cd011db47-o365devcenter.devcenter.azure.com/"",
-                ""devCenterId"": ""/subscriptions/bddbc709-fb03-44af-acad-68d8ff6e4a8c/resourceGroups/o365core_devbox_rg/providers/Microsoft.DevCenter/devcenters/O365DevCenter""
-              },
-              ""type"": ""microsoft.devcenter/projects""
-            }
-            ],
-            ""facets"": [],
-            ""resultTruncated"": ""false""";
+        JsonElement result;
+
+        var jsonString =
+            @"{
+                ""totalRecords"": 10,
+                ""count"": 10,
+                ""data"": [
+                {
+                  ""id"": ""/subscriptions/beedbc7420-fb03-44af-daac-69d8ff6e4e8c/resourceGroups/sales_devbox_rg/providers/Microsoft.DevCenter/projects/BasicDevBox"",
+                  ""location"": ""westus3"",
+                  ""tenantId"": ""72f999bf-86f1-41af-96fc-2d7beef3db47"",
+                  ""name"": ""BasicDevBox"",
+                  ""properties"": {
+                    ""provisioningState"": ""Succeeded"",
+                    ""description"": ""Plain devbox, just VS 2022, tools,  no enlistment"",
+                    ""devCenterUri"": ""https://72f98fab-86f1-41af-69ab-2dbeef11db47-Salesdevcenter.devcenter.azure.com/"",
+                    ""devCenterId"": ""/subscriptions/beedbc7420-fb03-44af-daac-69d8ff6e4e8c/resourceGroups/sales_devbox_rg/providers/Microsoft.DevCenter/devcenters/SalesDevCenter""
+                  },
+                  ""type"": ""microsoft.devcenter/projects""
+                }
+                ],
+                ""facets"": [],
+                ""resultTruncated"": ""false""
+            }";
 
         var json = JsonDocument.Parse(jsonString).RootElement;
         await Task.Delay(0);
-        return json;
+        json.TryGetProperty("data", out result);
+        return result;
     }
 
     public async Task<JsonElement> GetBoxesAsJSONAsync(string devCenterUri, string project)
     {
+        JsonElement result;
+
         var jsonString =
             @"{
                 ""value"": [
                 {
-                    ""uri"": ""https://72f988bf-86f1-41af-91ab-2d7cd011db47-devcenter-f7ssrn3hcydbm-dc.westus3.devcenter.azure.com/projects/engprodadept/users/28aebba8-996b-434b-bb57-4969c097c8f0/devboxes/two"",
+                    ""uri"": ""https://72f9feed-86f1-41af-91ab-beefd011db47-devcenter-dc.westus3.devcenter.azure.com/projects/nonprod/users/28feedaeb-996b-434b-bb57-4969cbeef8f0/devboxes/two"",
                     ""name"": ""Two"",
-                    ""projectName"": ""EngProdADEPT"",
-                    ""poolName"": ""WE-ADEPT-Enhanced-Pool-West"",
+                    ""projectName"": ""Nonprod"",
+                    ""poolName"": ""Some-Enhanced-Pool-In-Da-West"",
                     ""hibernateSupport"": ""Disabled"",
                     ""provisioningState"": ""Succeeded"",
                     ""actionState"": ""Stopped"",
                     ""powerState"": ""Deallocated"",
-                    ""uniqueId"": ""239a099d-d97d-4caa-935d-46027a448d73"",
+                    ""uniqueId"": ""28feedaeb-996b-434b-bb57-4969cbeef8f0"",
                     ""location"": ""westus2"",
                     ""osType"": ""Windows"",
-                    ""user"": ""28aebba8-996b-434b-bb57-4969c097c8f0"",
+                    ""user"": ""28feedaeb-996b-434b-bb57-4969cbeef8f0"",
                     ""hardwareProfile"": {
                     ""vCPUs"": 16,
-                    ""skuName"": ""general_a_16c64gb2048ssd_v2"",
+                    ""skuName"": ""some_sku_v2"",
                     ""memoryGB"": 64
                     },
                     ""storageProfile"": {
@@ -80,6 +87,7 @@ public class DevBoxTestService : IDevBoxRESTService
 
         var json = JsonDocument.Parse(jsonString).RootElement;
         await Task.Delay(0);
-        return json;
+        json.TryGetProperty("value", out result);
+        return result;
     }
 }
