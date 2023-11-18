@@ -1,12 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using System.Net.Http.Headers;
 using AzureExtension.Contracts;
 using Microsoft.Extensions.Hosting;
 
-namespace AzureExtension.Services.DeveloperBox;
+namespace AzureExtension.Services.DevBox;
 
-internal class AuthService : IDevBoxAuthService
+public class AuthService : IDevBoxAuthService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IDataTokenService _armTokenService;
@@ -19,7 +20,17 @@ internal class AuthService : IDevBoxAuthService
         _dataTokenService = dataTokenService;
     }
 
-    public HttpClient GetDataPlaneClient() => throw new NotImplementedException();
+    public HttpClient GetDataPlaneClient()
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _dataTokenService.GetTokenAsync().Result);
+        return httpClient;
+    }
 
-    public HttpClient GetManagementClient() => throw new NotImplementedException();
+    public HttpClient GetManagementClient()
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient();
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _armTokenService.GetTokenAsync().Result);
+        return httpClient;
+    }
 }

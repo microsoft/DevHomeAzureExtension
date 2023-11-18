@@ -14,9 +14,7 @@ namespace DevHomeAzureExtension.Test;
 public partial class DevBoxTests
 {
     [TestMethod]
-    [TestCategory("Manual")]
-
-    // [Ignore("Comment out to run")]
+    [TestCategory("Unit")]
     public void DevBox_Parsing()
     {
         var host = Microsoft.Extensions.Hosting.Host.
@@ -33,7 +31,7 @@ public partial class DevBoxTests
             Build();
 
         var instance = new DevBoxProvider(host);
-        var systems = instance.GetComputeSystemsAsync().Result;
+        var systems = instance.GetComputeSystemsAsync(null).Result;
         Assert.IsTrue(systems.Any());
     }
 
@@ -41,7 +39,7 @@ public partial class DevBoxTests
     [TestCategory("Manual")]
 
     // [Ignore("Comment out to run")]
-    public void DevBoxAuth()
+    public void DevBox_TokenAuth()
     {
         var host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().
@@ -61,7 +59,35 @@ public partial class DevBoxTests
             Build();
 
         var instance = new DevBoxProvider(host);
-        var systems = instance.GetComputeSystemsAsync().Result;
+        var systems = instance.GetComputeSystemsAsync(null).Result;
+        Assert.IsTrue(systems.Any());
+    }
+
+    [TestMethod]
+    [TestCategory("Manual")]
+
+    // [Ignore("Comment out to run")]
+    public void DevBox_Auth()
+    {
+        var host = Microsoft.Extensions.Hosting.Host.
+            CreateDefaultBuilder().
+            UseContentRoot(AppContext.BaseDirectory).
+            UseDefaultServiceProvider((context, options) =>
+            {
+                options.ValidateOnBuild = true;
+            }).
+            ConfigureServices((context, services) =>
+            {
+                services.AddHttpClient();
+                services.AddSingleton<IDevBoxManagementService, ManagementService>();
+                services.AddSingleton<IDevBoxAuthService, AuthService>();
+                services.AddSingleton<IArmTokenService, ArmTestTokenService>();
+                services.AddSingleton<IDataTokenService, DataTokenService>();
+            }).
+            Build();
+
+        var instance = new DevBoxProvider(host);
+        var systems = instance.GetComputeSystemsAsync(null).Result;
         Assert.IsTrue(systems.Any());
     }
 }

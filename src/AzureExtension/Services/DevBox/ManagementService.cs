@@ -9,6 +9,7 @@ using AzureExtension.Contracts;
 using DevHomeAzureExtension.DataModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Windows.DevHome.SDK;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -22,6 +23,11 @@ public class ManagementService : IDevBoxManagementService
     private static readonly string Query =
     "{\"query\": \"Resources | where type in~ ('microsoft.devcenter/projects') | where properties['provisioningState'] =~ 'Succeeded' | project id, location, tenantId, name, properties, type\"," +
     " \"options\":{\"allowPartialScopes\":true}}";
+
+    public IDeveloperId? DeveloperId
+    {
+        get; set;
+    }
 
     public async Task<JsonElement> GetAllProjectsAsJSONAsync()
     {

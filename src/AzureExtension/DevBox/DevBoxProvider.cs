@@ -73,13 +73,14 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
     }
 #pragma warning restore CS8604 // Possible null reference argument.
 
-    public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync()
+    public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
     {
         var computeSystems = new List<IComputeSystem>();
 
         var mgmtSvc = _host.Services.GetService<IDevBoxManagementService>();
         if (mgmtSvc != null)
         {
+            mgmtSvc.DeveloperId = developerId;
             var projectJSONs = await mgmtSvc.GetAllProjectsAsJSONAsync();
 
             if (IsValid(projectJSONs))
@@ -121,7 +122,7 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
     {
         return Task.Run(async () =>
         {
-            var computeSystems = await GetComputeSystemsAsync();
+            var computeSystems = await GetComputeSystemsAsync(developerId);
             return new ComputeSystemsResult(computeSystems);
         }).AsAsyncOperation();
     }

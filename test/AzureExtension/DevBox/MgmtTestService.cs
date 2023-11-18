@@ -3,11 +3,17 @@
 
 using System.Text.Json;
 using AzureExtension.Contracts;
+using Microsoft.Windows.DevHome.SDK;
 
 namespace AzureExtension.Test.DevBox;
 
 public class MgmtTestService : IDevBoxManagementService
 {
+    public IDeveloperId? DeveloperId
+    {
+        get; set;
+    }
+
     public async Task<JsonElement> GetAllProjectsAsJSONAsync()
     {
         JsonElement result;

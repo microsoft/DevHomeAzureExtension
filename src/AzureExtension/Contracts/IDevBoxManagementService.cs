@@ -2,11 +2,17 @@
 // Licensed under the MIT license.
 
 using System.Text.Json;
+using Microsoft.Windows.DevHome.SDK;
 
 namespace AzureExtension.Contracts;
 
 public interface IDevBoxManagementService
 {
+    public IDeveloperId? DeveloperId
+    {
+        get; set;
+    }
+
     Task<JsonElement> GetAllProjectsAsJSONAsync();
 
     Task<JsonElement> GetBoxesAsJSONAsync(string devCenterUri, string project);
