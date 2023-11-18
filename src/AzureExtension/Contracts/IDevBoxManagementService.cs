@@ -8,7 +8,7 @@ namespace AzureExtension.Contracts;
 
 public interface IDevBoxManagementService
 {
-    public IDeveloperId? DeveloperId
+    public IDeveloperId? DevId
     {
         get; set;
     }

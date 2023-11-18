@@ -9,7 +9,7 @@ namespace AzureExtension.Test.DevBox;
 
 public class MgmtTestService : IDevBoxManagementService
 {
-    public IDeveloperId? DeveloperId
+    public IDeveloperId? DevId
     {
         get; set;
     }

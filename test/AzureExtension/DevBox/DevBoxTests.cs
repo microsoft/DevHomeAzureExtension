@@ -52,7 +52,7 @@ public partial class DevBoxTests
             {
                 services.AddHttpClient();
                 services.AddSingleton<IDevBoxManagementService, ManagementService>();
-                services.AddSingleton<IDevBoxAuthService, AuthTestService>();
+                services.AddSingleton<IDevBoxAuthService, AuthService>();
                 services.AddSingleton<IArmTokenService, ArmTestTokenService>();
                 services.AddSingleton<IDataTokenService, DataTestTokenService>();
             }).

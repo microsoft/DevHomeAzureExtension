@@ -24,7 +24,7 @@ public class ManagementService : IDevBoxManagementService
     "{\"query\": \"Resources | where type in~ ('microsoft.devcenter/projects') | where properties['provisioningState'] =~ 'Succeeded' | project id, location, tenantId, name, properties, type\"," +
     " \"options\":{\"allowPartialScopes\":true}}";
 
-    public IDeveloperId? DeveloperId
+    public IDeveloperId? DevId
     {
         get; set;
     }
@@ -32,7 +32,7 @@ public class ManagementService : IDevBoxManagementService
     public async Task<JsonElement> GetAllProjectsAsJSONAsync()
     {
         JsonElement result = default;
-        var httpManageClient = _authService.GetManagementClient();
+        var httpManageClient = _authService.GetManagementClient(DevId);
         if (httpManageClient != null)
         {
             var projectQuery = new HttpRequestMessage(HttpMethod.Post, "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01");
@@ -64,7 +64,7 @@ public class ManagementService : IDevBoxManagementService
         JsonElement result = default;
 
         // Todo: Remove EngProdADEPT as check
-        var httpDataClient = _authService.GetDataPlaneClient();
+        var httpDataClient = _authService.GetDataPlaneClient(DevId);
         if (httpDataClient != null && project == "EngProdADEPT")
         {
             var api = devCenterUri + "projects/" + project + "/users/me/devboxes?api-version=2023-07-01-preview";

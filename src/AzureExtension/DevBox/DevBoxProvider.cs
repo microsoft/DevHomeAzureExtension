@@ -80,7 +80,7 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
         var mgmtSvc = _host.Services.GetService<IDevBoxManagementService>();
         if (mgmtSvc != null)
         {
-            mgmtSvc.DeveloperId = developerId;
+            mgmtSvc.DevId = developerId;
             var projectJSONs = await mgmtSvc.GetAllProjectsAsJSONAsync();
 
             if (IsValid(projectJSONs))
