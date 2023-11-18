@@ -90,6 +90,13 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
                 {
                     var project = dataItem.GetProperty("name").ToString();
                     var devCenterUri = dataItem.GetProperty("properties").GetProperty("devCenterUri").ToString();
+
+                    // Todo: Remove this test
+                    if (project != "EngProdADEPT")
+                    {
+                        continue;
+                    }
+
                     var boxes = await mgmtSvc.GetBoxesAsJSONAsync(devCenterUri, project);
                     if (IsValid(boxes))
                     {

@@ -63,9 +63,9 @@ public class ManagementService : IDevBoxManagementService
     {
         JsonElement result = default;
 
-        // Todo: Remove EngProdADEPT as check
+        // Todo: Make the client a singleton
         var httpDataClient = _authService.GetDataPlaneClient(DevId);
-        if (httpDataClient != null && project == "EngProdADEPT")
+        if (httpDataClient != null)
         {
             var api = devCenterUri + "projects/" + project + "/users/me/devboxes?api-version=2023-07-01-preview";
             var boxQuery = new HttpRequestMessage(HttpMethod.Get, api);
