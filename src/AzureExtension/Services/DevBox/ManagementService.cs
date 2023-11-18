@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -15,10 +16,8 @@ public class ManagementService : IDevBoxManagementService
 {
     private readonly IDevBoxAuthService _authService;
 
-    public ManagementService(IDevBoxAuthService authService)
-    {
+    public ManagementService(IDevBoxAuthService authService) =>
         _authService = authService;
-    }
 
     private static readonly string Query =
     "{\"query\": \"Resources | where type in~ ('microsoft.devcenter/projects') | where properties['provisioningState'] =~ 'Succeeded' | project id, location, tenantId, name, properties, type\"," +

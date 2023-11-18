@@ -8,11 +8,15 @@ namespace AzureExtension.Services.DeveloperBox;
 
 internal class AuthService : IDevBoxAuthService
 {
-    private readonly IHost _host;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IDataTokenService _armTokenService;
+    private readonly IDataTokenService _dataTokenService;
 
-    public AuthService(IHost host)
+    public AuthService(IHttpClientFactory httpClientFactory, IDataTokenService armTokenService, IDataTokenService dataTokenService)
     {
-        _host = host;
+        _httpClientFactory = httpClientFactory;
+        _armTokenService = armTokenService;
+        _dataTokenService = dataTokenService;
     }
 
     public HttpClient GetDataPlaneClient() => throw new NotImplementedException();
