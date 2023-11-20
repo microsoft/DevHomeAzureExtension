@@ -3,7 +3,6 @@
 
 using System.Security.Authentication;
 using System.Text;
-using AzureExtension.Providers;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
@@ -34,7 +33,7 @@ public class RepositoryProvider : IRepositoryProvider
 
     public RepositoryProvider()
     {
-        Icon = RandomAccessStreamReference.CreateFromUri(new Uri("https://www.GitHub.com/microsoft/devhome"));
+        Icon = RandomAccessStreamReference.CreateFromUri(new Uri("ms-appx:///AzureExtension/Assets/AzureExtensionDark.png"));
     }
 
     public IAsyncOperation<RepositoryUriSupportResult> IsUriSupportedAsync(Uri uri)
@@ -78,10 +77,10 @@ public class RepositoryProvider : IRepositoryProvider
     /// <returns>A list of projects the organization has.</returns>
     private List<TeamProjectReference> GetProjects(Microsoft.VisualStudio.Services.Account.Account organization, DeveloperId.DeveloperId azureDeveloperId)
     {
-        var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organization.AccountUri, azureDeveloperId);
-
         try
         {
+            var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organization.AccountUri, azureDeveloperId);
+
             // connection can be null if the organization is disabled.
             if (connection != null)
             {
@@ -255,36 +254,32 @@ public class RepositoryProvider : IRepositoryProvider
                 return new RepositoryResult(exception, $"{exception.Message} HResult: {exception.HResult}");
             }
 
-            var authResult = DeveloperIdProvider.GetInstance().GetAuthenticationResultForDeveloperId(azureDeveloperId);
-            if (authResult == null)
-            {
-                var exception = new AuthenticationException($"Could not get authentication for user {developerId.LoginId}");
-                return new RepositoryResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
-            }
-
-            var repoInformation = new RepositoryInformation(uri);
-            var connection = new VssConnection(repoInformation.OrganizationLink, new VssAadCredential(new VssAadToken("Bearer", authResult.AccessToken)));
-
-            GitHttpClient gitClient = connection.GetClient<GitHttpClient>();
-            var repo = gitClient.GetRepositoryAsync(repoInformation.Project, repoInformation.RepoName).Result;
-            if (repo == null)
-            {
-                var exception = new LibGit2Sharp.NotFoundException("Could not find the repo.");
-                return new RepositoryResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
-            }
-
-            RepositoryResult repoResult;
-
             try
             {
-                repoResult = new RepositoryResult(new DevHomeRepository(repo));
+                var authResult = DeveloperIdProvider.GetInstance().GetAuthenticationResultForDeveloperId(azureDeveloperId);
+                if (authResult == null)
+                {
+                    var exception = new AuthenticationException($"Could not get authentication for user {developerId.LoginId}");
+                    return new RepositoryResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
+                }
+
+                var repoInformation = new AzureUri(uri);
+                var connection = new VssConnection(repoInformation.OrganizationLink, new VssAadCredential(new VssAadToken("Bearer", authResult.AccessToken)));
+
+                GitHttpClient gitClient = connection.GetClient<GitHttpClient>();
+                var repo = gitClient.GetRepositoryAsync(repoInformation.Project, repoInformation.Repository).Result;
+                if (repo == null)
+                {
+                    var exception = new LibGit2Sharp.NotFoundException("Could not find the repo.");
+                    return new RepositoryResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
+                }
+
+                return new RepositoryResult(new DevHomeRepository(repo));
             }
             catch (Exception e)
             {
                 return new RepositoryResult(e, $"Could not make a repository object");
             }
-
-            return repoResult;
         }).AsAsyncOperation();
     }
 

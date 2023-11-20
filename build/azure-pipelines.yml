@@ -141,7 +141,7 @@ extends:
               retryCountOnTaskFailure: 2
               inputs:
                 filePath: 'build/scripts/Build.ps1'
-                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild -ClientId $(GitHubClientId) -ClientSecret $(GitHubClientSecret)
+                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
 
             - task: EsrpCodeSigning@2
               inputs:

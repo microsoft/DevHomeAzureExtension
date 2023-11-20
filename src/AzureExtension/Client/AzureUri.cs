@@ -40,6 +40,11 @@ public class AzureUri
 
     private readonly Lazy<Uri> _connection;
 
+    /// <summary>
+    /// ADO APIs need a specific URI for getting information about an organization.
+    /// </summary>
+    private readonly Lazy<Uri> _organizationLink;
+
     // Original input string, similar to Uri, but in cases of an invalid Uri they will be different.
     public string OriginalString { get; } = string.Empty;
 
@@ -80,6 +85,8 @@ public class AzureUri
     public string Query => _query.Value;
 
     public Uri Connection => _connection.Value;
+
+    public Uri OrganizationLink => _organizationLink.Value;
 
     // If an invalid input or Uri was passed in (null, empty string, etc), the object
     // is still valid, but the Uri will be DefaultUriString, not the original input,
@@ -135,6 +142,7 @@ public class AzureUri
         _isQuery = new Lazy<bool>(InitializeIsQuery);
         _query = new Lazy<string>(InitializeQuery);
         _connection = new Lazy<Uri>(InitializeConnection);
+        _organizationLink = new Lazy<Uri>(InitializeOrganizationLink);
     }
 
     private AzureHostType InitializeAzureHostType()
@@ -143,7 +151,7 @@ public class AzureUri
         {
             return AzureHostType.NotHosted;
         }
-        else if (Uri.Host.Equals("dev.azure.com", StringComparison.OrdinalIgnoreCase))
+        else if (Uri.Host.EndsWith("dev.azure.com", StringComparison.OrdinalIgnoreCase))
         {
             return AzureHostType.Modern;
         }
@@ -211,15 +219,26 @@ public class AzureUri
 
         try
         {
-            return HostType switch
+            switch (HostType)
             {
-                // https://dev.azure.com/{organization} (modern)
-                AzureHostType.Modern => Uri.Segments[1].Replace("/", string.Empty),
+                case AzureHostType.Modern:
+                    return Uri.Segments[1].Replace("/", string.Empty);
 
-                // https://{organization}.visualstudio.com (legacy)
-                AzureHostType.Legacy => Uri.Host.Replace(".visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase),
-                _ => string.Empty,
-            };
+                case AzureHostType.Legacy:
+                    // Legacy format can have "vssps" in the uri, which we need to ignore for
+                    // extracting the url
+                    if (Uri.Host.EndsWith(".vssps.visualstudio.com", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return Uri.Host.Replace(".vssps.visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase);
+                    }
+                    else
+                    {
+                        return Uri.Host.Replace(".visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase);
+                    }
+
+                default:
+                    return string.Empty;
+            }
         }
         catch (Exception e)
         {
@@ -283,10 +302,20 @@ public class AzureUri
         }
         else
         {
-            // Project must be the preceding segment, as long as it is either segment 2
-            // or segment 3.
-            if (targetSegment < (2 + hostTypeOffset) || targetSegment > (3 + hostTypeOffset))
+            // There is a special situation with Repository URLs where the project name is omitted
+            // if the repository is the same name as the project. In this situation the segment
+            // immediately preceding the _git segment must be the organization segment.
+            if ((APISegmentIndex == (2 + hostTypeOffset))
+                && (Uri!.Segments.Length > (APISegmentIndex + 1))
+                && APISegment.Equals("_git", StringComparison.OrdinalIgnoreCase))
             {
+                // The target segment is the repository name.
+                targetSegment = APISegmentIndex + 1;
+            }
+            else if (targetSegment < (2 + hostTypeOffset) || targetSegment > (3 + hostTypeOffset))
+            {
+                // Project must be the preceding segment, as long as it is either segment 2
+                // or segment 3.
                 return string.Empty;
             }
         }
@@ -423,6 +452,9 @@ public class AzureUri
             case AzureHostType.Legacy:
 
                 // Legacy format is just the authority, as the organization is in the subdomain.
+                // Note that Authority will not contain the port number unless the port
+                // number differs from the default port. So if Port 443 is specified, Authority will
+                // not list it as that is the default port for the https scheme.
                 var legacyUriString = Uri.Scheme + "://" + Uri.Authority;
                 legacyUriString = legacyUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(legacyUriString, UriKind.Absolute, out newUri))
@@ -457,6 +489,49 @@ public class AzureUri
         else
         {
             return newUri;
+        }
+    }
+
+    private Uri InitializeOrganizationLink()
+    {
+        Uri? orgUri = null;
+        switch (HostType)
+        {
+            case AzureHostType.Legacy:
+
+                // https://organization@dev.azure.com/organization/project/_git/repository <- from clone window
+                // https://dev.azure.com/organization/project/_git/repository <- from repo url window
+                var legacyOrgUri = Uri.Scheme + "://" + Uri.Host;
+                if (!Uri.TryCreate(legacyOrgUri, UriKind.Absolute, out orgUri))
+                {
+                    Log.Logger()?.ReportError("Could not make Org Uri");
+                }
+
+                break;
+            case AzureHostType.Modern:
+
+                // https://organization@dev.azure.com/organization/project/_git/repository <- from clone window
+                // https://dev.azure.com/organization/project/_git/repository <- from repo url window
+                var modernOrgUri = Uri.Scheme + "://" + Uri.Host + "/" + Organization;
+                if (!Uri.TryCreate(modernOrgUri, UriKind.Absolute, out orgUri))
+                {
+                    Log.Logger()?.ReportError("Could not make Org Uri");
+                }
+
+                break;
+            default:
+                break;
+        }
+
+        // Always return a valid Uri object.
+        // Callers should verify it is valid using IsValid property.
+        if (orgUri is null)
+        {
+            return new(ValidUriString);
+        }
+        else
+        {
+            return orgUri;
         }
     }
 }

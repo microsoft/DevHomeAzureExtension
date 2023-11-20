@@ -30,10 +30,10 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     public static readonly string WorkItemHtmlUrlFieldName = "DevHome.AzureExtension.WorkItemHtmlUrl";
 
     // Max number pull requests to fetch for a repository search.
-    private static readonly int PullRequestResultLimit = 25;
+    public static readonly int PullRequestResultLimit = 25;
 
     // Max number of query results to fetch for a given query.
-    private static readonly int QueryResultLimit = 25;
+    public static readonly int QueryResultLimit = 25;
 
     // Most data that has not been updated within this time will be removed.
     private static readonly TimeSpan DataRetentionTime = TimeSpan.FromDays(1);
@@ -695,7 +695,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Connections can go bad and throw VssUnauthorizedException after some time, even if
     // if HasAuthenticated is true. The forceNewConnection default parameter is set to true until
     // the bad connection issue can be reliably detected and solved.
-    // TODO: https://github.com/microsoft/DevHomeADOExtension/issues/63
     public static ConnectionResult GetConnection(Uri connectionUri, DeveloperId.DeveloperId developerId, bool forceNewConnection = true)
     {
         VssConnection? connection;

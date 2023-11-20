@@ -35,6 +35,8 @@ public abstract class AzureWidget : WidgetImpl
 
     protected string ContentData { get; set; } = EmptyJson;
 
+    protected string DeveloperLoginId { get; set; } = string.Empty;
+
     protected bool CanPin
     {
         get; set;
@@ -165,6 +167,7 @@ public abstract class AzureWidget : WidgetImpl
             case WidgetAction.Save:
                 SavedConfigurationData = string.Empty;
                 ContentData = EmptyJson;
+                DataState = WidgetDataState.Unknown;
                 SetActive();
                 break;
 
@@ -196,10 +199,7 @@ public abstract class AzureWidget : WidgetImpl
     {
         Log.Logger()?.ReportInfo(Name, ShortId, $"WidgetAction invoked for user sign in");
 
-        // Do Sign-in Flow
-        // var authProvider = DeveloperIdProvider.GetInstance();
-        UpdateActivityState();
-        Log.Logger()?.ReportInfo(Name, ShortId, $"User sign in successful from WidgetAction invocation");
+        // We cannot do sign-in flow because it requires the main window of DevHome.
     }
 
     protected WidgetAction GetWidgetActionForVerb(string verb)
@@ -229,10 +229,30 @@ public abstract class AzureWidget : WidgetImpl
         return signInData.ToString();
     }
 
-    public bool IsUserLoggedIn()
+    protected virtual bool IsUserLoggedIn()
     {
+        // User is not logged in if either there are zero DeveloperIds logged in, or the selected
+        // DeveloperId for this widget is not logged in.
         var authProvider = DeveloperIdProvider.GetInstance();
-        return authProvider.GetLoggedInDeveloperIds().DeveloperIds.Any();
+        if (!authProvider.GetLoggedInDeveloperIds().DeveloperIds.Any())
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(DeveloperLoginId))
+        {
+            // User has not yet chosen a DeveloperId, but there is at least one available, so the
+            // user has logged in and we are in a good state.
+            return true;
+        }
+
+        if (GetDevId(DeveloperLoginId) is not null)
+        {
+            // The selected DeveloperId is logged in so we are in a good state.
+            return true;
+        }
+
+        return false;
     }
 
     protected DeveloperId.DeveloperId? GetDevId(string login)
@@ -469,8 +489,45 @@ public abstract class AzureWidget : WidgetImpl
         lastUpdateRequest = DateTime.Now;
     }
 
-    private void HandleDeveloperIdChange(object? sender, IDeveloperId e)
+    // This method will attempt to select a DeveloperId if one is not already selected. By default
+    // this will simply select the first DeveloperId in the list of available DeveloperIds.
+    protected virtual void SetDefaultDeveloperLoginId()
     {
+        if (!string.IsNullOrEmpty(DeveloperLoginId))
+        {
+            return;
+        }
+
+        var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
+        if (devIds is null)
+        {
+            return;
+        }
+
+        // Set as the first DevId found, unless we find a better match from the Url.
+        DeveloperLoginId = devIds.FirstOrDefault()?.LoginId ?? string.Empty;
+    }
+
+    protected void HandleDeveloperIdChange(object? sender, IDeveloperId e)
+    {
+        if (e.LoginId == DeveloperLoginId)
+        {
+            try
+            {
+                var state = DeveloperIdProvider.GetInstance().GetDeveloperIdState(e);
+                if (state == AuthenticationState.LoggedIn)
+                {
+                    // If the DevId we are set for logs in, refresh the data.
+                    RequestContentData();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Logger()?.ReportError(Name, ShortId, $"Failed getting DeveloperId state.", ex);
+            }
+        }
+
+        // Update state regardless, since we could be waiting for any developer to sign in.
         Log.Logger()?.ReportInfo(Name, ShortId, $"Change in Developer Id,  Updating widget state.");
         UpdateActivityState();
     }

@@ -4,7 +4,6 @@
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DataManager;
-using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.Widgets.Providers;
@@ -20,7 +19,6 @@ internal class AzureQueryListWidget : AzureWidget
 
     // Widget Data
     private string widgetTitle = string.Empty;
-    private string selectedDevId = string.Empty;
     private string selectedQueryUrl = string.Empty;
     private string selectedQueryId = string.Empty;
     private string? message;
@@ -90,17 +88,17 @@ internal class AzureQueryListWidget : AzureWidget
             CanPin = false;
             widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
             selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
-            selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
-            SetDefaultDeveloperId();
-            if (selectedDevId != dataObject["account"]?.GetValue<string>())
+            DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+            SetDefaultDeveloperLoginId();
+            if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
             {
-                dataObject["account"] = selectedDevId;
+                dataObject["account"] = DeveloperLoginId;
                 data = dataObject.ToJsonString();
             }
 
             ConfigurationData = data;
 
-            var developerId = GetDevId(selectedDevId);
+            var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
                 message = Resources.GetResource(@"Widget_Template/DevIDError");
@@ -137,29 +135,22 @@ internal class AzureQueryListWidget : AzureWidget
         SetConfigure();
     }
 
-    // This method will attempt to select a DeveloperId if one is not already selected.
-    // It uses the input url and tries to find the most likely DeveloperId that corresponds to the
-    // url among the set of available DeveloperIds. If there is no best match it chooses the first
-    // available developerId or none if there are no DeveloperIds.
-    private void SetDefaultDeveloperId()
+    // Increase precision of SetDefaultDeveloperLoginId by matching the selectedQueryUrl's org
+    // with the first matching DeveloperId that contains that org.
+    protected override void SetDefaultDeveloperLoginId()
     {
-        if (!string.IsNullOrEmpty(selectedDevId))
-        {
-            return;
-        }
+        base.SetDefaultDeveloperLoginId();
 
-        var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
-        if (devIds is null)
-        {
-            return;
-        }
-
-        // Set as the first DevId found, unless we find a better match from the Url.
-        selectedDevId = devIds.FirstOrDefault()?.LoginId ?? string.Empty;
         var azureOrg = new AzureUri(selectedQueryUrl).Organization;
         if (!string.IsNullOrEmpty(azureOrg))
         {
-            selectedDevId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? selectedDevId;
+            var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
+            if (devIds is null)
+            {
+                return;
+            }
+
+            DeveloperLoginId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? DeveloperLoginId;
         }
     }
 
@@ -177,9 +168,6 @@ internal class AzureQueryListWidget : AzureWidget
 
                 // The DataManager log will have detailed exception info, use the short message.
                 Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
-
-                // TODO: Display error to user however design deems appropriate.
-                // https://github.com/microsoft/DevHomeADOExtension/issues/50
                 return;
             }
 
@@ -191,7 +179,7 @@ internal class AzureQueryListWidget : AzureWidget
 
     public override void RequestContentData()
     {
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             // Should not happen
@@ -222,10 +210,10 @@ internal class AzureQueryListWidget : AzureWidget
         }
 
         widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-        selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+        DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
         selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
 
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             return;
@@ -257,7 +245,7 @@ internal class AzureQueryListWidget : AzureWidget
 
         configurationData.Add("accounts", developerIdsData);
 
-        configurationData.Add("selectedDevId", selectedDevId);
+        configurationData.Add("selectedDevId", DeveloperLoginId);
         configurationData.Add("url", selectedQueryUrl);
         configurationData.Add("message", message);
         configurationData.Add("widgetTitle", widgetTitle);
@@ -271,80 +259,78 @@ internal class AzureQueryListWidget : AzureWidget
 
     public override void LoadContentData()
     {
-        var developerId = GetDevId(selectedDevId);
-        if (developerId == null)
-        {
-            // Should not happen, but may be possible in situations where the app is removed and
-            // the signed in account is not silently restorable.
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
-            return;
-        }
-
-        var azureUri = new AzureUri(selectedQueryUrl);
-        if (!azureUri.IsQuery)
-        {
-            Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedQueryUrl}");
-            return;
-        }
-
-        Query? queryInfo;
         try
         {
-            // This can throw if DataStore is not connected.
-            queryInfo = DataManager!.GetQuery(azureUri, developerId.LoginId);
-            if (queryInfo == null)
+            var developerId = GetDevId(DeveloperLoginId);
+            if (developerId == null)
             {
-                // This is not always an error and this will happen for a new widget when it is first
-                // pinned before we actually have data populated. Treating this as an information log
-                // event rather than an error.
-                Log.Logger()?.ReportInfo(Name, ShortId, $"No query information found for query: {azureUri.Query}");
+                // Should not happen, but may be possible in situations where the app is removed and
+                // the signed in account is not silently restorable.
+                // This is also checked before on UpdateActivityState() method on base class.
+                Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
                 return;
             }
+
+            var azureUri = new AzureUri(selectedQueryUrl);
+
+            if (!azureUri.IsQuery)
+            {
+                // This should never happen. Already was validated on configuration.
+                Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedQueryUrl}");
+                return;
+            }
+
+            // This can throw if DataStore is not connected.
+            var queryInfo = DataManager!.GetQuery(azureUri, developerId.LoginId);
+
+            var queryResults = queryInfo is null ? new Dictionary<string, object>() : JsonConvert.DeserializeObject<Dictionary<string, object>>(queryInfo.QueryResults);
+
+            var itemsData = new JsonObject();
+            var itemsArray = new JsonArray();
+
+            foreach (var element in queryResults)
+            {
+                var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
+
+                if (workItem != null)
+                {
+                    // If we can't get the real date, it is better better to show a recent
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
+                    var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    var dateTime = dateTicks.ToDateTime();
+
+                    var item = new JsonObject
+                    {
+                        { "title", workItem["System.Title"]?.GetValue<string>() ?? string.Empty },
+                        { "url", workItem[AzureDataManager.WorkItemHtmlUrlFieldName]?.GetValue<string>() ?? string.Empty },
+                        { "icon", GetIconForType(workItem["System.WorkItemType"]?["Name"]?.GetValue<string>()) },
+                        { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
+                        { "number", element.Key },
+                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
+                        { "user", workItem["System.CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
+                        { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
+                        { "avatar", workItem["System.CreatedBy"]?["Avatar"]?.GetValue<string>() ?? string.Empty },
+                    };
+
+                    itemsArray.Add(item);
+                }
+            }
+
+            itemsData.Add("workItemCount", queryInfo is null ? 0 : (int)queryInfo.QueryResultCount);
+            itemsData.Add("maxItemsDisplayed", AzureDataManager.QueryResultLimit);
+            itemsData.Add("items", itemsArray);
+            itemsData.Add("widgetTitle", widgetTitle);
+            itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
+
+            ContentData = itemsData.ToJsonString();
+            UpdateActivityState();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, $"GetQuery failed.", ex);
+            Log.Logger()?.ReportError(Name, ShortId, "Error retrieving data.", e);
+            DataState = WidgetDataState.Failed;
             return;
         }
-
-        var queryResults = JsonConvert.DeserializeObject<Dictionary<string, object>>(queryInfo.QueryResults);
-
-        var itemsData = new JsonObject();
-        var itemsArray = new JsonArray();
-
-        foreach (var element in queryResults)
-        {
-            var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
-
-            if (workItem != null)
-            {
-                // If we can't get the real date, it is better better to show a recent
-                // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
-                var dateTime = dateTicks.ToDateTime();
-
-                var item = new JsonObject
-                {
-                    { "title", workItem["System.Title"]?.GetValue<string>() ?? string.Empty },
-                    { "url", workItem[AzureDataManager.WorkItemHtmlUrlFieldName]?.GetValue<string>() ?? string.Empty },
-                    { "icon", GetIconForType(workItem["System.WorkItemType"]?["Name"]?.GetValue<string>()) },
-                    { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
-                    { "number", element.Key },
-                    { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
-                    { "user", workItem["System.CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
-                    { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
-                    { "avatar", workItem["System.CreatedBy"]?["Avatar"]?.GetValue<string>() ?? string.Empty },
-                };
-
-                itemsArray.Add(item);
-            }
-        }
-
-        itemsData.Add("items", itemsArray);
-        itemsData.Add("widgetTitle", widgetTitle);
-
-        ContentData = itemsData.ToJsonString();
-        UpdateActivityState();
     }
 
     // Overriding methods from Widget base

@@ -22,7 +22,6 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     // Widget Data
     private string widgetTitle = string.Empty;
-    private string selectedDevId = string.Empty;
     private string selectedRepositoryUrl = string.Empty;
     private string selectedRepositoryName = string.Empty;
     private string selectedView = DefaultSelectedView;
@@ -91,19 +90,19 @@ internal class AzurePullRequestsWidget : AzureWidget
         if (dataObject != null && dataObject["account"] != null && dataObject["query"] != null)
         {
             widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-            selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+            DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
             selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
             selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
-            SetDefaultDeveloperId();
-            if (selectedDevId != dataObject["account"]?.GetValue<string>())
+            SetDefaultDeveloperLoginId();
+            if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
             {
-                dataObject["account"] = selectedDevId;
+                dataObject["account"] = DeveloperLoginId;
                 data = dataObject.ToJsonString();
             }
 
             ConfigurationData = data;
 
-            var developerId = GetDevId(selectedDevId);
+            var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
                 message = Resources.GetResource(@"Widget_Template/DevIDError");
@@ -135,29 +134,21 @@ internal class AzurePullRequestsWidget : AzureWidget
         SetConfigure();
     }
 
-    // This method will attempt to select a DeveloperId if one is not already selected.
-    // It uses the input url and tries to find the most likely DeveloperId that corresponds to the
-    // url among the set of available DeveloperIds. If there is no best match it chooses the first
-    // available developerId or none if there are no DeveloperIds.
-    private void SetDefaultDeveloperId()
+    // Increase precision of SetDefaultDeveloperLoginId by matching the selectedRepositoryUrl's org
+    // with the first matching DeveloperId that contains that org.
+    protected override void SetDefaultDeveloperLoginId()
     {
-        if (!string.IsNullOrEmpty(selectedDevId))
-        {
-            return;
-        }
-
-        var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
-        if (devIds is null)
-        {
-            return;
-        }
-
-        // Set as the first DevId found, unless we find a better match from the Url.
-        selectedDevId = devIds.FirstOrDefault()?.LoginId ?? string.Empty;
+        base.SetDefaultDeveloperLoginId();
         var azureOrg = new AzureUri(selectedRepositoryUrl).Organization;
         if (!string.IsNullOrEmpty(azureOrg))
         {
-            selectedDevId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? selectedDevId;
+            var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
+            if (devIds is null)
+            {
+                return;
+            }
+
+            DeveloperLoginId = devIds.Where(i => i.LoginId.Contains(azureOrg, StringComparison.OrdinalIgnoreCase)).FirstOrDefault()?.LoginId ?? DeveloperLoginId;
         }
     }
 
@@ -175,9 +166,6 @@ internal class AzurePullRequestsWidget : AzureWidget
 
                 // The DataManager log will have detailed exception info, use the short message.
                 Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
-
-                // TODO: Display error to user however design deems appropriate.
-                // https://github.com/microsoft/DevHomeADOExtension/issues/50
                 return;
             }
 
@@ -189,7 +177,7 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     public override void RequestContentData()
     {
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             // Should not happen
@@ -219,11 +207,11 @@ internal class AzurePullRequestsWidget : AzureWidget
         }
 
         widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-        selectedDevId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
+        DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
         selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
         selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
 
-        var developerId = GetDevId(selectedDevId);
+        var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
             return;
@@ -251,7 +239,7 @@ internal class AzurePullRequestsWidget : AzureWidget
 
         configurationData.Add("accounts", developerIdsData);
 
-        configurationData.Add("selectedDevId", selectedDevId);
+        configurationData.Add("selectedDevId", DeveloperLoginId);
         configurationData.Add("url", selectedRepositoryUrl);
         configurationData.Add("selectedView", selectedView);
         configurationData.Add("message", message);
@@ -266,78 +254,74 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     public override void LoadContentData()
     {
-        var developerId = GetDevId(selectedDevId);
-        if (developerId == null)
-        {
-            // Should not happen
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
-            return;
-        }
-
-        var azureUri = new AzureUri(selectedRepositoryUrl);
-        if (!azureUri.IsRepository)
-        {
-            Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedRepositoryUrl}");
-            return;
-        }
-
-        PullRequests? pullRequests;
         try
         {
-            // This can throw if DataStore is not connected.
-            pullRequests = DataManager!.GetPullRequests(azureUri, developerId.LoginId, GetPullRequestView(selectedView));
-            if (pullRequests == null)
+            var developerId = GetDevId(DeveloperLoginId);
+            if (developerId == null)
             {
-                // This is not always an error and this will happen for a new widget when it is first
-                // pinned before we actually have data populated. Treating this as an information log
-                // event rather than an error.
-                Log.Logger()?.ReportInfo(Name, ShortId, $"No pull request information found for {azureUri.Organization}/{azureUri.Project}/{azureUri.Repository}");
+                // Should not happen
+                Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
                 return;
             }
+
+            var azureUri = new AzureUri(selectedRepositoryUrl);
+            if (!azureUri.IsRepository)
+            {
+                Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedRepositoryUrl}");
+                return;
+            }
+
+            PullRequests? pullRequests;
+
+            // This can throw if DataStore is not connected.
+            pullRequests = DataManager!.GetPullRequests(azureUri, developerId.LoginId, GetPullRequestView(selectedView));
+
+            var pullRequestsResults = pullRequests is null ? new Dictionary<string, object>() : JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
+
+            var itemsData = new JsonObject();
+            var itemsArray = new JsonArray();
+
+            foreach (var element in pullRequestsResults)
+            {
+                var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
+
+                if (workItem != null)
+                {
+                    // If we can't get the real date, it is better better to show a recent
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
+                    var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    var dateTime = dateTicks.ToDateTime();
+
+                    var item = new JsonObject
+                    {
+                        { "title", workItem["Title"]?.GetValue<string>() ?? string.Empty },
+                        { "url", workItem["HtmlUrl"]?.GetValue<string>() ?? string.Empty },
+                        { "status_icon", GetIconForPullRequestStatus(workItem["Status"]?.GetValue<string>()) },
+                        { "number", element.Key },
+                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
+                        { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
+                        { "branch", workItem["TargetBranch"]?.GetValue<string>().Replace("refs/heads/", string.Empty) },
+                        { "avatar", workItem["CreatedBy"]?["Avatar"]?.GetValue<string>() },
+                    };
+
+                    itemsArray.Add(item);
+                }
+            }
+
+            itemsData.Add("maxItemsDisplayed", AzureDataManager.PullRequestResultLimit);
+            itemsData.Add("items", itemsArray);
+            itemsData.Add("widgetTitle", widgetTitle);
+            itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
+
+            ContentData = itemsData.ToJsonString();
+            UpdateActivityState();
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, $"GetPullRequests failed.", ex);
+            Log.Logger()?.ReportError(Name, ShortId, "Error retrieving data.", e);
+            DataState = WidgetDataState.Failed;
             return;
         }
-
-        var pullRequestsResults = JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
-
-        var itemsData = new JsonObject();
-        var itemsArray = new JsonArray();
-
-        foreach (var element in pullRequestsResults)
-        {
-            var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
-
-            if (workItem != null)
-            {
-                // If we can't get the real date, it is better better to show a recent
-                // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
-                var dateTime = dateTicks.ToDateTime();
-
-                var item = new JsonObject
-                {
-                    { "title", workItem["Title"]?.GetValue<string>() ?? string.Empty },
-                    { "url", workItem["HtmlUrl"]?.GetValue<string>() ?? string.Empty },
-                    { "status_icon", GetIconForPullRequestStatus(workItem["Status"]?.GetValue<string>()) },
-                    { "number", element.Key },
-                    { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
-                    { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
-                    { "branch", workItem["TargetBranch"]?.GetValue<string>().Replace("refs/heads/", string.Empty) },
-                    { "avatar", workItem["CreatedBy"]?["Avatar"]?.GetValue<string>() },
-                };
-
-                itemsArray.Add(item);
-            }
-        }
-
-        itemsData.Add("items", itemsArray);
-        itemsData.Add("widgetTitle", widgetTitle);
-
-        ContentData = itemsData.ToJsonString();
-        UpdateActivityState();
     }
 
     // Overriding methods from Widget base
