@@ -2,14 +2,20 @@
 // Licensed under the MIT license.
 
 using AzureExtension.Contracts;
+using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace AzureExtension.Services.DevBox;
 
 public class DataTokenService : IDataTokenService
 {
-    public Task<string> GetTokenAsync(IDeveloperId? devId)
+    private AuthenticationHelper AuthHelper => new();
+
+    public async Task<string> GetTokenAsync(IDeveloperId? devId)
     {
-        throw new NotImplementedException();
+        string[] scopes = { "https://devcenter.azure.com/access_as_user" };
+        string id = devId?.LoginId ?? "modanish@microsoft.com";
+        var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(scopes, id);
+        return result?.AccessToken ?? string.Empty;
     }
 }

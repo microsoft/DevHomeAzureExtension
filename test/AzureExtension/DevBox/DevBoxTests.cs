@@ -67,6 +67,34 @@ public partial class DevBoxTests
     [TestCategory("Manual")]
 
     // [Ignore("Comment out to run")]
+    public void DevBox_DataTokenAuth()
+    {
+        var host = Microsoft.Extensions.Hosting.Host.
+            CreateDefaultBuilder().
+            UseContentRoot(AppContext.BaseDirectory).
+            UseDefaultServiceProvider((context, options) =>
+            {
+                options.ValidateOnBuild = true;
+            }).
+            ConfigureServices((context, services) =>
+            {
+                services.AddHttpClient();
+                services.AddSingleton<IDevBoxManagementService, ManagementService>();
+                services.AddSingleton<IDevBoxAuthService, AuthService>();
+                services.AddSingleton<IArmTokenService, ArmTestTokenService>();
+                services.AddSingleton<IDataTokenService, DataTokenService>();
+            }).
+            Build();
+
+        var instance = new DevBoxProvider(host);
+        var systems = instance.GetComputeSystemsAsync(null).Result;
+        Assert.IsTrue(systems.Any());
+    }
+
+    [TestMethod]
+    [TestCategory("Manual")]
+
+    // [Ignore("Comment out to run")]
     public void DevBox_Auth()
     {
         var host = Microsoft.Extensions.Hosting.Host.
