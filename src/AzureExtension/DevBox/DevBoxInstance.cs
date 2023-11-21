@@ -87,6 +87,7 @@ public class DevBoxInstance : IComputeSystem
         return Task.Run(async () =>
         {
             var api = BoxURI + ":start?api-version=2023-04-01";
+            Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
             var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, api));
             if (response.IsSuccessStatusCode)
             {
@@ -119,6 +120,7 @@ public class DevBoxInstance : IComputeSystem
         return Task.Run(async () =>
         {
             var api = BoxURI + ":stop?api-version=2023-04-01";
+            Log.Logger()?.ReportInfo($"Shutting down {Name} with {api}");
             var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, api));
             if (response.IsSuccessStatusCode)
             {
@@ -148,7 +150,22 @@ public class DevBoxInstance : IComputeSystem
     }
 
     // Unsupported operations
-    public IAsyncOperation<ComputeSystemStateResult> GetState(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemStateResult> GetState(string options)
+    {
+        if (State == "Running")
+        {
+            return Task.Run(() => new ComputeSystemStateResult(ComputeSystemState.Running)).AsAsyncOperation();
+        }
+        else if (State == "Stopped")
+        {
+            return Task.Run(() => new ComputeSystemStateResult(ComputeSystemState.Stopped)).AsAsyncOperation();
+        }
+        else
+        {
+            Log.Logger()?.ReportError($"Unknown state {State}");
+            return Task.Run(() => new ComputeSystemStateResult(ComputeSystemState.Unknown)).AsAsyncOperation();
+        }
+    }
 
     public IAsyncOperation<ComputeSystemOperationResult> ApplyConfiguration(string configuration) => throw new NotImplementedException();
 
