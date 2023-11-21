@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System.Diagnostics;
+using AzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
@@ -9,63 +10,69 @@ namespace AzureExtension.DevBox;
 
 public class DevBoxInstance : IComputeSystem
 {
-    public string Name
+    private readonly IDevBoxAuthService _authService;
+
+    public IDeveloperId? DevId
     {
-        get;
+        get; private set;
     }
 
-    public string Id
+    public string? Name
     {
-        get;
+        get; private set;
     }
 
-    public string ProjectName
+    public string? Id
     {
-        get;
+        get; private set;
     }
 
-    public string State
+    public string? ProjectName
     {
-        get;
+        get; private set;
     }
 
-    public string CPU
+    public string? State
     {
-        get;
+        get; private set;
     }
 
-    public string Memory
+    public string? CPU
     {
-        get;
+        get; private set;
     }
 
-    public string WebURI
+    public string? Memory
     {
-        get;
+        get; private set;
     }
 
-    public string BoxURI
+    public string? WebURI
     {
-        get;
+        get; private set;
     }
 
-    public string RdpURI
+    public string? BoxURI
     {
-        get;
+        get; private set;
     }
 
-    public string OS
+    public string? RdpURI
     {
-        get;
+        get; private set;
     }
 
-    // Todo: Make this a singleton
-    private HttpClient HttpClient
+    public string? OS
     {
-        get;
+        get; private set;
     }
 
-    public DevBoxInstance(string name, string id, string project, string state, string cpu, string memory, string boxUri, string webUri, string rdpUri, string os, HttpClient httpClient)
+    public DevBoxInstance(IDevBoxAuthService devBoxAuthService)
+    {
+        _authService = devBoxAuthService;
+    }
+
+    public void InstanceFill(string name, string id, string project, string state, string cpu, string memory, string boxUri, string webUri, string rdpUri, string os, IDeveloperId devId)
     {
         Name = name;
         Id = id;
@@ -77,7 +84,7 @@ public class DevBoxInstance : IComputeSystem
         WebURI = webUri;
         RdpURI = rdpUri;
         OS = os;
-        HttpClient = httpClient;
+        DevId = devId;
     }
 
     public ComputeSystemOperations SupportedOperations => ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown;
@@ -88,7 +95,13 @@ public class DevBoxInstance : IComputeSystem
         {
             var api = BoxURI + ":start?api-version=2023-04-01";
             Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
-            var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, api));
+            var httpClient = _authService.GetDataPlaneClient(DevId);
+            if (httpClient == null)
+            {
+                return new ComputeSystemOperationResult("Fail");
+            }
+
+            var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, api));
             if (response.IsSuccessStatusCode)
             {
                 var res = new ComputeSystemOperationResult("Success");
@@ -121,7 +134,13 @@ public class DevBoxInstance : IComputeSystem
         {
             var api = BoxURI + ":stop?api-version=2023-04-01";
             Log.Logger()?.ReportInfo($"Shutting down {Name} with {api}");
-            var response = await HttpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, api));
+            var httpClient = _authService.GetDataPlaneClient(DevId);
+            if (httpClient == null)
+            {
+                return new ComputeSystemOperationResult("Fail");
+            }
+
+            var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, api));
             if (response.IsSuccessStatusCode)
             {
                 var res = new ComputeSystemOperationResult("Success");

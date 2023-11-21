@@ -43,7 +43,7 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
     // Can only be reached by GetComputeSystemsAsync() after checking
     // that httpDataClient isn't null hence the warning suppression
 #pragma warning disable CS8604 // Possible null reference argument.
-    private DevBoxInstance? MakeDevBoxFromJson(JsonElement item, string project)
+    private DevBoxInstance? MakeDevBoxFromJson(JsonElement item, string project, IDeveloperId? devId)
     {
         try
         {
@@ -58,12 +58,11 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
             var webUrl = string.Empty;
             var rdpUrl = string.Empty;
 
-            var httpDataClient = new HttpClient();
-
             // GetRemoteLaunchURIs(uri, out webUrl, out rdpUrl);
             Log.Logger()?.ReportInfo($"Created box {name} with id {uniqueId} with {actionState}, {vCPUs}, {memory}, {uri}, {operatingSystem}");
-
-            return new DevBoxInstance(name, uniqueId, project, actionState, vCPUs, memory, uri, webUrl, rdpUrl, operatingSystem, httpDataClient);
+            var box = _host.Services.GetRequiredService<DevBoxInstance>();
+            box.InstanceFill(name, uniqueId, project, actionState, vCPUs, memory, uri, webUrl, rdpUrl, operatingSystem, devId);
+            return box;
         }
         catch (Exception ex)
         {
@@ -104,7 +103,7 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
 
                         foreach (var item in boxes.EnumerateArray())
                         {
-                            var box = MakeDevBoxFromJson(item, project);
+                            var box = MakeDevBoxFromJson(item, project, developerId);
                             if (box != null)
                             {
                                 computeSystems.Add(box);
