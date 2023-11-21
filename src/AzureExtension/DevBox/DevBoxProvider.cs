@@ -39,39 +39,6 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
         return jsonElement.ValueKind != JsonValueKind.Undefined;
     }
 
-    // Returns a DevBox object from a JSON object
-    // Can only be reached by GetComputeSystemsAsync() after checking
-    // that httpDataClient isn't null hence the warning suppression
-#pragma warning disable CS8604 // Possible null reference argument.
-    private DevBoxInstance? MakeDevBoxFromJson(JsonElement item, string project, IDeveloperId? devId)
-    {
-        try
-        {
-            var uri = item.GetProperty("uri").ToString();
-            var name = item.GetProperty("name").ToString();
-            var uniqueId = item.GetProperty("uniqueId").ToString();
-            var actionState = item.GetProperty("actionState").ToString();
-            var vCPUs = item.GetProperty("hardwareProfile").GetProperty("vCPUs").ToString();
-            var memory = item.GetProperty("hardwareProfile").GetProperty("memoryGB").ToString();
-            var operatingSystem = item.GetProperty("imageReference").GetProperty("operatingSystem").ToString();
-
-            var webUrl = string.Empty;
-            var rdpUrl = string.Empty;
-
-            // GetRemoteLaunchURIs(uri, out webUrl, out rdpUrl);
-            Log.Logger()?.ReportInfo($"Created box {name} with id {uniqueId} with {actionState}, {vCPUs}, {memory}, {uri}, {operatingSystem}");
-            var box = _host.Services.GetRequiredService<DevBoxInstance>();
-            box.InstanceFill(name, uniqueId, project, actionState, vCPUs, memory, uri, webUrl, rdpUrl, operatingSystem, devId);
-            return box;
-        }
-        catch (Exception ex)
-        {
-            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.Message}");
-            return null;
-        }
-    }
-#pragma warning restore CS8604 // Possible null reference argument.
-
     public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
     {
         var computeSystems = new List<IComputeSystem>();
@@ -103,8 +70,10 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
 
                         foreach (var item in boxes.EnumerateArray())
                         {
-                            var box = MakeDevBoxFromJson(item, project, developerId);
-                            if (box != null)
+                            // Get an empty dev box object and fill in the details
+                            var box = _host.Services.GetService<DevBoxInstance>();
+                            box?.FillFromJson(item, project, developerId);
+                            if (box is not null && box.IsValid)
                             {
                                 computeSystems.Add(box);
                             }

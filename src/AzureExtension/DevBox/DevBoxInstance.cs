@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 using System.Diagnostics;
+using System.Text.Json;
 using AzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
@@ -72,22 +73,56 @@ public class DevBoxInstance : IComputeSystem
         _authService = devBoxAuthService;
     }
 
-    public void InstanceFill(string name, string id, string project, string state, string cpu, string memory, string boxUri, string webUri, string rdpUri, string os, IDeveloperId devId)
+    // Returns a DevBox object from a JSON object
+    public void FillFromJson(JsonElement item, string project, IDeveloperId? devId)
     {
-        Name = name;
-        Id = id;
-        ProjectName = project;
-        State = state;
-        CPU = cpu;
-        Memory = memory;
-        BoxURI = boxUri;
-        WebURI = webUri;
-        RdpURI = rdpUri;
-        OS = os;
-        DevId = devId;
+        try
+        {
+            BoxURI = item.GetProperty("uri").ToString();
+            Name = item.GetProperty("name").ToString();
+            Id = item.GetProperty("uniqueId").ToString();
+            State = item.GetProperty("actionState").ToString();
+            CPU = item.GetProperty("hardwareProfile").GetProperty("vCPUs").ToString();
+            Memory = item.GetProperty("hardwareProfile").GetProperty("memoryGB").ToString();
+            OS = item.GetProperty("imageReference").GetProperty("operatingSystem").ToString();
+            ProjectName = project;
+            DevId = devId;
+
+            (WebURI, RdpURI) = GetRemoteLaunchURIsAsync(BoxURI).Result;
+            Log.Logger()?.ReportInfo($"Created box {Name} with id {Id} with {State}, {CPU}, {Memory}, {BoxURI}, {OS}");
+            IsValid = true;
+        }
+        catch (Exception ex)
+        {
+            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.Message}");
+        }
+    }
+
+    private async Task<(string WebURI, string RdpURI)> GetRemoteLaunchURIsAsync(string boxURI)
+    {
+        var connectionUri = boxURI + "/remoteConnection?api-version=2023-04-01";
+        var boxRequest = new HttpRequestMessage(HttpMethod.Get, connectionUri);
+        var httpClient = _authService.GetDataPlaneClient(DevId);
+        if (httpClient == null)
+        {
+            return (string.Empty, string.Empty);
+        }
+
+        var boxResponse = httpClient.Send(boxRequest);
+        var content = await boxResponse.Content.ReadAsStringAsync();
+        JsonElement json = JsonDocument.Parse(content).RootElement;
+        var remoteUri = json.GetProperty("rdpConnectionUrl").ToString();
+        var webUrl = json.GetProperty("webUrl").ToString();
+        return (remoteUri, webUrl);
     }
 
     public ComputeSystemOperations SupportedOperations => ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown;
+
+    public bool IsValid
+    {
+        get;
+        private set;
+    }
 
     public IAsyncOperation<ComputeSystemOperationResult> Start(string options)
     {
@@ -95,6 +130,7 @@ public class DevBoxInstance : IComputeSystem
         {
             var api = BoxURI + ":start?api-version=2023-04-01";
             Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
+
             var httpClient = _authService.GetDataPlaneClient(DevId);
             if (httpClient == null)
             {
@@ -134,6 +170,7 @@ public class DevBoxInstance : IComputeSystem
         {
             var api = BoxURI + ":stop?api-version=2023-04-01";
             Log.Logger()?.ReportInfo($"Shutting down {Name} with {api}");
+
             var httpClient = _authService.GetDataPlaneClient(DevId);
             if (httpClient == null)
             {
@@ -168,24 +205,27 @@ public class DevBoxInstance : IComputeSystem
         }).AsAsyncOperation();
     }
 
-    // Unsupported operations
     public IAsyncOperation<ComputeSystemStateResult> GetState(string options)
     {
-        if (State == "Running")
+        return Task.Run(() =>
         {
-            return Task.Run(() => new ComputeSystemStateResult(ComputeSystemState.Running)).AsAsyncOperation();
-        }
-        else if (State == "Stopped")
-        {
-            return Task.Run(() => new ComputeSystemStateResult(ComputeSystemState.Stopped)).AsAsyncOperation();
-        }
-        else
-        {
-            Log.Logger()?.ReportError($"Unknown state {State}");
-            return Task.Run(() => new ComputeSystemStateResult(ComputeSystemState.Unknown)).AsAsyncOperation();
-        }
+            if (State == "Running")
+            {
+                return new ComputeSystemStateResult(ComputeSystemState.Running);
+            }
+            else if (State == "Stopped")
+            {
+                return new ComputeSystemStateResult(ComputeSystemState.Stopped);
+            }
+            else
+            {
+                Log.Logger()?.ReportError($"Unknown state {State}");
+                return new ComputeSystemStateResult(ComputeSystemState.Unknown);
+            }
+        }).AsAsyncOperation();
     }
 
+    // Unsupported operations
     public IAsyncOperation<ComputeSystemOperationResult> ApplyConfiguration(string configuration) => throw new NotImplementedException();
 
     public IAsyncOperation<ComputeSystemOperationResult> ApplySnapshot(string options) => throw new NotImplementedException();
