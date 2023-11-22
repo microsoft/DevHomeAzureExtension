@@ -13,9 +13,13 @@ public class DataTokenService : IDataTokenService
 
     public async Task<string> GetTokenAsync(IDeveloperId? devId)
     {
+        if (devId == null)
+        {
+            return string.Empty;
+        }
+
         string[] scopes = { "https://devcenter.azure.com/access_as_user" };
-        string id = devId?.LoginId ?? "modanish@microsoft.com";
-        var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(scopes, id);
+        var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(scopes, devId.LoginId);
         return result?.AccessToken ?? string.Empty;
     }
 }

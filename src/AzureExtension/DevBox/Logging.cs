@@ -15,7 +15,7 @@ public class Log
     {
         try
         {
-            _logger ??= new Logger("DevBox ------->", GetLoggingOptions());
+            _logger ??= new Logger("DevBox", GetLoggingOptions());
         }
         catch
         {
