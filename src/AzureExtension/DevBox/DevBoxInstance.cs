@@ -213,7 +213,7 @@ public class DevBoxInstance : IComputeSystem
             {
                 return new ComputeSystemStateResult(ComputeSystemState.Running);
             }
-            else if (State == "Stopped")
+            else if (State == "Deallocated")
             {
                 return new ComputeSystemStateResult(ComputeSystemState.Stopped);
             }
