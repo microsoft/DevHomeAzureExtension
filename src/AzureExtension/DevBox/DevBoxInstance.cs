@@ -113,7 +113,7 @@ public class DevBoxInstance : IComputeSystem
         JsonElement json = JsonDocument.Parse(content).RootElement;
         var remoteUri = json.GetProperty("rdpConnectionUrl").ToString();
         var webUrl = json.GetProperty("webUrl").ToString();
-        return (remoteUri, webUrl);
+        return (webUrl, remoteUri);
     }
 
     public ComputeSystemOperations SupportedOperations => ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown;
@@ -193,13 +193,12 @@ public class DevBoxInstance : IComputeSystem
     public IAsyncOperation<ComputeSystemOperationResult> Connect(string properties)
     {
         // Todo: Correct this to remove delay
-        return Task.Run(async () =>
+        return Task.Run(() =>
         {
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
             psi.FileName = WebURI;
             Process.Start(psi);
-            await Task.Delay(10);
             var res = new ComputeSystemOperationResult("Success");
             return res;
         }).AsAsyncOperation();
