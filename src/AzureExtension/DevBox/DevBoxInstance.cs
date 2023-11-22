@@ -81,7 +81,7 @@ public class DevBoxInstance : IComputeSystem
             BoxURI = item.GetProperty("uri").ToString();
             Name = item.GetProperty("name").ToString();
             Id = item.GetProperty("uniqueId").ToString();
-            State = item.GetProperty("actionState").ToString();
+            State = item.GetProperty("powerState").ToString();
             CPU = item.GetProperty("hardwareProfile").GetProperty("vCPUs").ToString();
             Memory = item.GetProperty("hardwareProfile").GetProperty("memoryGB").ToString();
             OS = item.GetProperty("imageReference").GetProperty("operatingSystem").ToString();
