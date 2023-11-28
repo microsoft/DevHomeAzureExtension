@@ -15,9 +15,8 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
 {
     private readonly IHost _host;
 
-    public DevBoxProvider(IHost host)
+    public DevBoxProvider()
     {
-        _host = host;
     }
 
     string IComputeSystemProvider.DefaultComputeSystemProperties
@@ -50,6 +49,7 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
         }
         else
         {
+            // ToDo: Remove throw and add to return object
             Log.Logger()?.ReportError($"Error getting systems: Rest Service not configured");
             throw new ArgumentException($"Rest Service needs to be configured.");
         }
