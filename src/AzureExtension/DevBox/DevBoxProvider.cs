@@ -15,10 +15,6 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
 {
     private readonly IHost _host;
 
-    public DevBoxProvider()
-    {
-    }
-
     string IComputeSystemProvider.DefaultComputeSystemProperties
     {
         get => throw new NotImplementedException();
