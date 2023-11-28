@@ -27,14 +27,14 @@ public class ManagementService : IDevBoxManagementService
         get; set;
     }
 
-    public JsonElement GetAllProjectsAsJSONAsync()
+    public JsonElement GetAllProjectsAsJsonAsync()
     {
         JsonElement result = default;
 
         return result;
     }
 
-    public JsonElement GetBoxesAsJSONAsync(string devCenterUri, string project)
+    public JsonElement GetBoxesAsJsonAsync(string devCenterUri, string project)
     {
         JsonElement result = default;
 

@@ -125,7 +125,7 @@ public sealed class Program
         var extensionDisposedEvent = new ManualResetEvent(false);
 
         // Create host with dependency injection
-        using var host = CreateDIHost();
+        using var host = CreateHost();
         var extensionInstance = new AzureExtension(extensionDisposedEvent, host);
 
         // We are instantiating extension instance once above, and returning it every time the callback in RegisterExtension below is called.
@@ -216,7 +216,7 @@ public sealed class Program
         }
     }
 
-    private static IHost CreateDIHost()
+    private static IHost CreateHost()
     {
         var host = Microsoft.Extensions.Hosting.Host.
             CreateDefaultBuilder().

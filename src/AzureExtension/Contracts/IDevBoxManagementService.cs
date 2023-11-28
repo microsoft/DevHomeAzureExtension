@@ -13,7 +13,7 @@ public interface IDevBoxManagementService
         get; set;
     }
 
-    Task<JsonElement> GetAllProjectsAsJSONAsync();
+    Task<JsonElement> GetAllProjectsAsJsonAsync();
 
-    Task<JsonElement> GetBoxesAsJSONAsync(string devCenterUri, string project);
+    Task<JsonElement> GetBoxesAsJsonAsync(string devCenterUri, string project);
 }

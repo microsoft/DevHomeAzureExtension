@@ -26,9 +26,9 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
         set => throw new NotImplementedException();
     }
 
-    public string DisplayName => "DevBox Provider";
+    public string DisplayName => "Microsoft DevBox Provider";
 
-    public string Id => "182AF84F-D5E1-469C-9742-536EFEA94630";
+    public string Id => "Microsoft.DevBox";
 
     public string Properties => throw new NotImplementedException();
 

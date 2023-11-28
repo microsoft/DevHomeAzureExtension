@@ -9,30 +9,32 @@ namespace AzureExtension.Services.DevBox;
 
 public class AuthService : IDevBoxAuthService
 {
+    // ARM = Azure Resource Manager
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IArmTokenService _armTokenService;
     private readonly IDataTokenService _dataTokenService;
-    private readonly HttpClient httpArmClient;
-    private readonly HttpClient httpDataClient;
+    private readonly HttpClient _httpArmClient;
+    private readonly HttpClient _httpDataClient;
 
     public AuthService(IHttpClientFactory httpClientFactory, IArmTokenService armTokenService, IDataTokenService dataTokenService)
     {
         _httpClientFactory = httpClientFactory;
         _armTokenService = armTokenService;
         _dataTokenService = dataTokenService;
-        httpArmClient = _httpClientFactory.CreateClient();
-        httpDataClient = _httpClientFactory.CreateClient();
+        _httpArmClient = _httpClientFactory.CreateClient();
+        _httpDataClient = _httpClientFactory.CreateClient();
     }
 
     public HttpClient GetDataPlaneClient(IDeveloperId? devId)
     {
-        httpDataClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _dataTokenService.GetTokenAsync(devId).Result);
-        return httpDataClient;
+        _httpDataClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _dataTokenService.GetTokenAsync(devId).Result);
+        return _httpDataClient;
     }
 
     public HttpClient GetManagementClient(IDeveloperId? devId)
     {
-        httpArmClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _armTokenService.GetTokenAsync().Result);
-        return httpArmClient;
+        // ARM = Azure Resource Manager
+        _httpArmClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _armTokenService.GetTokenAsync(devId).Result);
+        return _httpArmClient;
     }
 }

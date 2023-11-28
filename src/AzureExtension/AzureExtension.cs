@@ -18,7 +18,7 @@ public sealed class AzureExtension : IExtension
     private readonly ManualResetEvent _extensionDisposedEvent;
     private readonly IHost _host;
 
-    public AzureExtension(ManualResetEvent extensionDisposedEvent, Microsoft.Extensions.Hosting.IHost host)
+    public AzureExtension(ManualResetEvent extensionDisposedEvent, IHost host)
     {
         _extensionDisposedEvent = extensionDisposedEvent;
         _host = host;
