@@ -237,6 +237,7 @@ public sealed class Program
             }).
         Build();
 
+        Log.Logger()?.ReportInfo("Services Host creation successful");
         return host;
     }
 }

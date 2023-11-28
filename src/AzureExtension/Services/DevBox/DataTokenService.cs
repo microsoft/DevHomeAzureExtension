@@ -15,6 +15,7 @@ public class DataTokenService : IDataTokenService
     {
         if (devId == null)
         {
+            Log.Logger()?.ReportError($"GetTokenAsync: No dev id provided");
             return string.Empty;
         }
 
