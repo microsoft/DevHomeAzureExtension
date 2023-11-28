@@ -3,7 +3,7 @@
 
 namespace DevHomeAzureExtension;
 
-internal static class OauthConfiguration
+internal static class OAuthConfiguration
 {
     // This redirect url has to be configured into the OAuth app. This package has "devhome://"
     // protocol extension and will receive the access token in this uri after successful login.

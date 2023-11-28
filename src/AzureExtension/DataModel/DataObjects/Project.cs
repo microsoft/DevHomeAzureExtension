@@ -21,7 +21,7 @@ public class Project
 
     public string Name { get; set; } = string.Empty;
 
-    // Guid reprsentation by ADO.
+    // Guid representation by ADO.
     public string InternalId { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;

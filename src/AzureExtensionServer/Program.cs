@@ -3,7 +3,6 @@
 
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
-using DevHomeAzureExtension.ExtensionServer;
 using Microsoft.Windows.AppLifecycle;
 using Microsoft.Windows.AppNotifications;
 using Windows.ApplicationModel.Activation;
@@ -135,7 +134,7 @@ public sealed class Program
         var widgetProviderInstance = new Widgets.WidgetProvider();
         widgetServer.RegisterWidget(() => widgetProviderInstance);
 
-        // This will make the main thread wait until the event is signalled by the extension class.
+        // This will make the main thread wait until the event is signaled by the extension class.
         // Since we have single instance of the extension object, we exit as soon as it is disposed.
         extensionDisposedEvent.WaitOne();
         Log.Logger()?.ReportInfo($"Extension is disposed.");
@@ -158,7 +157,7 @@ public sealed class Program
             {
                 foreach (var package in packageManager.FindPackagesForUser(string.Empty, pfn))
                 {
-                    Log.Logger()?.ReportInfo($"{package.Id.FullName}  Devmode: {package.IsDevelopmentMode}  Signature: {package.SignatureKind}");
+                    Log.Logger()?.ReportInfo($"{package.Id.FullName}  DevMode: {package.IsDevelopmentMode}  Signature: {package.SignatureKind}");
                 }
             }
         }

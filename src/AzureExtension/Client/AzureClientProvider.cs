@@ -1,12 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
-using System.Diagnostics.Eventing.Reader;
-using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Identity.Client;
-using Microsoft.TeamFoundation.Common;
-using Microsoft.TeamFoundation.Core.WebApi;
-using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
 

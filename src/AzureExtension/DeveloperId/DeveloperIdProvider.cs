@@ -79,7 +79,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
                 }
                 else
                 {
-                    Log.Logger()?.ReportWarn($"DeveoperId not found to remediate");
+                    Log.Logger()?.ReportWarn($"DeveloperId not found to remediate");
                 }
             }
 
@@ -154,7 +154,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
         catch (Exception error)
         {
-            Log.Logger()?.ReportError($"LoggedOut event signalling failed: {error}");
+            Log.Logger()?.ReportError($"LoggedOut event signaling failed: {error}");
         }
 
         return new ProviderOperationResult(ProviderOperationStatus.Success, null, "The developer account has been logged out successfully", "LogoutDeveloperId succeeded");
@@ -207,7 +207,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
                 }
                 catch (Exception error)
                 {
-                    Log.Logger()?.ReportError($"Updated event signalling failed: {error}");
+                    Log.Logger()?.ReportError($"Updated event signaling failed: {error}");
                 }
             }
             catch (InvalidOperationException)
@@ -229,7 +229,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
             }
             catch (Exception error)
             {
-                Log.Logger()?.ReportError($"LoggedIn event signalling failed: {error}");
+                Log.Logger()?.ReportError($"LoggedIn event signaling failed: {error}");
             }
         }
 

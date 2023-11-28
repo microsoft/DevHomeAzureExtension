@@ -3,7 +3,6 @@
 
 using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
-using Microsoft.VisualStudio.Services.WebApi;
 
 namespace DevHomeAzureExtension.Client;
 

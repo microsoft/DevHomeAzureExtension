@@ -2,7 +2,6 @@
 // Licensed under the MIT license.
 
 using DevHome.Logging;
-using DevHomeAzureExtension.Client;
 using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace DevHomeAzureExtension.Helpers;
