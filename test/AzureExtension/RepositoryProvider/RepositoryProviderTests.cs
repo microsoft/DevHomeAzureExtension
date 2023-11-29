@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;
@@ -12,7 +13,8 @@ public partial class RepositoryProviderTests
     public void ValidateCanGetProvider()
     {
         var manualResetEvent = new ManualResetEvent(false);
-        var azureExtension = new AzureExtension(manualResetEvent);
+        var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().Build();
+        var azureExtension = new AzureExtension(manualResetEvent, host);
         var repositoryProvider = azureExtension.GetProvider(ProviderType.Repository);
         Assert.IsNotNull(repositoryProvider);
         Assert.IsNotNull(repositoryProvider as IRepositoryProvider);
@@ -30,7 +32,8 @@ public partial class RepositoryProviderTests
     public void CanClone()
     {
         var manualResetEvent = new ManualResetEvent(false);
-        var azureExtension = new AzureExtension(manualResetEvent);
+        var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().Build();
+        var azureExtension = new AzureExtension(manualResetEvent, host);
         var repositoryObject = azureExtension.GetProvider(ProviderType.Repository);
         Assert.IsNotNull(repositoryObject);
 

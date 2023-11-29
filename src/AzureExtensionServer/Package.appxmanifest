@@ -52,6 +52,7 @@
                 <SupportedInterfaces>
                   <DeveloperId />
                   <Repository />
+                  <ComputeSystem />
                 </SupportedInterfaces>
               </DevHomeProvider>
             </uap3:Properties>
