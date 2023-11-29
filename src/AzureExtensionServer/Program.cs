@@ -233,6 +233,7 @@ public sealed class Program
                 services.AddSingleton<IDevBoxAuthService, AuthService>();
                 services.AddSingleton<IArmTokenService, ArmTestTokenService>();
                 services.AddSingleton<IDataTokenService, DataTokenService>();
+                services.AddSingleton<DevBoxProvider>();
                 services.AddTransient<DevBoxInstance>();
             }).
         Build();

@@ -48,17 +48,17 @@ public class DevBoxInstance : IComputeSystem
         get; private set;
     }
 
-    public string? WebURI
+    public Uri? WebURI
     {
         get; private set;
     }
 
-    public string? BoxURI
+    public Uri? BoxURI
     {
         get; private set;
     }
 
-    public string? RdpURI
+    public Uri? RdpURI
     {
         get; private set;
     }
@@ -74,15 +74,50 @@ public class DevBoxInstance : IComputeSystem
     }
 
     // Returns a DevBox object from a JSON object
-    public void FillFromJson(JsonElement item, string project, IDeveloperId? devId) => throw new NotImplementedException();
-
-    // ToDo: Use System.Uri
-    private (string WebURI, string RdpURI) GetRemoteLaunchURIsAsync(string boxURI)
+    public void FillFromJson(JsonElement item, string project, IDeveloperId? devId)
     {
-         return (string.Empty, string.Empty);
+        try
+        {
+            BoxURI = new Uri(item.GetProperty("uri").ToString());
+            Name = item.GetProperty("name").ToString();
+            Id = item.GetProperty("uniqueId").ToString();
+            State = item.GetProperty("powerState").ToString();
+            CPU = item.GetProperty("hardwareProfile").GetProperty("vCPUs").ToString();
+            Memory = item.GetProperty("hardwareProfile").GetProperty("memoryGB").ToString();
+            OS = item.GetProperty("imageReference").GetProperty("operatingSystem").ToString();
+            ProjectName = project;
+            DevId = devId;
+
+            (WebURI, RdpURI) = GetRemoteLaunchURIsAsync(BoxURI).Result;
+            Log.Logger()?.ReportInfo($"Created box {Name} with id {Id} with {State}, {CPU}, {Memory}, {BoxURI}, {OS}");
+            IsValid = true;
+        }
+        catch (Exception ex)
+        {
+            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.Message}");
+        }
     }
 
-    public ComputeSystemOperations SupportedOperations => ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown;
+    private async Task<(Uri? WebURI, Uri? RdpURI)> GetRemoteLaunchURIsAsync(Uri boxURI)
+    {
+        var connectionUri = boxURI + "/remoteConnection?api-version=2023-04-01";
+        var boxRequest = new HttpRequestMessage(HttpMethod.Get, connectionUri);
+        var httpClient = _authService.GetDataPlaneClient(DevId);
+        if (httpClient == null)
+        {
+            return (null, null);
+        }
+
+        var boxResponse = await httpClient.SendAsync(boxRequest);
+        var content = await boxResponse.Content.ReadAsStringAsync();
+        JsonElement json = JsonDocument.Parse(content).RootElement;
+        var remoteUri = new Uri(json.GetProperty("rdpConnectionUrl").ToString());
+        var webUrl = new Uri(json.GetProperty("webUrl").ToString());
+        return (webUrl, remoteUri);
+    }
+
+    public ComputeSystemOperations SupportedOperations =>
+        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete;
 
     public bool IsValid
     {
@@ -90,21 +125,94 @@ public class DevBoxInstance : IComputeSystem
         private set;
     }
 
-    private IAsyncOperation<ComputeSystemOperationResult> PerformRESTOperation(string operation) => throw new NotImplementedException();
+    private IAsyncOperation<ComputeSystemOperationResult> PerformRESTOperation(string operation, HttpMethod method)
+    {
+        return Task.Run(async () =>
+        {
+            var api = $"{BoxURI}:{operation}?api-version=2023-04-01";
+            Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
+
+            var httpClient = _authService.GetDataPlaneClient(DevId);
+            if (httpClient == null)
+            {
+                var ex = new ArgumentException("PerformRESTOperation: HTTPClient null");
+                return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
+            }
+
+            var response = await httpClient.SendAsync(new HttpRequestMessage(method, api));
+            if (response.IsSuccessStatusCode)
+            {
+                var res = new ComputeSystemOperationResult("Success");
+                return res;
+            }
+            else
+            {
+                var ex = new HttpRequestException($"PerformRESTOperation: {operation} failed. {response.StatusCode} {response.ReasonPhrase}");
+                return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
+            }
+        }).AsAsyncOperation();
+    }
 
     public IAsyncOperation<ComputeSystemOperationResult> Start(string options)
     {
-        return PerformRESTOperation("start");
+        return PerformRESTOperation("start", HttpMethod.Post);
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> ShutDown(string options)
     {
-        return PerformRESTOperation("stop");
+        return PerformRESTOperation("stop", HttpMethod.Post);
     }
 
-    public IAsyncOperation<ComputeSystemOperationResult> Connect(string properties) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> Restart(string options)
+    {
+        return PerformRESTOperation("restart", HttpMethod.Post);
+    }
 
-    public IAsyncOperation<ComputeSystemStateResult> GetState(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> Delete(string options)
+    {
+        return PerformRESTOperation("delete", HttpMethod.Delete);
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> Connect(string properties)
+    {
+        // Todo: Is there a better way to do this?
+        return Task.Run(() =>
+        {
+            try
+            {
+                var psi = new ProcessStartInfo();
+                psi.UseShellExecute = true;
+                psi.FileName = WebURI?.ToString();
+                Process.Start(psi);
+                return new ComputeSystemOperationResult("Success");
+            }
+            catch (Exception ex)
+            {
+                Log.Logger()?.ReportError($"Error connecting to {Name}: {ex.Message}");
+                return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
+            }
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemStateResult> GetState(string options)
+    {
+        return Task.Run(() =>
+        {
+            if (State == "Running")
+            {
+                return new ComputeSystemStateResult(ComputeSystemState.Running);
+            }
+            else if (State == "Deallocated")
+            {
+                return new ComputeSystemStateResult(ComputeSystemState.Stopped);
+            }
+            else
+            {
+                Log.Logger()?.ReportError($"Unknown state {State}");
+                return new ComputeSystemStateResult(ComputeSystemState.Unknown);
+            }
+        }).AsAsyncOperation();
+    }
 
     // Unsupported operations
     public IAsyncOperation<ComputeSystemOperationResult> ApplyConfiguration(string configuration) => throw new NotImplementedException();
@@ -112,8 +220,6 @@ public class DevBoxInstance : IComputeSystem
     public IAsyncOperation<ComputeSystemOperationResult> ApplySnapshot(string options) => throw new NotImplementedException();
 
     public IAsyncOperation<ComputeSystemOperationResult> CreateSnapshot(string options) => throw new NotImplementedException();
-
-    public IAsyncOperation<ComputeSystemOperationResult> Delete(string options) => throw new NotImplementedException();
 
     public IAsyncOperation<ComputeSystemOperationResult> DeleteSnapshot(string options) => throw new NotImplementedException();
 

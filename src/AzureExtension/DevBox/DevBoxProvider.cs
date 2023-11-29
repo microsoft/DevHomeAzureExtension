@@ -14,6 +14,13 @@ namespace AzureExtension.DevBox;
 public class DevBoxProvider : IComputeSystemProvider, IDisposable
 {
     private readonly IHost _host;
+    private readonly IDevBoxManagementService _mgmtSvc;
+
+    public DevBoxProvider(IHost host, IDevBoxManagementService mgmtSvc)
+    {
+        _host = host;
+        _mgmtSvc = mgmtSvc;
+    }
 
     string IComputeSystemProvider.DefaultComputeSystemProperties
     {
@@ -27,37 +34,63 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
 
     public string Properties => throw new NotImplementedException();
 
-    public ComputeSystemProviderOperation SupportedOperations => throw new NotImplementedException();
+    // No create operation supported
+    public ComputeSystemProviderOperation SupportedOperations => 0x0;
 
     private bool IsValid(JsonElement jsonElement)
     {
         return jsonElement.ValueKind != JsonValueKind.Undefined;
     }
 
-    public IEnumerable<IComputeSystem> GetComputeSystemsAsync(IDeveloperId? developerId)
+    public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
     {
         var computeSystems = new List<IComputeSystem>();
+        _mgmtSvc.DevId = developerId;
+        var projectJSONs = await _mgmtSvc.GetAllProjectsAsJsonAsync();
 
-        var mgmtSvc = _host.Services.GetService<IDevBoxManagementService>();
-        if (mgmtSvc != null)
+        if (IsValid(projectJSONs))
         {
-            return computeSystems;
+            Log.Logger()?.ReportInfo($"Found {projectJSONs.EnumerateArray().Count()} projects");
+            foreach (var dataItem in projectJSONs.EnumerateArray())
+            {
+                var project = dataItem.GetProperty("name").ToString();
+                var devCenterUri = dataItem.GetProperty("properties").GetProperty("devCenterUri").ToString();
+
+                // Todo: Remove this test
+                if (project != "DevBoxUnitTestProject" && project != "EngProdADEPT")
+                {
+                    continue;
+                }
+
+                var boxes = await _mgmtSvc.GetBoxesAsJsonAsync(devCenterUri, project);
+                if (IsValid(boxes))
+                {
+                    Log.Logger()?.ReportInfo($"Found {boxes.EnumerateArray().Count()} boxes for project {project}");
+
+                    foreach (var item in boxes.EnumerateArray())
+                    {
+                        // Get an empty dev box object and fill in the details
+                        var box = _host.Services.GetService<DevBoxInstance>();
+                        box?.FillFromJson(item, project, developerId);
+                        if (box is not null && box.IsValid)
+                        {
+                            computeSystems.Add(box);
+                        }
+                    }
+                }
+            }
         }
-        else
-        {
-            // ToDo: Remove throw and add to return object
-            Log.Logger()?.ReportError($"Error getting systems: Rest Service not configured");
-            throw new ArgumentException($"Rest Service needs to be configured.");
-        }
+
+        return computeSystems;
     }
 
     public IAsyncOperation<CreateComputeSystemResult> CreateComputeSystemAsync(string options) => throw new NotImplementedException();
 
     public IAsyncOperation<ComputeSystemsResult> GetComputeSystemsAsync(IDeveloperId developerId, string options)
     {
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
-            var computeSystems = GetComputeSystemsAsync(developerId);
+            var computeSystems = await GetComputeSystemsAsync(developerId);
             return new ComputeSystemsResult(computeSystems);
         }).AsAsyncOperation();
     }
