@@ -15,7 +15,7 @@ public class DataTokenService : IDataTokenService
     {
         if (devId == null)
         {
-            Log.Logger()?.ReportError($"GetTokenAsync: No dev id provided");
+            Log.Logger()?.ReportError($"DataTokenService::GetTokenAsync: No dev id provided");
             return string.Empty;
         }
 
@@ -27,7 +27,7 @@ public class DataTokenService : IDataTokenService
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"GetTokenAsync: {e.Message}");
+            Log.Logger()?.ReportError($"DataTokenService::GetTokenAsync: {e.Message}");
             return string.Empty;
         }
     }
