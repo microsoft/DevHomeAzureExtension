@@ -147,6 +147,15 @@ public class AzureClientProvider
         return new ConnectionResult(ResultType.Failure, ErrorType.Unknown, false);
     }
 
+    /// <summary>
+    /// Gets the azure devops connection for the specified developer id.
+    /// </summary>
+    /// <param name="uri">The uri to an azure devops resource.</param>
+    /// <param name="developerId">The developer to authenticate with.</param>
+    /// <returns>An authorized connection to the resource.</returns>
+    /// <exception cref="ArgumentException">If the azure uri is not valid.</exception>
+    /// <exception cref="ArgumentNullException">If developerId is null.</exception>
+    /// <exception cref="AzureClientException">If a connection can't be made.</exception>
     public static VssConnection GetConnectionForLoggedInDeveloper(Uri uri, DeveloperId.DeveloperId developerId)
     {
         var azureUri = new AzureUri(uri);

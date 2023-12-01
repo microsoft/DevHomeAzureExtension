@@ -6,6 +6,7 @@ using System.Text;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
+using Microsoft.Identity.Client;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.VisualStudio.Services.Account.Client;
@@ -45,27 +46,18 @@ public class RepositoryProvider : IRepositoryProvider
     {
         return Task.Run(() =>
         {
-            var uriHost = uri.Host;
-            var uriParts = uri.Scheme;
-
-            if (!uri.OriginalString.Contains("_git"))
+            var azureUri = new AzureUri(uri);
+            if (!azureUri.IsValid)
             {
-                return new RepositoryUriSupportResult(new ArgumentException("Uri needs _git"), "Uri parts is not correct");
+                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure Devops Uri"), "Uri isn not valid");
             }
 
-            // Cloud Urls are supported.
-            if (uriHost.StartsWith("dev.azure.com", StringComparison.OrdinalIgnoreCase))
+            if (!azureUri.IsRepository)
             {
-                return new RepositoryUriSupportResult(true);
+                return new RepositoryUriSupportResult(new ArgumentException("Uri does not point to a repository"), "Uri does not point to a repository");
             }
-            else if (uriHost.Contains("visualstudio.com", StringComparison.OrdinalIgnoreCase))
-            {
-                return new RepositoryUriSupportResult(true);
-            }
-            else
-            {
-                return new RepositoryUriSupportResult(new ArgumentException("Uri is neither the old or new form"), "Uri parts is not correct");
-            }
+
+            return new RepositoryUriSupportResult(true);
         }).AsAsyncOperation();
     }
 
@@ -264,6 +256,18 @@ public class RepositoryProvider : IRepositoryProvider
                 }
 
                 var repoInformation = new AzureUri(uri);
+                if (!repoInformation.IsValid)
+                {
+                    var exception = new NotSupportedException("Uri isn't a valid Azure Devops uri.");
+                    return new RepositoryResult(exception, $"{exception.Message} HResult: {exception.HResult}");
+                }
+
+                if (!repoInformation.IsRepository)
+                {
+                    var exception = new NotSupportedException("Uri does not point to a repository.");
+                    return new RepositoryResult(exception, $"{exception.Message} HResult: {exception.HResult}");
+                }
+
                 var connection = new VssConnection(repoInformation.OrganizationLink, new VssAadCredential(new VssAadToken("Bearer", authResult.AccessToken)));
 
                 GitHttpClient gitClient = connection.GetClient<GitHttpClient>();
@@ -311,11 +315,19 @@ public class RepositoryProvider : IRepositoryProvider
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, exception, $"{exception.Message} HResult: {exception.HResult}", exception.Message);
             }
 
-            var authResult = DeveloperIdProvider.GetInstance().GetAuthenticationResultForDeveloperId(azureDeveloperId) ?? throw new ArgumentException(developerId.LoginId);
-            if (authResult == null)
+            AuthenticationResult? authResult;
+            try
             {
-                var exception = new NotImplementedException("Could not get authentication from developer id.");
-                return new ProviderOperationResult(ProviderOperationStatus.Failure, exception, $"Could not get authentication from developer id.  HResult: {exception.HResult}", exception.Message);
+                authResult = DeveloperIdProvider.GetInstance().GetAuthenticationResultForDeveloperId(azureDeveloperId);
+                if (authResult == null)
+                {
+                    var exception = new NotImplementedException("Could not get authentication from developer id.");
+                    return new ProviderOperationResult(ProviderOperationStatus.Failure, exception, $"Could not get authentication from developer id.  HResult: {exception.HResult}", exception.Message);
+                }
+            }
+            catch (Exception e)
+            {
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, e, $"Could not get authentication from developer id.  HResult: {e.HResult}", e.Message);
             }
 
             var cloneOptions = new LibGit2Sharp.CloneOptions
@@ -325,7 +337,15 @@ public class RepositoryProvider : IRepositoryProvider
 
             if (developerId != null)
             {
-                var loggedInDeveloperId = DeveloperId.DeveloperIdProvider.GetInstance().GetDeveloperIdInternal(developerId);
+                DeveloperId.DeveloperId loggedInDeveloperId;
+                try
+                {
+                    loggedInDeveloperId = DeveloperId.DeveloperIdProvider.GetInstance().GetDeveloperIdInternal(developerId);
+                }
+                catch (Exception e)
+                {
+                    return new ProviderOperationResult(ProviderOperationStatus.Failure, e, $"Could not get the logged in developer.  HResult: {e.HResult}", e.Message);
+                }
 
                 cloneOptions.CredentialsProvider = (url, user, cred) => new LibGit2Sharp.UsernamePasswordCredentials
                 {
