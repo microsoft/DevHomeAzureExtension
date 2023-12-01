@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using AzureExtension.Contracts;
-using DevHomeAzureExtension.DataModel;
+using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
@@ -11,7 +11,7 @@ using Windows.Foundation;
 
 namespace AzureExtension.DevBox;
 
-public class DevBoxProvider : IComputeSystemProvider, IDisposable
+public class DevBoxProvider : IComputeSystemProvider
 {
     private readonly IHost _host;
     private readonly IDevBoxManagementService _mgmtSvc;
@@ -39,44 +39,57 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
 
     private bool IsValid(JsonElement jsonElement)
     {
-        return jsonElement.ValueKind != JsonValueKind.Undefined;
+        return jsonElement.ValueKind == JsonValueKind.Array;
+    }
+
+    private async Task ProcessAllDevBoxesInProjectAsync(JsonElement data, IDeveloperId? devId, List<IComputeSystem> systems)
+    {
+        var project = data.GetProperty("name").ToString();
+        var devCenterUri = data.GetProperty("properties").GetProperty("devCenterUri").ToString();
+
+        // Todo: Remove this test in Prod
+        if (project != "DevBoxUnitTestProject" && project != "EngProdADEPT")
+        {
+            return;
+        }
+
+        var boxes = await _mgmtSvc.GetBoxesAsJsonAsync(devCenterUri, project);
+        if (IsValid(boxes))
+        {
+            Log.Logger()?.ReportInfo($"Found {boxes.EnumerateArray().Count()} boxes for project {project}");
+
+            foreach (var item in boxes.EnumerateArray())
+            {
+                // Get an empty dev box object and fill in the details
+                var box = _host.Services.GetService<DevBoxInstance>();
+                box?.FillFromJson(item, project, devId);
+                if (box is not null && box.IsValid)
+                {
+                    systems.Add(box);
+                }
+            }
+        }
     }
 
     public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
     {
-        var computeSystems = new List<IComputeSystem>();
         _mgmtSvc.DevId = developerId;
         var projectJSONs = await _mgmtSvc.GetAllProjectsAsJsonAsync();
+        var computeSystems = new List<IComputeSystem>();
 
         if (IsValid(projectJSONs))
         {
             Log.Logger()?.ReportInfo($"Found {projectJSONs.EnumerateArray().Count()} projects");
             foreach (var dataItem in projectJSONs.EnumerateArray())
             {
-                var project = dataItem.GetProperty("name").ToString();
-                var devCenterUri = dataItem.GetProperty("properties").GetProperty("devCenterUri").ToString();
-
-                // Todo: Remove this test
-                if (project != "DevBoxUnitTestProject" && project != "EngProdADEPT")
+                try
                 {
-                    continue;
+                    await ProcessAllDevBoxesInProjectAsync(dataItem, developerId, computeSystems);
                 }
-
-                var boxes = await _mgmtSvc.GetBoxesAsJsonAsync(devCenterUri, project);
-                if (IsValid(boxes))
+                catch (Exception ex)
                 {
-                    Log.Logger()?.ReportInfo($"Found {boxes.EnumerateArray().Count()} boxes for project {project}");
-
-                    foreach (var item in boxes.EnumerateArray())
-                    {
-                        // Get an empty dev box object and fill in the details
-                        var box = _host.Services.GetService<DevBoxInstance>();
-                        box?.FillFromJson(item, project, developerId);
-                        if (box is not null && box.IsValid)
-                        {
-                            computeSystems.Add(box);
-                        }
-                    }
+                    dataItem.TryGetProperty("name", out var name);
+                    Log.Logger()?.ReportError($"Error processing project {name.ToString()}: {ex.Message}");
                 }
             }
         }
@@ -93,10 +106,5 @@ public class DevBoxProvider : IComputeSystemProvider, IDisposable
             var computeSystems = await GetComputeSystemsAsync(developerId);
             return new ComputeSystemsResult(computeSystems);
         }).AsAsyncOperation();
-    }
-
-    public void Dispose()
-    {
-        GC.SuppressFinalize(this);
     }
 }

@@ -129,25 +129,33 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(async () =>
         {
-            var api = $"{BoxURI}:{operation}?api-version=2023-04-01";
-            Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
+            try
+            {
+                var api = $"{BoxURI}:{operation}?api-version=2023-04-01";
+                Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
 
-            var httpClient = _authService.GetDataPlaneClient(DevId);
-            if (httpClient == null)
-            {
-                var ex = new ArgumentException("PerformRESTOperation: HTTPClient null");
-                return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
-            }
+                var httpClient = _authService.GetDataPlaneClient(DevId);
+                if (httpClient == null)
+                {
+                    var ex = new ArgumentException("PerformRESTOperation: HTTPClient null");
+                    return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
+                }
 
-            var response = await httpClient.SendAsync(new HttpRequestMessage(method, api));
-            if (response.IsSuccessStatusCode)
-            {
-                var res = new ComputeSystemOperationResult("Success");
-                return res;
+                var response = await httpClient.SendAsync(new HttpRequestMessage(method, api));
+                if (response.IsSuccessStatusCode)
+                {
+                    var res = new ComputeSystemOperationResult("Success");
+                    return res;
+                }
+                else
+                {
+                    var ex = new HttpRequestException($"PerformRESTOperation: {operation} failed on {Name}: {response.StatusCode} {response.ReasonPhrase}");
+                    return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                var ex = new HttpRequestException($"PerformRESTOperation: {operation} failed. {response.StatusCode} {response.ReasonPhrase}");
+                Log.Logger()?.ReportError($"PerformRESTOperation: Exception: {operation} failed on {Name}: {ex.Message}");
                 return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
             }
         }).AsAsyncOperation();
@@ -175,7 +183,6 @@ public class DevBoxInstance : IComputeSystem
 
     public IAsyncOperation<ComputeSystemOperationResult> Connect(string properties)
     {
-        // Todo: Is there a better way to do this?
         return Task.Run(() =>
         {
             try
@@ -198,18 +205,26 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            if (State == "Running")
+            try
             {
-                return new ComputeSystemStateResult(ComputeSystemState.Running);
+                if (State == "Running")
+                {
+                    return new ComputeSystemStateResult(ComputeSystemState.Running);
+                }
+                else if (State == "Deallocated")
+                {
+                    return new ComputeSystemStateResult(ComputeSystemState.Stopped);
+                }
+                else
+                {
+                    Log.Logger()?.ReportError($"Unknown state {State}");
+                    return new ComputeSystemStateResult(ComputeSystemState.Unknown);
+                }
             }
-            else if (State == "Deallocated")
+            catch (Exception ex)
             {
-                return new ComputeSystemStateResult(ComputeSystemState.Stopped);
-            }
-            else
-            {
-                Log.Logger()?.ReportError($"Unknown state {State}");
-                return new ComputeSystemStateResult(ComputeSystemState.Unknown);
+                Log.Logger()?.ReportError($"Error getting state of {Name}: {ex.Message}");
+                return new ComputeSystemStateResult(ex, string.Empty);
             }
         }).AsAsyncOperation();
     }
