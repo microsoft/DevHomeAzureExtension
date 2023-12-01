@@ -239,7 +239,7 @@
     <comment>Shown in Pull Request Widget, filter for items</comment>
   </data>
   <data name="Widget_Template.PRCreated" xml:space="preserve">
-    <value>created at</value>
+    <value>created</value>
     <comment>Shown in Pull Request Widget before created date</comment>
   </data>
   <data name="Widget_Template.PRDefaultView" xml:space="preserve">
