@@ -322,7 +322,7 @@ public class AzureUri
 
         try
         {
-            return Uri!.Segments[targetSegment].Replace("/", string.Empty);
+            return Uri.UnescapeDataString(Uri!.Segments[targetSegment].Replace("/", string.Empty));
         }
         catch (Exception e)
         {
@@ -369,7 +369,7 @@ public class AzureUri
 
             // We've verified it is a repository Uri, therefore we know the repository name is the
             // next segment and that such a segment exists.
-            return Uri.Segments[targetSegment].Replace("/", string.Empty);
+            return Uri.UnescapeDataString(Uri.Segments[targetSegment].Replace("/", string.Empty));
         }
         catch (Exception e)
         {
