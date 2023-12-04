@@ -4,7 +4,6 @@
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
 using AzureExtension.Services.DevBox;
-using AzureExtension.Test.DevBox;
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Extensions.DependencyInjection;
@@ -227,7 +226,7 @@ public sealed class Program
                 services.AddHttpClient();
                 services.AddSingleton<IDevBoxManagementService, ManagementService>();
                 services.AddSingleton<IDevBoxAuthService, AuthService>();
-                services.AddSingleton<IArmTokenService, ArmTestTokenService>();
+                services.AddSingleton<IArmTokenService, ARMTokenService>();
                 services.AddSingleton<IDataTokenService, DataTokenService>();
                 services.AddSingleton<DevBoxProvider>();
                 services.AddTransient<DevBoxInstance>();
