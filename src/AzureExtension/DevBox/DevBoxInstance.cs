@@ -88,19 +88,19 @@ public class DevBoxInstance : IComputeSystem
             ProjectName = project;
             DevId = devId;
 
-            (WebURI, RdpURI) = GetRemoteLaunchURIsAsync(BoxURI).Result;
+            (WebURI, RdpURI) = GetRemoteLaunchURIsAsync(BoxURI).GetAwaiter().GetResult();
             Log.Logger()?.ReportInfo($"Created box {Name} with id {Id} with {State}, {CPU}, {Memory}, {BoxURI}, {OS}");
             IsValid = true;
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.Message}");
+            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.ToString}");
         }
     }
 
     private async Task<(Uri? WebURI, Uri? RdpURI)> GetRemoteLaunchURIsAsync(Uri boxURI)
     {
-        var connectionUri = boxURI + "/remoteConnection?api-version=2023-04-01";
+        var connectionUri = $"{boxURI}/remoteConnection?{Constants.APIVersion}";
         var boxRequest = new HttpRequestMessage(HttpMethod.Get, connectionUri);
         var httpClient = _authService.GetDataPlaneClient(DevId);
         if (httpClient == null)
@@ -131,7 +131,7 @@ public class DevBoxInstance : IComputeSystem
         {
             try
             {
-                var api = $"{BoxURI}:{operation}?api-version=2023-04-01";
+                var api = $"{BoxURI}:{operation}?{Constants.APIVersion}";
                 Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
 
                 var httpClient = _authService.GetDataPlaneClient(DevId);
@@ -155,7 +155,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"PerformRESTOperation: Exception: {operation} failed on {Name}: {ex.Message}");
+                Log.Logger()?.ReportError($"PerformRESTOperation: Exception: {operation} failed on {Name}: {ex.ToString}");
                 return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
             }
         }).AsAsyncOperation();
@@ -195,7 +195,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error connecting to {Name}: {ex.Message}");
+                Log.Logger()?.ReportError($"Error connecting to {Name}: {ex.ToString}");
                 return new ComputeSystemOperationResult(ex, string.Empty, string.Empty);
             }
         }).AsAsyncOperation();
@@ -223,7 +223,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error getting state of {Name}: {ex.Message}");
+                Log.Logger()?.ReportError($"Error getting state of {Name}: {ex.ToString}");
                 return new ComputeSystemStateResult(ex, string.Empty);
             }
         }).AsAsyncOperation();

@@ -14,12 +14,12 @@ namespace AzureExtension.DevBox;
 public class DevBoxProvider : IComputeSystemProvider
 {
     private readonly IHost _host;
-    private readonly IDevBoxManagementService _mgmtSvc;
+    private readonly IDevBoxManagementService _devBoxManagementService;
 
     public DevBoxProvider(IHost host, IDevBoxManagementService mgmtSvc)
     {
         _host = host;
-        _mgmtSvc = mgmtSvc;
+        _devBoxManagementService = mgmtSvc;
     }
 
     string IComputeSystemProvider.DefaultComputeSystemProperties
@@ -53,19 +53,19 @@ public class DevBoxProvider : IComputeSystemProvider
             return;
         }
 
-        var boxes = await _mgmtSvc.GetBoxesAsJsonAsync(devCenterUri, project);
-        if (IsValid(boxes))
+        var devBoxes = await _devBoxManagementService.GetDevBoxesAsJsonAsync(devCenterUri, project);
+        if (IsValid(devBoxes))
         {
-            Log.Logger()?.ReportInfo($"Found {boxes.EnumerateArray().Count()} boxes for project {project}");
+            Log.Logger()?.ReportInfo($"Found {devBoxes.EnumerateArray().Count()} boxes for project {project}");
 
-            foreach (var item in boxes.EnumerateArray())
+            foreach (var item in devBoxes.EnumerateArray())
             {
                 // Get an empty dev box object and fill in the details
-                var box = _host.Services.GetService<DevBoxInstance>();
-                box?.FillFromJson(item, project, devId);
-                if (box is not null && box.IsValid)
+                var devBox = _host.Services.GetService<DevBoxInstance>();
+                devBox?.FillFromJson(item, project, devId);
+                if (devBox is not null && devBox.IsValid)
                 {
-                    systems.Add(box);
+                    systems.Add(devBox);
                 }
             }
         }
@@ -73,8 +73,8 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
     {
-        _mgmtSvc.DevId = developerId;
-        var projectJSONs = await _mgmtSvc.GetAllProjectsAsJsonAsync();
+        _devBoxManagementService.DevId = developerId;
+        var projectJSONs = await _devBoxManagementService.GetAllProjectsAsJsonAsync();
         var computeSystems = new List<IComputeSystem>();
 
         if (IsValid(projectJSONs))
@@ -89,7 +89,7 @@ public class DevBoxProvider : IComputeSystemProvider
                 catch (Exception ex)
                 {
                     dataItem.TryGetProperty("name", out var name);
-                    Log.Logger()?.ReportError($"Error processing project {name.ToString()}: {ex.Message}");
+                    Log.Logger()?.ReportError($"Error processing project {name.ToString()}: {ex.ToString}");
                 }
             }
         }

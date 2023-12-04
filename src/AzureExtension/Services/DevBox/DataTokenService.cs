@@ -2,8 +2,10 @@
 // Licensed under the MIT license.
 
 using AzureExtension.Contracts;
+using AzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Windows.DevHome.SDK;
+using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -19,15 +21,14 @@ public class DataTokenService : IDataTokenService
             return string.Empty;
         }
 
-        string[] scopes = { "https://devcenter.azure.com/access_as_user" };
         try
         {
-            var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(scopes, devId.LoginId);
+            var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { Constants.DataPlaneScope }, devId.LoginId);
             return result?.AccessToken ?? string.Empty;
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"DataTokenService::GetTokenAsync: {e.Message}");
+            Log.Logger()?.ReportError($"DataTokenService::GetTokenAsync: {e.ToString}");
             return string.Empty;
         }
     }

@@ -4,8 +4,9 @@
 using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
-using DevHomeAzureExtension.DataModel;
+using AzureExtension.DevBox;
 using Microsoft.Windows.DevHome.SDK;
+using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -14,10 +15,6 @@ public class ManagementService : IDevBoxManagementService
     private readonly IDevBoxAuthService _authService;
 
     public ManagementService(IDevBoxAuthService authService) => _authService = authService;
-
-    private static readonly string Query =
-        "{\"query\": \"Resources | where type in~ ('microsoft.devcenter/projects') | where properties['provisioningState'] =~ 'Succeeded' | project id, location, tenantId, name, properties, type\"," +
-        " \"options\":{\"allowPartialScopes\":true}}";
 
     public IDeveloperId? DevId
     {
@@ -30,8 +27,8 @@ public class ManagementService : IDevBoxManagementService
         var httpManageClient = _authService.GetManagementClient(DevId);
         try
         {
-            var projectQuery = new HttpRequestMessage(HttpMethod.Post, "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01");
-            projectQuery.Content = new StringContent(Query, Encoding.UTF8, "application/json");
+            var projectQuery = new HttpRequestMessage(HttpMethod.Post, Constants.ARGQueryAPI);
+            projectQuery.Content = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
 
             // Make the request
             var response = await httpManageClient.SendAsync(projectQuery);
@@ -48,19 +45,19 @@ public class ManagementService : IDevBoxManagementService
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"GetAllProjectsAsJsonAsync: Exception {e.Message}");
+            Log.Logger()?.ReportError($"GetAllProjectsAsJsonAsync: Exception {e.ToString}");
         }
 
         return result;
     }
 
-    public async Task<JsonElement> GetBoxesAsJsonAsync(string devCenterUri, string project)
+    public async Task<JsonElement> GetDevBoxesAsJsonAsync(string devCenterUri, string project)
     {
         JsonElement result = default;
         var httpDataClient = _authService.GetDataPlaneClient(DevId);
         try
         {
-            var api = devCenterUri + "projects/" + project + "/users/me/devboxes?api-version=2023-07-01-preview";
+            var api = devCenterUri + "projects/" + project + Constants.DevBoxAPI;
             var boxQuery = new HttpRequestMessage(HttpMethod.Get, api);
 
             // Make the request
@@ -78,7 +75,7 @@ public class ManagementService : IDevBoxManagementService
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"GetBoxesAsJsonAsync: Exception: {e.Message}");
+            Log.Logger()?.ReportError($"GetBoxesAsJsonAsync: Exception: {e.ToString}");
         }
 
         return result;
