@@ -9,6 +9,11 @@ using Windows.Foundation;
 
 namespace AzureExtension.DevBox;
 
+/// <summary>
+/// As the actual implementation of IComputeSystem, DevBoxInstance is an instance of a DevBox.
+/// It contains the DevBox details such as name, id, state, CPU, memory, and OS. And all the
+/// operations that can be performed on the DevBox.
+/// </summary>
 public class DevBoxInstance : IComputeSystem
 {
     private readonly IDevBoxAuthService _authService;
@@ -73,7 +78,13 @@ public class DevBoxInstance : IComputeSystem
         _authService = devBoxAuthService;
     }
 
-    // Returns a DevBox object from a JSON object
+    /// <summary>
+    /// Fills the DevBoxInstance from the JSON returned from the DevBox API.
+    /// This includes the box name, id, state, CPU, memory, and OS.
+    /// </summary>
+    /// <param name="item">JSON that contains the dev box details</param>
+    /// <param name="project">Project under which the dev box exists</param>
+    /// <param name="devId">Developer ID for the dev box</param>
     public void FillFromJson(JsonElement item, string project, IDeveloperId? devId)
     {
         try
@@ -125,6 +136,13 @@ public class DevBoxInstance : IComputeSystem
         private set;
     }
 
+    /// <summary>
+    /// Common method to perform REST operations on the DevBox.
+    /// This method is used by Start, ShutDown, Restart, and Delete.
+    /// </summary>
+    /// <param name="operation">Operation to be performed</param>
+    /// <param name="method">HttpMethod to be used</param>
+    /// <returns>ComputeSystemOperationResult created from the result of the operation</returns>
     private IAsyncOperation<ComputeSystemOperationResult> PerformRESTOperation(string operation, HttpMethod method)
     {
         return Task.Run(async () =>
@@ -181,6 +199,10 @@ public class DevBoxInstance : IComputeSystem
         return PerformRESTOperation("delete", HttpMethod.Delete);
     }
 
+    /// <summary>
+    /// Launches the DevBox in a browser.
+    /// </summary>
+    /// <param name="properties">Unused parameter</param>
     public IAsyncOperation<ComputeSystemOperationResult> Connect(string properties)
     {
         return Task.Run(() =>

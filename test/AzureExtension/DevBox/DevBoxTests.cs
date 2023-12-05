@@ -28,7 +28,7 @@ public partial class DevBoxTests
             {
                 services.AddSingleton<IHttpClientFactory>(mockFactory.Object);
                 services.AddSingleton<HttpClient>(mockHttpClient);
-                services.AddSingleton<IDevBoxManagementService, ManagementService>();
+                services.AddSingleton<IDevBoxManagementService, DevBoxManagementService>();
                 services.AddSingleton<IDevBoxAuthService, AuthService>();
                 services.AddSingleton<IArmTokenService, ArmTestTokenService>();
                 services.AddSingleton<IDataTokenService, DataTestTokenService>();

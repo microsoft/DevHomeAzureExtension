@@ -11,6 +11,9 @@ using Windows.Foundation;
 
 namespace AzureExtension.DevBox;
 
+/// <summary>
+/// Implements the IComputeSystemProvider interface to provide DevBoxes as ComputeSystems.
+/// </summary>
 public class DevBoxProvider : IComputeSystemProvider
 {
     private readonly IHost _host;
@@ -37,11 +40,22 @@ public class DevBoxProvider : IComputeSystemProvider
     // No create operation supported
     public ComputeSystemProviderOperation SupportedOperations => 0x0;
 
+    /// <summary>
+    /// Checks the validity of the JsonElement returned by the DevCenter API.
+    /// Validity is determined by the presence of the "value" array property.
+    /// i.e. - Projects/DevBoxes are returned as an array of objects.
+    /// </summary>
     private bool IsValid(JsonElement jsonElement)
     {
         return jsonElement.ValueKind == JsonValueKind.Array;
     }
 
+    /// <summary>
+    /// Adds all DevBoxes for a given project to the list of systems.
+    /// </summary>
+    /// <param name="data">Object with the properties of the project</param>
+    /// <param name="devId">DeveloperID to be used for the authentication token service</param>
+    /// <param name="systems">List of valid dev box objects</param>
     private async Task ProcessAllDevBoxesInProjectAsync(JsonElement data, IDeveloperId? devId, List<IComputeSystem> systems)
     {
         var project = data.GetProperty("name").ToString();
@@ -71,6 +85,10 @@ public class DevBoxProvider : IComputeSystemProvider
         }
     }
 
+    /// <summary>
+    /// Gets the list of DevBoxes for all projects that a user has access to.
+    /// </summary>
+    /// <param name="developerId">DeveloperID to be used by the authentication token service</param>
     public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
     {
         _devBoxManagementService.DevId = developerId;
@@ -99,6 +117,11 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public IAsyncOperation<CreateComputeSystemResult> CreateComputeSystemAsync(string options) => throw new NotImplementedException();
 
+    /// <summary>
+    /// Wrapper for GetComputeSystemsAsync
+    /// </summary>
+    /// <param name="developerId">DeveloperID to be used by the authentication token service</param>
+    /// <param name="options">Unused parameter</param>
     public IAsyncOperation<ComputeSystemsResult> GetComputeSystemsAsync(IDeveloperId developerId, string options)
     {
         return Task.Run(async () =>

@@ -25,6 +25,9 @@ public partial class DevBoxTests : IDisposable
         set => testOptions = value;
     }
 
+    /// <summary>
+    /// This is a mock JSON response from the DevCenter API.
+    /// </summary>
     private const string MockTestJson =
             @"{
             ""totalRecords"": 10,

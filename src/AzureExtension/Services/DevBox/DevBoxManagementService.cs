@@ -10,17 +10,25 @@ using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;
 
-public class ManagementService : IDevBoxManagementService
+/// <summary>
+/// The DevBoxManagementService is responsible for making calls to the Azure Resource Graph API
+/// to get the list of projects and then to the DevCenter API to get the list of DevBoxes for each project.
+/// </summary>
+public class DevBoxManagementService : IDevBoxManagementService
 {
     private readonly IDevBoxAuthService _authService;
 
-    public ManagementService(IDevBoxAuthService authService) => _authService = authService;
+    public DevBoxManagementService(IDevBoxAuthService authService) => _authService = authService;
 
     public IDeveloperId? DevId
     {
         get; set;
     }
 
+    /// <summary>
+    /// Get the list of projects from the Azure Resource Graph API.
+    /// that a user has access to.
+    /// </summary>
     public async Task<JsonElement> GetAllProjectsAsJsonAsync()
     {
         JsonElement result = default;
@@ -51,6 +59,9 @@ public class ManagementService : IDevBoxManagementService
         return result;
     }
 
+    /// <summary>
+    /// Get the list of DevBoxes for a given project from the DevCenter API.
+    /// </summary>
     public async Task<JsonElement> GetDevBoxesAsJsonAsync(string devCenterUri, string project)
     {
         JsonElement result = default;
