@@ -26,7 +26,7 @@ public class WorkItemType
 
     public string Name { get; set; } = string.Empty;
 
-    // WorkItemType table refrence
+    // WorkItemType table reference
     [JsonIgnore]
     public long ProjectId { get; set; } = DataStore.NoForeignKey;
 
@@ -141,7 +141,7 @@ public class WorkItemType
         return workItemType ?? new WorkItemType();
     }
 
-    // WorkItemTypes do not have a unique indentifier and are looked up on the server by name
+    // WorkItemTypes do not have a unique identifier and are looked up on the server by name
     // and project name/guid. We will treat this as a unique constraint for identification.
     public static WorkItemType? Get(DataStore dataStore, string name, long projectId)
     {

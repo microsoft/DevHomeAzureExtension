@@ -1,9 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
-using DevHomeAzureExtension.DeveloperId;
-using Microsoft.TeamFoundation.Core.WebApi;
-using Microsoft.VisualStudio.Services.Client;
-using Microsoft.VisualStudio.Services.Common;
+
 using Microsoft.VisualStudio.Services.WebApi;
 
 namespace DevHomeAzureExtension.Client;

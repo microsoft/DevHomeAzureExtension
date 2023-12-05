@@ -182,7 +182,7 @@ public class RepositoryProvider : IRepositoryProvider
         projectsWithOrgName = projectsWithOrgName.OrderByDescending(x => x.Item1.LastUpdateTime).ToList();
 
         // Get a list of the 200 most recently updated repos.
-        List<IRepository> reposToReturn = new List<IRepository>();
+        var reposToReturn = new List<IRepository>();
         foreach (var projectWithOrgName in projectsWithOrgName)
         {
             // Hard limit on 200.
@@ -198,7 +198,7 @@ public class RepositoryProvider : IRepositoryProvider
                 var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(projectWithOrgName.Item2.AccountUri, azureDeveloperId);
 
                 // Make the GitHttpClient inside try/catch because an exception happens if the project is disabled.
-                GitHttpClient gitClient = connection.GetClient<GitHttpClient>();
+                var gitClient = connection.GetClient<GitHttpClient>();
                 var repos = gitClient.GetRepositoriesAsync(projectWithOrgName.Item1.Id, false, false).Result;
                 foreach (var repo in repos)
                 {
@@ -270,7 +270,7 @@ public class RepositoryProvider : IRepositoryProvider
 
                 var connection = new VssConnection(repoInformation.OrganizationLink, new VssAadCredential(new VssAadToken("Bearer", authResult.AccessToken)));
 
-                GitHttpClient gitClient = connection.GetClient<GitHttpClient>();
+                var gitClient = connection.GetClient<GitHttpClient>();
                 var repo = gitClient.GetRepositoryAsync(repoInformation.Project, repoInformation.Repository).Result;
                 if (repo == null)
                 {
@@ -362,27 +362,27 @@ public class RepositoryProvider : IRepositoryProvider
             }
             catch (LibGit2Sharp.RecurseSubmodulesException recurseException)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", "Could not clone all sub modules", recurseException);
+                Log.Logger()?.ReportError("DevHomeRepository", "Could not clone all sub modules", recurseException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, recurseException, "Could not clone all modules", recurseException.Message);
             }
             catch (LibGit2Sharp.UserCancelledException userCancelledException)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", "The user stopped the clone operation", userCancelledException);
-                return new ProviderOperationResult(ProviderOperationStatus.Failure, userCancelledException, "User cancalled the operation", userCancelledException.Message);
+                Log.Logger()?.ReportError("DevHomeRepository", "The user stopped the clone operation", userCancelledException);
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, userCancelledException, "User cancelled the operation", userCancelledException.Message);
             }
             catch (LibGit2Sharp.NameConflictException nameConflictException)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", nameConflictException);
+                Log.Logger()?.ReportError("DevHomeRepository", nameConflictException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, nameConflictException, "The location exists and is non-empty", nameConflictException.Message);
             }
             catch (LibGit2Sharp.LibGit2SharpException libGitTwoException)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", $"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
+                Log.Logger()?.ReportError("DevHomeRepository", $"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, libGitTwoException, "LigGit2 threw an exception", "LibGit2 Threw an exception");
             }
             catch (Exception e)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", "Could not clone the repository", e);
+                Log.Logger()?.ReportError("DevHomeRepository", "Could not clone the repository", e);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, e, "Something happened when cloning the repo", "something happened when cloning the repo");
             }
 

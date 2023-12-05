@@ -101,10 +101,10 @@ public class AuthenticationHelper
     private async Task<IEnumerable<IAccount>> TokenCacheRegistration()
     {
         var storageProperties = new StorageCreationPropertiesBuilder(MicrosoftEntraIdSettings.CacheFileName, MicrosoftEntraIdSettings.CacheDir).Build();
-        var msalcachehelper = await MsalCacheHelper.CreateAsync(storageProperties);
+        var msalCacheHelper = await MsalCacheHelper.CreateAsync(storageProperties);
         if (PublicClientApplication != null)
         {
-            msalcachehelper.RegisterCache(PublicClientApplication.UserTokenCache);
+            msalCacheHelper.RegisterCache(PublicClientApplication.UserTokenCache);
             Log.Logger()?.ReportInfo($"Token cache is successfully registered with PublicClientApplication");
 
             // In the case the cache file is being reused there will be preexisting logged in accounts
@@ -118,7 +118,7 @@ public class AuthenticationHelper
         return Enumerable.Empty<IAccount>();
     }
 
-    public async Task<IAccount?> GetDeveloperAccountFromCache(string loginid)
+    public async Task<IAccount?> GetDeveloperAccountFromCache(string loginId)
     {
         IEnumerable<IAccount> accounts = new List<IAccount>();
 
@@ -129,7 +129,7 @@ public class AuthenticationHelper
 
         foreach (var account in accounts)
         {
-            if (account.Username == loginid)
+            if (account.Username == loginId)
             {
                 return account;
             }
@@ -248,9 +248,9 @@ public class AuthenticationHelper
             {
                 Log.Logger()?.ReportError($"MSAL: Error Acquiring Token:{msalEx}");
             }
-            catch (Exception auhenticationException)
+            catch (Exception authenticationException)
             {
-                Log.Logger()?.ReportError($"Authentication: Error Acquiring Token:{auhenticationException}");
+                Log.Logger()?.ReportError($"Authentication: Error Acquiring Token:{authenticationException}");
             }
 
             Log.Logger()?.ReportInfo($"MSAL: Signed in user by acquiring token interactively.");
