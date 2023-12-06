@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using AzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Providers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
@@ -35,7 +36,7 @@ public sealed class AzureExtension : IExtension
             case ProviderType.FeaturedApplications:
                 return new object();
             case ProviderType.ComputeSystem:
-                return new DevBoxProvider(_host);
+                return _host.Services.GetService<DevBoxProvider>();
             default:
                 Providers.Log.Logger()?.ReportInfo("Invalid provider");
                 return null;

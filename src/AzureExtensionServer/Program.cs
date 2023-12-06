@@ -1,20 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
-using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
 using AzureExtension.Services.DevBox;
-using AzureExtension.Test.DevBox;
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
-using DevHomeAzureExtension.ExtensionServer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.VisualStudio.Services.Profile;
 using Microsoft.Windows.AppLifecycle;
 using Microsoft.Windows.AppNotifications;
-using Microsoft.Windows.DevHome.SDK;
 using Windows.ApplicationModel.Activation;
 using Windows.Management.Deployment;
 using Windows.Storage;
@@ -229,10 +224,11 @@ public sealed class Program
             {
                 // Dev Box
                 services.AddHttpClient();
-                services.AddSingleton<IDevBoxManagementService, ManagementService>();
+                services.AddSingleton<IDevBoxManagementService, DevBoxManagementService>();
                 services.AddSingleton<IDevBoxAuthService, AuthService>();
-                services.AddSingleton<IArmTokenService, ArmTestTokenService>();
+                services.AddSingleton<IArmTokenService, ARMTokenService>();
                 services.AddSingleton<IDataTokenService, DataTokenService>();
+                services.AddSingleton<DevBoxProvider>();
                 services.AddTransient<DevBoxInstance>();
             }).
         Build();

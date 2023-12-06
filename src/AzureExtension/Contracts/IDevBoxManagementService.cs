@@ -15,5 +15,5 @@ public interface IDevBoxManagementService
 
     Task<JsonElement> GetAllProjectsAsJsonAsync();
 
-    Task<JsonElement> GetBoxesAsJsonAsync(string devCenterUri, string project);
+    Task<JsonElement> GetDevBoxesAsJsonAsync(string devCenterUri, string project);
 }
