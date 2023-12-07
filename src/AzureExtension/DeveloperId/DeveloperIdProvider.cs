@@ -21,7 +21,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         get; set;
     }
 
-    private AuthenticationHelper DeveloperIdAuthenticationHelper
+    private IAuthenticationHelper DeveloperIdAuthenticationHelper
     {
         get; set;
     }
@@ -36,7 +36,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     public string DisplayName => "Azure";
 
     // Private constructor for Singleton class.
-    private DeveloperIdProvider()
+    private DeveloperIdProvider(IAuthenticationHelper authHelper)
     {
         Log.Logger()?.ReportInfo($"Creating DeveloperIdProvider singleton instance");
 
@@ -44,7 +44,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         {
             DeveloperIds ??= new List<DeveloperId>();
 
-            DeveloperIdAuthenticationHelper = new AuthenticationHelper();
+            DeveloperIdAuthenticationHelper = authHelper;
 
             // Retrieve and populate Logged in DeveloperIds from previous launch.
             RestoreDeveloperIds(DeveloperIdAuthenticationHelper.GetAllStoredLoginIdsAsync());
@@ -89,11 +89,13 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         return new DeveloperIdsResult(null, "No account remediation required");
     }
 
-    public static DeveloperIdProvider GetInstance()
+    public static DeveloperIdProvider GetInstance(IAuthenticationHelper? authHelper = null)
     {
+        authHelper ??= new AuthenticationHelper();
+
         lock (AuthenticationProviderLock)
         {
-            singletonDeveloperIdProvider ??= new DeveloperIdProvider();
+            singletonDeveloperIdProvider ??= new DeveloperIdProvider(authHelper);
         }
 
         return singletonDeveloperIdProvider;
