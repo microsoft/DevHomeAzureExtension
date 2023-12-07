@@ -322,7 +322,7 @@ public class AzureUri
 
         try
         {
-            return Uri!.Segments[targetSegment].Replace("/", string.Empty);
+            return Uri.UnescapeDataString(Uri!.Segments[targetSegment].Replace("/", string.Empty));
         }
         catch (Exception e)
         {
@@ -369,7 +369,7 @@ public class AzureUri
 
             // We've verified it is a repository Uri, therefore we know the repository name is the
             // next segment and that such a segment exists.
-            return Uri.Segments[targetSegment].Replace("/", string.Empty);
+            return Uri.UnescapeDataString(Uri.Segments[targetSegment].Replace("/", string.Empty));
         }
         catch (Exception e)
         {
@@ -498,9 +498,9 @@ public class AzureUri
         switch (HostType)
         {
             case AzureHostType.Legacy:
-
-                // https://organization@dev.azure.com/organization/project/_git/repository <- from clone window
-                // https://dev.azure.com/organization/project/_git/repository <- from repo url window
+                // https://organization.visualstudio.com/DefaultCollection/project/_git/repository <- from clone window
+                // https://organization.visualstudio.com/project/_git/repository <- from repo url window
+                // https://organization.visualstudio.com/_git/project from browser when clicking on "Repos" when the repo name is the same as the project name
                 var legacyOrgUri = Uri.Scheme + "://" + Uri.Host;
                 if (!Uri.TryCreate(legacyOrgUri, UriKind.Absolute, out orgUri))
                 {
@@ -509,9 +509,9 @@ public class AzureUri
 
                 break;
             case AzureHostType.Modern:
-
-                // https://organization@dev.azure.com/organization/project/_git/repository <- from clone window
-                // https://dev.azure.com/organization/project/_git/repository <- from repo url window
+                // https://organization@dev.azure.com/organization/project/_git/repository from clone window
+                // https://dev.azure.com/organization/project/_git/repository from repo url window
+                // https://dev.azure.com/organization/project from browser when clicking on "Repos" when the repo name is the same as the project name
                 var modernOrgUri = Uri.Scheme + "://" + Uri.Host + "/" + Organization;
                 if (!Uri.TryCreate(modernOrgUri, UriKind.Absolute, out orgUri))
                 {

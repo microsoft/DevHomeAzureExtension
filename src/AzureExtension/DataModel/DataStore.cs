@@ -110,7 +110,7 @@ public class DataStore : IDisposable
             Log.Logger()?.ReportInfo($"Creating new DataStore at {DataStoreFilePath}");
         }
 
-        // Ensure Directory exists. Sqlite open database will create a file
+        // Ensure Directory exists. SQLite open database will create a file
         // that does not exist, but it will fail if the directory does not exist.
         var directory = Path.GetDirectoryName(DataStoreFilePath);
         if (!Directory.Exists(directory))
@@ -153,7 +153,7 @@ public class DataStore : IDisposable
             Cache = SqliteCacheMode.Shared,
         };
         Connection = new SqliteConnection(builder.ToString());
-        Log.Logger()?.ReportDebug($"SL: new SqliteConnection: {Connection.ConnectionString}");
+        Log.Logger()?.ReportDebug($"SL: new SQLiteConnection: {Connection.ConnectionString}");
 
         try
         {

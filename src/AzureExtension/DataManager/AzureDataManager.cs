@@ -1,5 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
+
 using System.Collections.Concurrent;
 using System.Dynamic;
 using System.Globalization;
@@ -125,7 +126,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
         catch
         {
-            // Best effort and we shouldn't have anything throwing during a dtor.
+            // Best effort and we shouldn't have anything throwing during a destructor.
         }
     }
 

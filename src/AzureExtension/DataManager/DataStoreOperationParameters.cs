@@ -3,7 +3,6 @@
 
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DataModel;
-using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension;
 
