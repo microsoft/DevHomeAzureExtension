@@ -20,7 +20,7 @@ parameters:
     - release
 
 variables:
-  MSIXVersion: '0.200'
+  MSIXVersion: '0.300'
   solution: '**/DevHomeAzureExtension.sln'
   appxPackageDir: 'AppxPackages'
   testOutputArtifactDir: 'TestResults'
@@ -202,26 +202,26 @@ extends:
                 AzureServicesAuthConnectionString: $(ApiScanConnectionString)
 
             - task: Windows Application Driver@0
-              condition: and(always(), ne('${{ platform}}', 'arm64'))
+              condition: and(always(), eq('${{ platform}}', 'x64'))
               inputs:
                 OperationType: 'Start'
 
             - task: PowerShell@2
               displayName: 'Run Unittests'
-              condition: ne('${{ platform}}', 'arm64')
+              condition: eq('${{ platform}}', 'x64')
               retryCountOnTaskFailure: 2
               inputs:
                 filePath: 'build/scripts/Test.ps1'
                 arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -IsAzurePipelineBuild
 
             - task: Windows Application Driver@0
-              condition: and(always(), ne('${{ platform}}', 'arm64'))
+              condition: and(always(), eq('${{ platform}}', 'x64'))
               inputs:
                 OperationType: 'Stop'
 
             - task: PublishTestResults@2
               displayName: 'Add Test Results to Azure'
-              condition: and(always(), ne('${{ platform}}', 'arm64'))
+              condition: and(always(), eq('${{ platform}}', 'x64'))
               inputs:
                 testResultsFormat: 'VSTest'
                 testResultsFiles: '*.trx'
@@ -235,8 +235,11 @@ extends:
             - task: PublishSymbols@2
               displayName: Publish Symbols
               inputs:
-                SearchPattern: '**/BuildOutput/**/*.pdb'
-                IndexSources: false
+                SearchPattern: >-
+                  $(Build.SourcesDirectory)\BuildOutput\**\*.pdb
+
+                  $(Build.SourcesDirectory)\obj\**\*.r2r.ni.pdb
+                IndexSources: true
                 SymbolServerType: TeamServices
                 SymbolsProduct: DevHomeAzureExtension
 
@@ -251,7 +254,7 @@ extends:
                 sbomPackageVersion: $(MSIXVersion)
               - output: pipelineArtifact
                 displayName: 'Publish Test Results'
-                condition: and(always(), ne('${{ platform}}', 'arm64'))
+                condition: and(always(), eq('${{ platform}}', 'x64'))
                 artifactName: TestResults_${{ platform }}_${{ configuration }}
                 targetPath: $(testOutputArtifactDir)
                 sbomPackageName: devhomeazure.testresults

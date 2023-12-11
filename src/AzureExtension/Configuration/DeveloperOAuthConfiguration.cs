@@ -6,7 +6,7 @@ namespace DevHomeAzureExtension;
 internal static class DeveloperOAuthConfiguration
 {
     //// Follow this link https://docs.github.com/en/developers/apps/building-oauth-apps/creating-an-oauth-app
-    //// to create a Git Oauth app (with RedirectUri = "devhome://oauth_redirect_uri/").
+    //// to create a Git OAuth app (with RedirectUri = "devhome://oauth_redirect_uri/").
     //// The following info can be modified by setting the corresponding environment variables.
     //// How to set the environment variables:
     ////

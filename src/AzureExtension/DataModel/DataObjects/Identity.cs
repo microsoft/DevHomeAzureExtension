@@ -2,13 +2,10 @@
 // Licensed under the MIT license.
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Dapper;
 using Dapper.Contrib.Extensions;
-using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
-using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.WebApi;
 
 namespace DevHomeAzureExtension.DataModel;

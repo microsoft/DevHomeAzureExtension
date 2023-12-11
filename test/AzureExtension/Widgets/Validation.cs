@@ -13,6 +13,7 @@ public partial class WidgetTests
         Query,
         Repository,
         RepositoryNoProject,
+        NamesWithSpaces,
         Unknown,
         SignIn,
         Garbage,        // Anything that is expected to fail creation by a normal Uri.
@@ -95,6 +96,20 @@ public partial class WidgetTests
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository/", AzureUriType.Repository, true),
             Tuple.Create("https://organization.visualstudio.com/collection/project/_git/repository/some/other/stuff", AzureUriType.Repository, true),
 
+            // Names with spaces
+            Tuple.Create("https://dev.azure.com/organization/project%20with%20spaces/_git/repository%20with%20spaces", AzureUriType.NamesWithSpaces, false),
+            Tuple.Create("https://dev.azure.com/organization/project%20with%20spaces/_git/repository%20with%20spaces/", AzureUriType.NamesWithSpaces, false),
+            Tuple.Create("https://dev.azure.com/organization/project%20with%20spaces/_git/repository%20with%20spaces/some/other/stuff", AzureUriType.NamesWithSpaces, false),
+            Tuple.Create("https://dev.azure.com/organization/collection/project%20with%20spaces/_git/repository%20with%20spaces", AzureUriType.NamesWithSpaces, false),
+            Tuple.Create("https://dev.azure.com/organization/collection/project%20with%20spaces/_git/repository%20with%20spaces/", AzureUriType.NamesWithSpaces, false),
+            Tuple.Create("https://dev.azure.com/organization/collection/project%20with%20spaces/_git/repository%20with%20spaces/some/other/stuff", AzureUriType.NamesWithSpaces, false),
+            Tuple.Create("https://organization.visualstudio.com/project%20with%20spaces/_git/repository%20with%20spaces", AzureUriType.NamesWithSpaces, true),
+            Tuple.Create("https://organization.visualstudio.com/project%20with%20spaces/_git/repository%20with%20spaces/", AzureUriType.NamesWithSpaces, true),
+            Tuple.Create("https://organization.visualstudio.com/project%20with%20spaces/_git/repository%20with%20spaces/some/other/stuff", AzureUriType.NamesWithSpaces, true),
+            Tuple.Create("https://organization.visualstudio.com/collection/project%20with%20spaces/_git/repository%20with%20spaces", AzureUriType.NamesWithSpaces, true),
+            Tuple.Create("https://organization.visualstudio.com/collection/project%20with%20spaces/_git/repository%20with%20spaces/", AzureUriType.NamesWithSpaces, true),
+            Tuple.Create("https://organization.visualstudio.com/collection/project%20with%20spaces/_git/repository%20with%20spaces/some/other/stuff", AzureUriType.NamesWithSpaces, true),
+
             // Repositories where repository name = project name.
             Tuple.Create("https://dev.azure.com/organization/_git/repository", AzureUriType.RepositoryNoProject, false),
             Tuple.Create("https://dev.azure.com/organization/_git/repository/", AzureUriType.RepositoryNoProject, false),
@@ -176,7 +191,7 @@ public partial class WidgetTests
             Assert.IsTrue(azureUri.IsHosted);
             TestContext?.WriteLine($"Org: {azureUri.Organization}  Project: {azureUri.Project}  Repository: {azureUri.Repository}  Query: {azureUri.Query}");
 
-            if (uriTuple.Item2 != AzureUriType.SignIn && uriTuple.Item2 != AzureUriType.RepositoryNoProject)
+            if (uriTuple.Item2 != AzureUriType.SignIn && uriTuple.Item2 != AzureUriType.RepositoryNoProject && uriTuple.Item2 != AzureUriType.NamesWithSpaces)
             {
                 // Signin Uris may not have project.
                 // Some repository URIs will have a different project.
@@ -191,6 +206,13 @@ public partial class WidgetTests
                 // No project Uris have the repository name as the project.
                 Assert.AreEqual("organization", azureUri.Organization);
                 Assert.AreEqual("repository", azureUri.Project);
+            }
+
+            if (uriTuple.Item2 == AzureUriType.NamesWithSpaces)
+            {
+                // Names with spaces have actual spaces in the names.
+                Assert.AreEqual("organization", azureUri.Organization);
+                Assert.AreEqual("project with spaces", azureUri.Project);
             }
 
             // Validate the constructor is identical if it is created from a Uri instead of a string.
@@ -238,6 +260,11 @@ public partial class WidgetTests
             {
                 Assert.IsTrue(azureUri.IsRepository);
                 Assert.AreEqual("repository", azureUri.Repository);
+            }
+            else if (uriTuple.Item2 == AzureUriType.NamesWithSpaces)
+            {
+                Assert.IsTrue(azureUri.IsRepository);
+                Assert.AreEqual("repository with spaces", azureUri.Repository);
             }
             else
             {
