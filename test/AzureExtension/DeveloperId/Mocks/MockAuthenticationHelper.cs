@@ -12,8 +12,11 @@ using Microsoft.UI;
 
 namespace AzureExtension.Test.DeveloperId.Mocks;
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 internal class MockAuthenticationHelper : IAuthenticationHelper
 {
+    private readonly List<string> loginIds = new();
+
     public AuthenticationSettings MicrosoftEntraIdSettings
     {
         get => throw new NotImplementedException();
@@ -26,30 +29,22 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
 
     public Task<IAccount?> AcquireWindowsAccountTokenSilently(string[] scopes) => throw new NotImplementedException();
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-    public async Task<IEnumerable<string>> GetAllStoredLoginIdsAsync()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+    public void PopulateCache()
     {
-        var loginIds = new List<string>
-        {
-            "testAccount",
-            "testAccount2",
-            "testAccount3",
-        };
+        loginIds.Add("testAccount");
+    }
 
+    public async Task<IEnumerable<string>> GetAllStoredLoginIdsAsync()
+    {
         return loginIds;
     }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async void InitializePublicClientAppForWAMBrokerAsync()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
         return;
     }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task InitializePublicClientAppForWAMBrokerAsyncWithParentWindow(WindowId? windowPtr)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
         return;
     }
@@ -58,9 +53,7 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
     {
     }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task<IAccount?> LoginDeveloperAccount(string[] scopes)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
        AuthenticationResult authResult = new AuthenticationResult(
                 accessToken: string.Empty,
@@ -81,10 +74,9 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
 
     public Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopesArray, string loginId) => throw new NotImplementedException();
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task SignOutDeveloperIdAsync(string username)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
         return;
     }
 }
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
