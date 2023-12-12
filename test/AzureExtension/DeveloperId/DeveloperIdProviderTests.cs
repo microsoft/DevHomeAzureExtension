@@ -173,7 +173,7 @@ public partial class DeveloperIdTests
 
     [TestMethod]
     [TestCategory("Unit")]
-    public void DeveloperIdProvider_DeveloperIdProvider_GetLoginAdaptiveCardSession_NeverImplemented()
+    public void DeveloperIdProvider_GetLoginAdaptiveCardSession_NeverImplemented()
     {
         var developerIdProvider = DeveloperIdProvider.GetInstance(new MockAuthenticationHelper());
         Assert.IsNotNull(developerIdProvider);
