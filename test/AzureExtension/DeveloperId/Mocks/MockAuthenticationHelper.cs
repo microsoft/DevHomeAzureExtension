@@ -10,9 +10,8 @@ using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Identity.Client;
 using Microsoft.UI;
 
-namespace AzureExtension.Test.DeveloperId.Mocks;
+namespace DevHomeAzureExtension.Test.DeveloperId.Mocks;
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 internal class MockAuthenticationHelper : IAuthenticationHelper
 {
     private readonly List<string> loginIds = new();
@@ -36,16 +35,19 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
 
     public async Task<IEnumerable<string>> GetAllStoredLoginIdsAsync()
     {
+        await Task.Run(() => { });
         return loginIds;
     }
 
     public async void InitializePublicClientAppForWAMBrokerAsync()
     {
+        await Task.Run(() => { });
         return;
     }
 
     public async Task InitializePublicClientAppForWAMBrokerAsyncWithParentWindow(WindowId? windowPtr)
     {
+        await Task.Run(() => { });
         return;
     }
 
@@ -55,7 +57,8 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
 
     public async Task<IAccount?> LoginDeveloperAccount(string[] scopes)
     {
-       AuthenticationResult authResult = new AuthenticationResult(
+        await Task.Run(() => { });
+        AuthenticationResult authResult = new AuthenticationResult(
                 accessToken: string.Empty,
                 isExtendedLifeTimeToken: false,
                 uniqueId: string.Empty,
@@ -69,14 +72,14 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
                 authenticationResultMetadata: null,
                 tokenType: string.Empty);
 
-       return authResult.Account;
+        return authResult.Account;
     }
 
     public Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopesArray, string loginId) => throw new NotImplementedException();
 
     public async Task SignOutDeveloperIdAsync(string username)
     {
+        await Task.Run(() => { });
         return;
     }
 }
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously

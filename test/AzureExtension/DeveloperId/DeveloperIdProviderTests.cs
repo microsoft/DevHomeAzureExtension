@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
-using AzureExtension.Test.DeveloperId.Mocks;
 using DevHomeAzureExtension.DeveloperId;
+using DevHomeAzureExtension.Test.DeveloperId.Mocks;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;
@@ -108,7 +108,7 @@ public partial class DeveloperIdTests
             var developerIdProvider = DeveloperIdProvider.GetInstance();
             Assert.IsNotNull(developerIdProvider);
 
-            var result = developerIdProvider.GetDeveloperIdState(new DeveloperId.DeveloperId());
+            var result = developerIdProvider.GetDeveloperIdState(new DevHomeAzureExtension.DeveloperId.DeveloperId());
             Assert.IsNotNull(result);
             Assert.AreEqual(AuthenticationState.LoggedOut, result);
         });
@@ -165,7 +165,7 @@ public partial class DeveloperIdTests
             var developerIdProvider = DeveloperIdProvider.GetInstance();
             Assert.IsNotNull(developerIdProvider);
 
-            var result = developerIdProvider.LogoutDeveloperId(new DeveloperId.DeveloperId());
+            var result = developerIdProvider.LogoutDeveloperId(new DevHomeAzureExtension.DeveloperId.DeveloperId());
             Assert.IsNotNull(result);
             Assert.AreEqual(ProviderOperationStatus.Failure, result.Status);
         });

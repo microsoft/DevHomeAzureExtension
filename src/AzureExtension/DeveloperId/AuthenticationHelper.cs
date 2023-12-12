@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using System.Globalization;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.IdentityModel.Abstractions;
@@ -43,15 +44,14 @@ public class AuthenticationHelper : IAuthenticationHelper
         InitializePublicClientAppForWAMBrokerAsync();
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "Globalization not required as the strings are not being displayed to user and are used in initialization")]
     public void InitializePublicClientApplicationBuilder()
     {
         MicrosoftEntraIdSettings.InitializeSettings();
         Log.Logger()?.ReportInfo($"Initialized MicrosoftEntraIdSettings");
 
         PublicClientApplicationBuilder = PublicClientApplicationBuilder.Create(MicrosoftEntraIdSettings.ClientId)
-           .WithAuthority(string.Format(MicrosoftEntraIdSettings.Authority, MicrosoftEntraIdSettings.TenantId))
-           .WithRedirectUri(string.Format(MicrosoftEntraIdSettings.RedirectURI, MicrosoftEntraIdSettings.ClientId))
+           .WithAuthority(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.Authority, MicrosoftEntraIdSettings.TenantId))
+           .WithRedirectUri(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.RedirectURI, MicrosoftEntraIdSettings.ClientId))
            .WithLogging(new MSALLogger(EventLogLevel.Warning), enablePiiLogging: false)
            .WithClientCapabilities(new string[] { "cp1" });
         Log.Logger()?.ReportInfo($"Created PublicClientApplicationBuilder");
