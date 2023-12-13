@@ -50,6 +50,17 @@ public class AuthenticationSettings
 
     public AuthenticationSettings()
     {
+        Authority = string.Empty;
+        ClientId = string.Empty;
+        TenantId = string.Empty;
+        RedirectURI = string.Empty;
+        CacheFileName = string.Empty;
+        CacheDir = string.Empty;
+        Scopes = string.Empty;
+    }
+
+    public void InitializeSettings()
+    {
         Authority = "https://login.microsoftonline.com/organizations";
         ClientId = "318b152a-4c0e-4050-879d-5e98031c4ccf";
         TenantId = string.Empty;
