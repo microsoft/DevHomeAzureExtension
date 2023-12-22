@@ -31,6 +31,21 @@ public enum WidgetAction
     RemoveTile,
 
     /// <summary>
+    /// Action to initiate the user Moved a tile up in the configuration.
+    /// </summary>
+    MoveTileUp,
+
+    /// <summary>
+    /// Action to initiate the user Moved a tile down in the configuration.
+    /// </summary>
+    MoveTileDown,
+
+    /// <summary>
+    /// Action to initiate the user Deleted a specific tile in the configuration.
+    /// </summary>
+    DeleteTile,
+
+    /// <summary>
     /// Action to save the updated configuration.
     /// </summary>
     Save,

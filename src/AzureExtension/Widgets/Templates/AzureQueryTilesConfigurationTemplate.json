@@ -71,6 +71,38 @@
           "value": "${title}"
         },
         {
+          "type": "ActionSet",
+          "actions": [
+            {
+              "type": "Action.Execute",
+              "title": "^",
+              "id": "moveUp${$index}",
+              "verb": "MoveTileUp",
+              "data": {
+                "index": "${$index}"
+              }
+            },
+            {
+              "type": "Action.Execute",
+              "title": "v",
+              "id": "moveDown${$index}",
+              "verb": "MoveTileDown",
+              "data": {
+                "index": "${$index}"
+              }
+            },
+            {
+              "type": "Action.Execute",
+              "title": "x",
+              "id": "delete${$index}",
+              "verb": "DeleteTile",
+              "data": {
+                "index": "${$index}"
+              }
+            }
+          ]
+        },
+        {
           "type": "Container",
           "$when": "${message != null}",
           "items": [
