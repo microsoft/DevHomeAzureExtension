@@ -71,6 +71,16 @@ internal class AzureQueryTilesWidget : AzureWidget
         UpdateWidget();
     }
 
+    private string RemoveLastTileFromData(string data)
+    {
+        var dataObject = JsonObject.Parse(data)!.AsObject();
+
+        dataObject.Remove($"tileTitle{tiles.Count}");
+        dataObject.Remove($"query{tiles.Count}");
+
+        return dataObject.ToJsonString();
+    }
+
     protected void HandleRemoveTile(WidgetActionInvokedArgs args)
     {
         Page = WidgetPageState.Loading;
@@ -81,7 +91,7 @@ internal class AzureQueryTilesWidget : AzureWidget
             tiles.RemoveAt(tiles.Count - 1);
         }
 
-        UpdateAllTiles(args.Data);
+        UpdateAllTiles(RemoveLastTileFromData(args.Data));
         ValidateConfigurationData();
 
         Page = WidgetPageState.Configure;
