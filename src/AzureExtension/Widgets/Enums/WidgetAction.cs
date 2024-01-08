@@ -11,11 +11,6 @@ public enum WidgetAction
     Unknown,
 
     /// <summary>
-    /// Action to validate the URL provided by the user.
-    /// </summary>
-    Submit,
-
-    /// <summary>
     /// Action to initiate the user Sign-In.
     /// </summary>
     SignIn,
