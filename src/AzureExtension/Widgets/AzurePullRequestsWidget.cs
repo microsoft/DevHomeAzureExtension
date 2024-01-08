@@ -73,16 +73,14 @@ internal class AzurePullRequestsWidget : AzureWidget
         };
     }
 
-    // Action handler methods
-    protected override void HandleSubmit(WidgetActionInvokedArgs args)
+    protected override bool ValidateConfiguration(WidgetActionInvokedArgs args)
     {
         // Set loading page while we fetch data from ADO.
         Page = WidgetPageState.Loading;
         UpdateWidget();
-        CanPin = false;
 
-        // This is the action when the user clicks the submit button after entering some data on the widget while in
-        // the Configure state.
+        CanSave = false;
+
         Page = WidgetPageState.Configure;
         var data = args.Data;
         var dataObject = JsonObject.Parse(data);
@@ -107,7 +105,7 @@ internal class AzurePullRequestsWidget : AzureWidget
             {
                 message = Resources.GetResource(@"Widget_Template/DevIDError");
                 UpdateActivityState();
-                return;
+                return false;
             }
 
             var repositoryInfo = AzureClientHelpers.GetRepositoryInfo(selectedRepositoryUrl, developerId);
@@ -115,21 +113,23 @@ internal class AzurePullRequestsWidget : AzureWidget
             {
                 message = GetMessageForError(repositoryInfo.Error, repositoryInfo.ErrorMessage);
                 UpdateActivityState();
-                return;
+                return false;
             }
 
-            CanPin = true;
-            message = Resources.GetResource(@"Widget_Template/CanBePinned");
+            CanSave = true;
+            Pinned = true;
+            Page = WidgetPageState.Content;
+            UpdateActivityState();
+            return true;
         }
 
-        Page = WidgetPageState.Configure;
-        UpdateWidget();
+        return false;
     }
 
     public override void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
     {
-        // Set CanPin to false so user will have to Submit again before Saving.
-        CanPin = false;
+        // Set CanSave to false so user will have to Submit again before Saving.
+        CanSave = false;
         SavedConfigurationData = ConfigurationData;
         SetConfigure();
     }
@@ -197,7 +197,7 @@ internal class AzurePullRequestsWidget : AzureWidget
         }
     }
 
-    private void ResetDataFromState(string data)
+    protected override void ResetDataFromState(string data)
     {
         var dataObject = JsonObject.Parse(data);
 
@@ -210,6 +210,7 @@ internal class AzurePullRequestsWidget : AzureWidget
         DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
         selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
         selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
+        message = null;
 
         var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
@@ -245,7 +246,6 @@ internal class AzurePullRequestsWidget : AzureWidget
         configurationData.Add("message", message);
         configurationData.Add("widgetTitle", widgetTitle);
 
-        configurationData.Add("configuring", !CanPin);
         configurationData.Add("pinned", Pinned);
         configurationData.Add("arrow", IconLoader.GetIconAsBase64("arrow.png"));
 
@@ -344,7 +344,7 @@ internal class AzurePullRequestsWidget : AzureWidget
             WidgetPageState.SignIn => GetSignIn(),
             WidgetPageState.Configure => GetConfiguration(string.Empty),
             WidgetPageState.Content => ContentData,
-            WidgetPageState.Loading => new JsonObject { { "configuring", true } }.ToJsonString(),
+            WidgetPageState.Loading => EmptyJson,
             _ => throw new NotImplementedException(Page.GetType().Name),
         };
     }

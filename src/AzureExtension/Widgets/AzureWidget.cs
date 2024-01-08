@@ -37,7 +37,7 @@ public abstract class AzureWidget : WidgetImpl
 
     protected string DeveloperLoginId { get; set; } = string.Empty;
 
-    protected bool CanPin
+    protected bool CanSave
     {
         get; set;
     }
@@ -109,7 +109,7 @@ public abstract class AzureWidget : WidgetImpl
         if (state.Any())
         {
             Pinned = true;
-            CanPin = true;
+            CanSave = true;
         }
 
         UpdateActivityState();
@@ -137,15 +137,6 @@ public abstract class AzureWidget : WidgetImpl
     {
         Enabled = contextChangedArgs.WidgetContext.IsActive;
 
-        // The first time the widget changes context is when leaving the Add Widget dialog
-        // and goes to the actual dashboard when the user clicks the Pin button.
-        if (CanPin && !Pinned)
-        {
-            Pinned = true;
-            Page = WidgetPageState.Loading;
-            UpdateWidget();
-        }
-
         UpdateActivityState();
     }
 
@@ -156,25 +147,30 @@ public abstract class AzureWidget : WidgetImpl
 
         switch (verb)
         {
-            case WidgetAction.Submit:
-                HandleSubmit(actionInvokedArgs);
-                break;
-
             case WidgetAction.SignIn:
                 _ = HandleSignIn();
                 break;
 
             case WidgetAction.Save:
-                SavedConfigurationData = string.Empty;
-                ContentData = EmptyJson;
-                DataState = WidgetDataState.Unknown;
-                SetActive();
+                if (ValidateConfiguration(actionInvokedArgs))
+                {
+                    SavedConfigurationData = string.Empty;
+                    ContentData = EmptyJson;
+                    DataState = WidgetDataState.Unknown;
+                    SetActive();
+                }
+
                 break;
 
             case WidgetAction.Cancel:
+                // Put back the configuration data from before we started changing the widget.
                 ConfigurationData = SavedConfigurationData;
                 SavedConfigurationData = string.Empty;
-                CanPin = true;
+                CanSave = true;
+
+                // Fields were updated on Save, restore them from the saved configuration data.
+                ResetDataFromState(ConfigurationData);
+
                 SetActive();
                 break;
 
@@ -190,7 +186,9 @@ public abstract class AzureWidget : WidgetImpl
         SetConfigure();
     }
 
-    protected abstract void HandleSubmit(WidgetActionInvokedArgs args);
+    protected abstract bool ValidateConfiguration(WidgetActionInvokedArgs args);
+
+    protected abstract void ResetDataFromState(string state);
 
     // Expect sign-in to be async, but since it is not yet implemented, suppressing this warning.
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -223,7 +221,6 @@ public abstract class AzureWidget : WidgetImpl
         var signInData = new JsonObject
         {
             { "message", Resources.GetResource(@"Widget_Template/SignInRequired", Log.Logger()) },
-            { "configuring", true },
         };
 
         return signInData.ToString();
@@ -287,7 +284,7 @@ public abstract class AzureWidget : WidgetImpl
             return;
         }
 
-        if (!Pinned || !CanPin)
+        if (!Pinned || !CanSave)
         {
             SetConfigure();
             return;

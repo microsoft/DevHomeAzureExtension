@@ -11,8 +11,8 @@ public enum WidgetActivityState
     Unknown,
 
     /// <summary>
-    /// Widget is in this state after it is created before it has data assigned to it and before it
-    /// is pinned. Once data is assigned this state should never be reached.
+    /// Widget is in this state after it is created and before it has data assigned to it,
+    /// or when the Configure option has been selected.
     /// </summary>
     Configure,
 
@@ -22,7 +22,7 @@ public enum WidgetActivityState
     SignIn,
 
     /// <summary>
-    /// Widget is configured, pinned, and it is assumed user can interact and see it.
+    /// Widget is configured and it is assumed user can interact and see it.
     /// </summary>
     Active,
 
