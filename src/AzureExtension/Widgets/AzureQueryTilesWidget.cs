@@ -112,6 +112,128 @@ internal class AzureQueryTilesWidget : AzureWidget
         UpdateWidget();
     }
 
+    private void SwapTiles(int i, int j)
+    {
+        // Swap in tiles data object
+        Log.Logger()?.ReportInfo("Entrou na swap tiles.");
+        var tile = tiles[i];
+        tiles[i] = tiles[j];
+        tiles[j] = tile;
+
+        // Swap in the ConfigurationData string
+        var dataObject = JsonObject.Parse(ConfigurationData)!.AsObject();
+
+        var temp = dataObject[$"tileTitle{i}"]?.GetValue<string>();
+        dataObject.Remove($"tileTitle{i}");
+        dataObject.Add($"tileTitle{i}", dataObject[$"tileTitle{j}"]?.GetValue<string>());
+        dataObject.Remove($"tileTitle{j}");
+        dataObject.Add($"tileTitle{j}", temp);
+
+        temp = dataObject[$"query{i}"]?.GetValue<string>();
+        dataObject.Remove($"query{i}");
+        dataObject.Add($"query{i}", dataObject[$"query{j}"]?.GetValue<string>());
+        dataObject.Remove($"query{j}");
+        dataObject.Add($"query{j}", temp);
+
+        ConfigurationData = dataObject.ToJsonString();
+    }
+
+    protected void HandleMoveTileUp(WidgetActionInvokedArgs args)
+    {
+        Page = WidgetPageState.Loading;
+        UpdateWidget();
+
+        var dataObject = JsonObject.Parse(args.Data);
+
+        if (dataObject == null)
+        {
+            return;
+        }
+
+        if (dataObject["index"] != null)
+        {
+            var index = dataObject["index"]?.GetValue<int>() ?? 0;
+
+            if (index > 0)
+            {
+                SwapTiles(index, index - 1);
+            }
+        }
+
+        Page = WidgetPageState.Configure;
+        UpdateWidget();
+    }
+
+    protected void HandleMoveTileDown(WidgetActionInvokedArgs args)
+    {
+        Page = WidgetPageState.Loading;
+        UpdateWidget();
+
+        var dataObject = JsonObject.Parse(args.Data);
+
+        if (dataObject == null)
+        {
+            return;
+        }
+
+        if (dataObject["index"] != null)
+        {
+            var index = dataObject["index"]?.GetValue<int>() ?? 0;
+
+            if (index < tiles.Count - 1)
+            {
+                SwapTiles(index, index + 1);
+            }
+        }
+
+        Page = WidgetPageState.Configure;
+        UpdateWidget();
+    }
+
+    private void DeleteTile(int index)
+    {
+        var dataObject = JsonObject.Parse(ConfigurationData)!.AsObject();
+
+        for (var i = index; i < tiles.Count - 1; i++)
+        {
+            tiles[i] = tiles[i + 1];
+
+            dataObject.Remove($"query{i}");
+            dataObject.Remove($"tileTitle{i}");
+            dataObject.Add($"query{i}", dataObject[$"query{i + 1}"]?.GetValue<string>());
+            dataObject.Add($"tileTitle{i}", dataObject[$"tileTitle{i + 1}"]?.GetValue<string>());
+        }
+
+        dataObject.Remove($"query{tiles.Count - 1}");
+        dataObject.Remove($"tileTitle{tiles.Count - 1}");
+        tiles.RemoveAt(tiles.Count - 1);
+
+        ConfigurationData = dataObject.ToJsonString();
+    }
+
+    protected void HandleDeleteTile(WidgetActionInvokedArgs args)
+    {
+        Page = WidgetPageState.Loading;
+        UpdateWidget();
+
+        var dataObject = JsonObject.Parse(args.Data);
+
+        if (dataObject == null)
+        {
+            return;
+        }
+
+        if (dataObject["index"] != null)
+        {
+            var index = dataObject["index"]?.GetValue<int>() ?? 0;
+
+            DeleteTile(index);
+        }
+
+        Page = WidgetPageState.Configure;
+        UpdateWidget();
+    }
+
     public override void OnActionInvoked(WidgetActionInvokedArgs actionInvokedArgs)
     {
         var verb = GetWidgetActionForVerb(actionInvokedArgs.Verb);
@@ -129,6 +251,18 @@ internal class AzureQueryTilesWidget : AzureWidget
 
             case WidgetAction.RemoveTile:
                 HandleRemoveTile(actionInvokedArgs);
+                break;
+
+            case WidgetAction.MoveTileUp:
+                HandleMoveTileUp(actionInvokedArgs);
+                break;
+
+            case WidgetAction.MoveTileDown:
+                HandleMoveTileDown(actionInvokedArgs);
+                break;
+
+            case WidgetAction.DeleteTile:
+                HandleDeleteTile(actionInvokedArgs);
                 break;
 
             case WidgetAction.SignIn:
