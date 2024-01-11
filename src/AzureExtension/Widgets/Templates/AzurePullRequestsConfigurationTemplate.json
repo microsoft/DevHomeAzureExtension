@@ -27,12 +27,7 @@
           "label": "%Widget_Template/RepositoryURLLabel%",
           "style": "Url",
           "isRequired": true,
-          "errorMessage": "%Widget_Template_ErrorMessage/RepositoryURL%",
-          "inlineAction": {
-            "type": "Action.Execute",
-            "verb": "Submit",
-            "iconUrl": "data:image/png;base64,${arrow}"
-          }
+          "errorMessage": "%Widget_Template_ErrorMessage/RepositoryURL%"
         },
         {
           "type": "Input.ChoiceSet",
@@ -56,19 +51,6 @@
           "isRequired": true
         },
         {
-          "type": "ActionSet",
-          "actions": [
-            {
-              "type": "Action.Execute",
-              "title": "%Widget_Template_Button/Submit%",
-              "verb": "Submit",
-              "style": "positive",
-              "role": "Button",
-              "associatedInputs": "auto"
-            }
-          ]
-        },
-        {
           "type": "Container",
           "$when": "${message != null}",
           "items": [
@@ -84,7 +66,6 @@
         {
           "type": "ColumnSet",
           "spacing": "Medium",
-          "$when": "${$root.pinned}",
           "columns": [
             {
               "type": "Column",
@@ -104,16 +85,14 @@
                           "type": "Action.Execute",
                           "title": "%Widget_Template_Button/Save%",
                           "verb": "Save",
-                          "tooltip": "%Widget_Template_Tooltip/Save%",
-                          "style": "positive",
-                          "isEnabled": "${!$root.configuring}"
+                          "role": "Button",
+                          "associatedInputs": "auto"
                         },
                         {
                           "type": "Action.Execute",
                           "title": "%Widget_Template_Button/Cancel%",
                           "verb": "Cancel",
-                          "tooltip": "%Widget_Template_Tooltip/Cancel%",
-                          "style": "destructive"
+                          "isEnabled": "${$root.pinned}"
                         }
                       ]
                     }
