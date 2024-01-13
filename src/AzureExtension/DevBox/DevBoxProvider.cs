@@ -40,6 +40,8 @@ public class DevBoxProvider : IComputeSystemProvider
     // No create operation supported
     public ComputeSystemProviderOperation SupportedOperations => 0x0;
 
+    public ExtensionIcon Icon => throw new NotImplementedException();
+
     /// <summary>
     /// Checks the validity of the JsonElement returned by the DevCenter API.
     /// Validity is determined by the presence of the "value" array property.
@@ -62,11 +64,6 @@ public class DevBoxProvider : IComputeSystemProvider
         var devCenterUri = data.GetProperty("properties").GetProperty("devCenterUri").ToString();
 
         // Todo: Remove this test in Prod
-        if (project != "DevBoxUnitTestProject" && project != "EngProdADEPT")
-        {
-            return;
-        }
-
         var devBoxes = await _devBoxManagementService.GetDevBoxesAsJsonAsync(devCenterUri, project);
         if (IsValid(devBoxes))
         {
@@ -130,4 +127,8 @@ public class DevBoxProvider : IComputeSystemProvider
             return new ComputeSystemsResult(computeSystems);
         }).AsAsyncOperation();
     }
+
+    public AdaptiveCardSessionResult CreateAdaptiveCardSession(ComputeSystemProviderAdaptiveCardKind sessionKind) => throw new NotImplementedException();
+
+    public IAsyncOperation<CreateComputeSystemResult> CreateComputeSystemAsync(IDeveloperId developerId, IExtensionAdaptiveCardSession creationCardSession) => throw new NotImplementedException();
 }

@@ -78,6 +78,19 @@ public class DevBoxInstance : IComputeSystem
         _authService = devBoxAuthService;
     }
 
+    event TypedEventHandler<IComputeSystem, ComputeSystemState> IComputeSystem.StateChanged
+    {
+        add
+        {
+            throw new NotImplementedException();
+        }
+
+        remove
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     /// <summary>
     /// Fills the DevBoxInstance from the JSON returned from the DevBox API.
     /// This includes the box name, id, state, CPU, memory, and OS.
@@ -134,6 +147,12 @@ public class DevBoxInstance : IComputeSystem
     {
         get;
         private set;
+    }
+
+    IEnumerable<ComputeSystemProperty> IComputeSystem.ComputeSystemProperties
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
     }
 
     /// <summary>
@@ -271,4 +290,6 @@ public class DevBoxInstance : IComputeSystem
     public IAsyncOperation<ComputeSystemOperationResult> Save(string options) => throw new NotImplementedException();
 
     public IAsyncOperation<ComputeSystemOperationResult> Terminate(string options) => throw new NotImplementedException();
+
+    IAsyncOperation<ComputeSystemThumbnailResult> IComputeSystem.GetComputeSystemThumbnailAsync() => throw new NotImplementedException();
 }
