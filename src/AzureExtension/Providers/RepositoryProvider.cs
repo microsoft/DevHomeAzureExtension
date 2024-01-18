@@ -347,7 +347,7 @@ public class RepositoryProvider : IRepositoryProvider
                     return new ProviderOperationResult(ProviderOperationStatus.Failure, e, $"Could not get the logged in developer.  HResult: {e.HResult}", e.Message);
                 }
 
-                cloneOptions.CredentialsProvider = (url, user, cred) => new LibGit2Sharp.UsernamePasswordCredentials
+                cloneOptions.FetchOptions.CredentialsProvider = (url, user, cred) => new LibGit2Sharp.UsernamePasswordCredentials
                 {
                     // Password is a PAT unique to GitHub.
                     Username = authResult.AccessToken,
