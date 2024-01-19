@@ -49,8 +49,8 @@
       This is due to a change in how the RuntimeIdentifier graph was changed in .NET 8. Without this, any assets from 
       NuGet packages that are targeting win10-* won't get picked up and referenced prooperly.  -->
   <!-- https://learn.microsoft.com/en-us/dotnet/core/compatibility/deployment/8.0/rid-asset-list -->
-  <ItemGroup>
-    <RuntimeHostConfigurationOption Include="System.Runtime.Loader.UseRidGraph" Value="true" />
-  </ItemGroup>
+  <PropertyGroup>
+    <UseRidGraph>true</UseRidGraph>
+  </PropertyGroup>
 
 </Project>
