@@ -3,9 +3,11 @@
 
 using System.Security.Authentication;
 using System.Text;
+using AzureExtension.Helpers;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
+using Microsoft.Azure.Pipelines.WebApi;
 using Microsoft.Identity.Client;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
@@ -16,10 +18,25 @@ using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 using Windows.Storage.Streams;
 
+// In the past, an organization was known as an account.  Typedef to organization to make the code easier to read.
+using Organization = Microsoft.VisualStudio.Services.Account.Account;
+
 namespace DevHomeAzureExtension.Providers;
 
-public class RepositoryProvider : IRepositoryProvider
+public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRepositoryData
 {
+    private Dictionary<Organization, List<TeamProjectReference>> _organizationsToProjects;
+
+    private AzureRepositoryHierarchy? _azureHierarchy;
+
+    private const string _orgnization = "Organization";
+
+    private const string _project = "Project";
+
+    private string _organizationName = string.Empty;
+
+    private string _projectName = string.Empty;
+
     public string DisplayName => Resources.GetResource(@"RepositoryProviderDisplayName");
 
     public IRandomAccessStreamReference Icon
@@ -30,11 +47,12 @@ public class RepositoryProvider : IRepositoryProvider
     public RepositoryProvider(IRandomAccessStreamReference icon)
     {
         Icon = icon;
+        _organizationsToProjects = new Dictionary<Organization, List<TeamProjectReference>>();
     }
 
     public RepositoryProvider()
+        : this(RandomAccessStreamReference.CreateFromUri(new Uri("ms-appx:///AzureExtension/Assets/AzureExtensionDark.png")))
     {
-        Icon = RandomAccessStreamReference.CreateFromUri(new Uri("ms-appx:///AzureExtension/Assets/AzureExtensionDark.png"));
     }
 
     public IAsyncOperation<RepositoryUriSupportResult> IsUriSupportedAsync(Uri uri)
@@ -62,33 +80,43 @@ public class RepositoryProvider : IRepositoryProvider
     }
 
     /// <summary>
-    /// Get all projects for an organization.
+    /// Gets all repos from the project that the user did a pull request into
     /// </summary>
-    /// <param name="organization">The org to look under.</param>
-    /// <param name="azureDeveloperId">The developerId to get the connection.</param>
-    /// <returns>A list of projects the organization has.</returns>
-    private List<TeamProjectReference> GetProjects(Microsoft.VisualStudio.Services.Account.Account organization, DeveloperId.DeveloperId azureDeveloperId)
+    private List<IRepository> GetRepos(VssConnection connection, TeamProjectReference project, GitPullRequestSearchCriteria criteria)
     {
+        Log.Logger()?.ReportInfo("DevHomeRepository", $"Getting all repos for {project.Name}");
         try
         {
-            var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organization.AccountUri, azureDeveloperId);
+            var gitClient = connection.GetClient<GitHttpClient>();
+            var repos = gitClient.GetRepositoriesAsync(project.Id, true, true).Result.OrderBy(x => x.Name);
 
-            // connection can be null if the organization is disabled.
-            if (connection != null)
+            var reposToReturn = new List<IRepository>();
+            foreach (var repo in repos)
             {
-                var projectClient = connection.GetClient<ProjectHttpClient>();
-                return projectClient.GetProjects().Result.ToList();
-            }
-        }
-        catch (Exception e)
-        {
-            Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
-        }
+                try
+                {
+                    var pullRequests = gitClient.GetPullRequestsAsync(repo.Id, criteria).Result;
 
-        return new List<TeamProjectReference>();
+                    if (pullRequests.Count != 0)
+                    {
+                        reposToReturn.Add(new DevHomeRepository(repo));
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            return reposToReturn;
+        }
+        catch
+        {
+            return new List<IRepository>();
+        }
     }
 
-    IAsyncOperation<RepositoriesResult> IRepositoryProvider.GetRepositoriesAsync(IDeveloperId developerId)
+    public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IDeveloperId developerId)
     {
         // Get access token for ADO API calls.
         if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
@@ -100,124 +128,35 @@ public class RepositoryProvider : IRepositoryProvider
             }).AsAsyncOperation();
         }
 
-        // Establish a connection to get all organizations.
-        // The library calls these organizations "accounts".
-        VssConnection accountConnection;
+        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-        try
-        {
-            accountConnection = AzureClientProvider.GetConnectionForLoggedInDeveloper(new Uri(@"https://app.vssps.visualstudio.com/"), azureDeveloperId);
-        }
-        catch (Exception e)
-        {
-            return Task.Run(() =>
-            {
-                return new RepositoriesResult(e, "Could not establish a connection for this account");
-            }).AsAsyncOperation();
-        }
+        var reposToReturn = new List<IRepository>();
 
-        var accountClient = accountConnection.GetClient<AccountHttpClient>();
-
-        // Get all organizations the current user belongs to.
-        var internalDevId = DeveloperIdProvider.GetInstance().GetDeveloperIdInternal(developerId);
-        IReadOnlyList<Microsoft.VisualStudio.Services.Account.Account>? theseOrganizations;
-
-        try
-        {
-            theseOrganizations = accountClient.GetAccountsByMemberAsync(
-                memberId: accountConnection.AuthorizedIdentity.Id).Result;
-        }
-        catch (Exception e)
-        {
-            return Task.Run(() =>
-            {
-                return new RepositoriesResult(e, "Could not get the member id for this user.");
-            }).AsAsyncOperation();
-        }
-
-        // Set up parallel options to get all projects for each organization.
         var options = new ParallelOptions()
         {
-            MaxDegreeOfParallelism = Environment.ProcessorCount,
+            // Considering these are API calls, having more degrees than Environment.CoreCount should be okay.
+            MaxDegreeOfParallelism = -1,
         };
 
-        var projectsWithOrgName = new List<(TeamProjectReference, Microsoft.VisualStudio.Services.Account.Account)>();
-
-        try
+        Parallel.ForEach(_azureHierarchy.GetOrganizations(), options, orgnization =>
         {
-            Parallel.ForEach(theseOrganizations, options, organization =>
-            {
-                var projects = GetProjects(organization, azureDeveloperId);
-                if (projects.Any())
-                {
-                    foreach (var project in projects)
-                    {
-                        projectsWithOrgName.Add((project, organization));
-                    }
-                }
-            });
-        }
-        catch (AggregateException aggregateException)
-        {
-            var exceptionMessages = new StringBuilder();
-
-            foreach (var exceptionMessage in aggregateException.InnerExceptions)
-            {
-                exceptionMessages.AppendLine(exceptionMessage.Message);
-            }
-
-            return Task.Run(() =>
-            {
-                return new RepositoriesResult(aggregateException, exceptionMessages.ToString());
-            }).AsAsyncOperation();
-        }
-        catch (Exception e)
-        {
-            return Task.Run(() =>
-            {
-                return new RepositoriesResult(e, e.Message);
-            }).AsAsyncOperation();
-        }
-
-        projectsWithOrgName = projectsWithOrgName.OrderByDescending(x => x.Item1.LastUpdateTime).ToList();
-
-        // Get a list of the 200 most recently updated repos.
-        var reposToReturn = new List<IRepository>();
-        foreach (var projectWithOrgName in projectsWithOrgName)
-        {
-            // Hard limit on 200.
-            // TODO: Figure out a better way to limit results, or, at least, pagination.
-            if (reposToReturn.Count >= 200)
-            {
-                break;
-            }
-
             try
             {
                 // Making a connection can throw.
-                var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(projectWithOrgName.Item2.AccountUri, azureDeveloperId);
+                var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(orgnization.AccountUri, azureDeveloperId);
+                var criteria = new GitPullRequestSearchCriteria();
+                criteria.CreatorId = connection.AuthorizedIdentity.Id;
 
-                // Make the GitHttpClient inside try/catch because an exception happens if the project is disabled.
-                var gitClient = connection.GetClient<GitHttpClient>();
-                var repos = gitClient.GetRepositoriesAsync(projectWithOrgName.Item1.Id, false, false).Result;
-                foreach (var repo in repos)
+                Parallel.ForEach(_azureHierarchy.GetProjects(orgnization.AccountName), options, project =>
                 {
-                    if (repo.IsDisabled.HasValue && !repo.IsDisabled.Value)
-                    {
-                        if (reposToReturn.Count >= 200)
-                        {
-                            break;
-                        }
-
-                        reposToReturn.Add(new DevHomeRepository(repo));
-                    }
-                }
+                    reposToReturn.AddRange(GetRepos(connection, project, criteria));
+                });
             }
             catch (Exception e)
             {
                 Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
             }
-        }
+        });
 
         return Task.Run(() =>
         {
@@ -393,5 +332,74 @@ public class RepositoryProvider : IRepositoryProvider
     public void Dispose()
     {
         GC.SuppressFinalize(this);
+    }
+
+    public IEnumerable<IRepository> GetRepositoriesAsync(IDeveloperId developerId, IDictionary<string, string> searchTerms)
+    {
+        if (searchTerms.ContainsKey(_orgnization))
+        {
+            _organizationName = searchTerms[_organizationName];
+        }
+        else
+        {
+            _organizationName = string.Empty;
+        }
+
+        if (searchTerms.ContainsKey(_project))
+        {
+            _projectName = searchTerms[_project];
+        }
+        else
+        {
+            _projectName = string.Empty;
+        }
+
+        var foundRepositoriesAwaiter = GetRepositoriesAsync(developerId).GetAwaiter();
+
+        while (!foundRepositoriesAwaiter.IsCompleted)
+        {
+            Thread.Sleep(1000);
+        }
+
+        var foundRepositories = foundRepositoriesAwaiter.GetResult().Repositories;
+        return foundRepositories;
+    }
+
+    public IReadOnlyList<string> GetSearchFieldNames()
+    {
+        return new List<string> { "Organization", "Project" };
+    }
+
+    public IReadOnlyList<string> GetValuesBasedOn(IDictionary<string, string> inputValues, string fieldNameToRetrieve, IDeveloperId developerId)
+    {
+        if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
+        {
+            throw new NotSupportedException("Authenticated user is not an azure developer id");
+        }
+
+        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+
+        if (fieldNameToRetrieve.Equals(_orgnization, StringComparison.OrdinalIgnoreCase))
+        {
+            var inputProject = string.Empty;
+            if (inputValues.ContainsKey(_project))
+            {
+                inputProject = inputValues[_project];
+            }
+
+            return _azureHierarchy.GetOrganizations(inputProject).Select(x => x.AccountName).ToList();
+        }
+        else if (fieldNameToRetrieve.Equals(_project, StringComparison.OrdinalIgnoreCase))
+        {
+            var inputOrganization = string.Empty;
+            if (inputValues.ContainsKey(_orgnization))
+            {
+                inputOrganization = inputValues[_orgnization];
+            }
+
+            return _azureHierarchy.GetProjects(inputOrganization).Select(x => x.Name).ToList();
+        }
+
+        return new List<string>();
     }
 }
