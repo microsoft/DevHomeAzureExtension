@@ -27,12 +27,7 @@
           "label": "%Widget_Template/QueryURLLabel%",
           "style": "Url",
           "isRequired": true,
-          "errorMessage": "%Widget_Template_ErrorMessage/QueryURL%",
-          "inlineAction": {
-            "type": "Action.Execute",
-            "verb": "Submit",
-            "iconUrl": "data:image/png;base64,${arrow}"
-          }
+          "errorMessage": "%Widget_Template_ErrorMessage/QueryURL%"
         },
         {
           "type": "Input.Text",
@@ -40,44 +35,6 @@
           "id": "widgetTitle",
           "label": "%Widget_Template/QueryTitleLabel%",
           "value": "${widgetTitle}"
-        },
-        {
-          "type": "ColumnSet",
-          "spacing": "Medium",
-          "columns": [
-            {
-              "type": "Column",
-              "width": "stretch"
-            },
-            {
-              "type": "Column",
-              "width": "auto",
-              "items": [
-                {
-                  "type": "Container",
-                  "items": [
-                    {
-                      "type": "ActionSet",
-                      "actions": [
-                        {
-                          "type": "Action.Execute",
-                          "title": "%Widget_Template_Button/Submit%",
-                          "verb": "Submit",
-                          "style": "positive",
-                          "role": "Button",
-                          "associatedInputs": "auto"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "Column",
-              "width": "stretch"
-            }
-          ]
         },
         {
           "type": "Container",
@@ -95,7 +52,6 @@
         {
           "type": "ColumnSet",
           "spacing": "Medium",
-          "$when": "${$root.pinned}",
           "columns": [
             {
               "type": "Column",
@@ -115,16 +71,14 @@
                           "type": "Action.Execute",
                           "title": "%Widget_Template_Button/Save%",
                           "verb": "Save",
-                          "tooltip": "%Widget_Template_Tooltip/Save%",
-                          "style": "positive",
-                          "isEnabled": "${!$root.configuring}"
+                          "role": "Button",
+                          "associatedInputs": "auto"
                         },
                         {
                           "type": "Action.Execute",
                           "title": "%Widget_Template_Button/Cancel%",
                           "verb": "Cancel",
-                          "tooltip": "%Widget_Template_Tooltip/Cancel%",
-                          "style": "destructive"
+                          "isEnabled": "${$root.pinned}"
                         }
                       ]
                     }

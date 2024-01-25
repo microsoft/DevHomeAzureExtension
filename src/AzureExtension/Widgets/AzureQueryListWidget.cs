@@ -69,15 +69,14 @@ internal class AzureQueryListWidget : AzureWidget
         };
     }
 
-    // Action handler methods
-    protected override void HandleSubmit(WidgetActionInvokedArgs args)
+    protected override bool ValidateConfiguration(WidgetActionInvokedArgs args)
     {
         // Set loading page while we fetch data from ADO.
         Page = WidgetPageState.Loading;
         UpdateWidget();
 
-        // This is the action when the user clicks the submit button after entering some data on the widget while in
-        // the Configure state.
+        CanSave = false;
+
         Page = WidgetPageState.Configure;
         var data = args.Data;
         var dataObject = JsonObject.Parse(data);
@@ -85,7 +84,7 @@ internal class AzureQueryListWidget : AzureWidget
 
         if (dataObject != null && dataObject["account"] != null && dataObject["query"] != null)
         {
-            CanPin = false;
+            CanSave = false;
             widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
             selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
             DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
@@ -103,7 +102,7 @@ internal class AzureQueryListWidget : AzureWidget
             {
                 message = Resources.GetResource(@"Widget_Template/DevIDError");
                 UpdateActivityState();
-                return;
+                return false;
             }
 
             var queryInfo = AzureClientHelpers.GetQueryInfo(selectedQueryUrl, developerId);
@@ -111,26 +110,31 @@ internal class AzureQueryListWidget : AzureWidget
             if (queryInfo.Result != ResultType.Success)
             {
                 message = GetMessageForError(queryInfo.Error, queryInfo.ErrorMessage);
+                UpdateActivityState();
+                return false;
             }
             else
             {
-                CanPin = true;
-                message = Resources.GetResource(@"Widget_Template/CanBePinned");
+                CanSave = true;
+                Pinned = true;
                 if (string.IsNullOrEmpty(widgetTitle))
                 {
                     widgetTitle = queryInfo.Name;
                 }
+
+                Page = WidgetPageState.Content;
+                UpdateActivityState();
+                return true;
             }
         }
 
-        Page = WidgetPageState.Configure;
-        UpdateWidget();
+        return false;
     }
 
     public override void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
     {
-        // Set CanPin to false so user will have to Submit again before Saving.
-        CanPin = false;
+        // Set CanSave to false so user will have to Submit again before Saving.
+        CanSave = false;
         SavedConfigurationData = ConfigurationData;
         SetConfigure();
     }
@@ -200,7 +204,7 @@ internal class AzureQueryListWidget : AzureWidget
         }
     }
 
-    private void ResetDataFromState(string data)
+    protected override void ResetDataFromState(string data)
     {
         var dataObject = JsonObject.Parse(data);
 
@@ -212,6 +216,7 @@ internal class AzureQueryListWidget : AzureWidget
         widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
         DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
         selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
+        message = null;
 
         var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
@@ -250,7 +255,6 @@ internal class AzureQueryListWidget : AzureWidget
         configurationData.Add("message", message);
         configurationData.Add("widgetTitle", widgetTitle);
 
-        configurationData.Add("configuring", !CanPin);
         configurationData.Add("pinned", Pinned);
         configurationData.Add("arrow", IconLoader.GetIconAsBase64("arrow.png"));
 
@@ -353,7 +357,7 @@ internal class AzureQueryListWidget : AzureWidget
             WidgetPageState.SignIn => GetSignIn(),
             WidgetPageState.Configure => GetConfiguration(string.Empty),
             WidgetPageState.Content => ContentData,
-            WidgetPageState.Loading => new JsonObject { { "configuring", true } }.ToJsonString(),
+            WidgetPageState.Loading => EmptyJson,
             _ => throw new NotImplementedException(Page.GetType().Name),
         };
     }

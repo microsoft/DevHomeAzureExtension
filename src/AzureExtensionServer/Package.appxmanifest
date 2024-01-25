@@ -16,7 +16,7 @@
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19045.0" MaxVersionTested="10.0.22000.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.22000.0" />
   </Dependencies>
   <Resources>
     <Resource Language="x-generate" />
@@ -96,14 +96,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                        <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="Dev Home icon" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotDark.png" DisplayAltText="Dev Home icon" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -111,7 +111,7 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="Dev Home icon" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
@@ -133,22 +133,22 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                        <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="Dev Home icon" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
-                        </Screenshots>
+						  <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="Dev Home icon" />
+						</Screenshots>
                       </DarkMode>
                       <LightMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="Dev Home icon" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
@@ -170,14 +170,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="Dev Home icon" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="Dev Home icon" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -185,7 +185,7 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\screenshot.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="Dev Home icon" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>

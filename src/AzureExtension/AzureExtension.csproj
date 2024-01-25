@@ -49,7 +49,7 @@
   <ItemGroup>
       <PackageReference Include="Dapper" Version="2.0.123" />
       <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
-      <PackageReference Include="LibGit2Sharp" Version="0.26.2" />
+      <PackageReference Include="LibGit2Sharp" Version="0.29.0" />
       <PackageReference Include="MessageFormat" Version="6.0.2" />
       <PackageReference Include="Microsoft.Data.Sqlite" Version="7.0.4" />
       <PackageReference Include="Microsoft.Identity.Client" Version="4.56.0" />
@@ -115,7 +115,25 @@
     <Content Update="Widgets\Assets\PullRequestReviewNotStarted.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Update="Widgets\Assets\PullRequestsScreenshotDark.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Widgets\Assets\PullRequestsScreenshotLight.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Update="Widgets\Assets\PullRequestWaiting.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Widgets\Assets\QueryResultScreenshotDark.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Widgets\Assets\QueryResultScreenshotLight.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Widgets\Assets\QueryTilesScreenshotDark.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Widgets\Assets\QueryTilesScreenshotLight.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="Widgets\Assets\Requirement.png">
