@@ -31,7 +31,8 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public string Properties => throw new NotImplementedException();
 
-    ComputeSystemProviderOperations IComputeSystemProvider.SupportedOperations => throw new NotImplementedException();
+    // No create operation supported
+    ComputeSystemProviderOperations IComputeSystemProvider.SupportedOperations => 0x0;
 
     /// <summary>
     /// Checks the validity of the JsonElement returned by the DevCenter API.
