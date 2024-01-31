@@ -454,7 +454,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     workItemObjFields.Add(field, workItem.Fields[field].ToString()!);
                 }
 
-                workItemsObjDict.Add(workItem.Id.ToString(), workItemObj);
+                workItemsObjDict.Add(workItem.Id.ToStringInvariant(), workItemObj);
             }
 
             JsonSerializerOptions serializerOptions = new()
