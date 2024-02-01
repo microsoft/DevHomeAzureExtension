@@ -85,15 +85,11 @@ public class DevBoxInstance : IComputeSystem
         get; private set;
     }
 
-    public IEnumerable<ComputeSystemProperty> Properties
-    {
-        get; set;
-    }
+    public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
 
     public DevBoxInstance(IDevBoxAuthService devBoxAuthService)
     {
         _authService = devBoxAuthService;
-        Properties = new List<ComputeSystemProperty>();
     }
 
     private void ProcessProperties()
@@ -101,29 +97,36 @@ public class DevBoxInstance : IComputeSystem
         if (!Properties.Any())
         {
             var properties = new List<ComputeSystemProperty>();
-            if (CPU is not null)
+            try
             {
-                var cpu = new ComputeSystemProperty(int.Parse(CPU, CultureInfo.CurrentCulture), ComputeSystemPropertyKind.CpuCount);
-                properties.Add(cpu);
-            }
+                if (CPU is not null)
+                {
+                    var cpu = new ComputeSystemProperty(int.Parse(CPU, CultureInfo.CurrentCulture), ComputeSystemPropertyKind.CpuCount);
+                    properties.Add(cpu);
+                }
 
-            if (Memory is not null)
+                if (Memory is not null)
+                {
+                    int memoryInGB = int.Parse(Memory, CultureInfo.CurrentCulture);
+                    long memoryInBytes = memoryInGB * Constants.BytesInGb;
+                    var memory = new ComputeSystemProperty(memoryInBytes, ComputeSystemPropertyKind.AssignedMemorySizeInBytes);
+                    properties.Add(memory);
+                }
+
+                if (DiskSize is not null)
+                {
+                    int diskSizeInGB = int.Parse(DiskSize, CultureInfo.CurrentCulture);
+                    long diskSizeInBytes = diskSizeInGB * Constants.BytesInGb;
+                    var diskSize = new ComputeSystemProperty(diskSizeInBytes, ComputeSystemPropertyKind.StorageSizeInBytes);
+                    properties.Add(diskSize);
+                }
+
+                Properties = properties;
+            }
+            catch (Exception ex)
             {
-                int memoryInGB = int.Parse(Memory, CultureInfo.CurrentCulture);
-                long memoryInBytes = memoryInGB * 1073741824L;
-                var memory = new ComputeSystemProperty(memoryInBytes, ComputeSystemPropertyKind.AssignedMemorySizeInBytes);
-                properties.Add(memory);
+                Log.Logger()?.ReportError($"Error processing properties for {Name}: {ex.ToString}");
             }
-
-            if (DiskSize is not null)
-            {
-                int diskSizeInGB = int.Parse(DiskSize, CultureInfo.CurrentCulture);
-                long diskSizeInBytes = diskSizeInGB * 1073741824L;
-                var diskSize = new ComputeSystemProperty(diskSizeInBytes, ComputeSystemPropertyKind.StorageSizeInBytes);
-                properties.Add(diskSize);
-            }
-
-            Properties = properties;
         }
     }
 
@@ -136,19 +139,45 @@ public class DevBoxInstance : IComputeSystem
     /// <param name="devId">Developer ID for the dev box</param>
     public void FillFromJson(JsonElement item, string project, IDeveloperId? devId)
     {
+        item.TryGetProperty("uri", out var uri);
+        BoxURI = new Uri(uri.ToString());
+        item.TryGetProperty("name", out var name);
+        Name = name.ToString();
+        item.TryGetProperty("id", out var id);
+        Id = id.ToString();
+        item.TryGetProperty("powerState", out var powerState);
+        State = powerState.ToString();
+
+        if (item.TryGetProperty("hardwareProfile", out var hardwareProfile))
+        {
+            hardwareProfile.TryGetProperty("vCPUs", out var vCPUs);
+            CPU = vCPUs.ToString();
+            hardwareProfile.TryGetProperty("memoryGB", out var memoryGB);
+            Memory = memoryGB.ToString();
+        }
+
+        if (item.TryGetProperty("storageProfile", out var storageProfile))
+        {
+            if (storageProfile.TryGetProperty("osDisk", out var diskSizeGB))
+            {
+                DiskSize = diskSizeGB.ToString();
+            }
+        }
+
+        if (item.TryGetProperty("imageReference", out var imageReference))
+        {
+            if (imageReference.TryGetProperty("operatingSystem", out var operatingSystem))
+            {
+                OS = operatingSystem.ToString();
+            }
+        }
+
+        ProjectName = project;
+        DevId = devId;
+        AssociatedDeveloperId = devId ?? AssociatedDeveloperId;
+
         try
         {
-            BoxURI = new Uri(item.GetProperty("uri").ToString());
-            Name = item.GetProperty("name").ToString();
-            Id = item.GetProperty("uniqueId").ToString();
-            State = item.GetProperty("powerState").ToString();
-            CPU = item.GetProperty("hardwareProfile").GetProperty("vCPUs").ToString();
-            Memory = item.GetProperty("hardwareProfile").GetProperty("memoryGB").ToString();
-            DiskSize = item.GetProperty("storageProfile").GetProperty("osDisk").GetProperty("diskSizeGB").ToString();
-            OS = item.GetProperty("imageReference").GetProperty("operatingSystem").ToString();
-            ProjectName = project;
-            DevId = devId;
-
             (WebURI, RdpURI) = GetRemoteLaunchURIsAsync(BoxURI).GetAwaiter().GetResult();
             Log.Logger()?.ReportInfo($"Created box {Name} with id {Id} with {State}, {CPU}, {Memory}, {BoxURI}, {OS}");
             IsValid = true;
@@ -186,11 +215,16 @@ public class DevBoxInstance : IComputeSystem
         private set;
     }
 
+    // To Do: Move this to a resource file
     public string AlternativeDisplayName => new string("Project : " + ProjectName ?? "Unknown");
 
-    public IDeveloperId AssociatedDeveloperId => throw new NotImplementedException();
+    public IDeveloperId AssociatedDeveloperId
+    {
+        get => DevId ?? throw new NotImplementedException();
+        set => DevId = value;
+    }
 
-    public string AssociatedProviderId => throw new NotImplementedException();
+    public string AssociatedProviderId => Constants.DevBoxProviderName;
 
     /// <summary>
     /// Common method to perform REST operations on the DevBox.
@@ -322,17 +356,23 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(async () =>
         {
-            StateChanged?.Invoke(this, ComputeSystemState.Running);
+            try
+            {
+                var uri = new Uri(Constants.ThumbnailURI);
+                var storageFile = await StorageFile.GetFileFromApplicationUriAsync(uri);
+                var randomAccessStream = await storageFile.OpenReadAsync();
 
-            var uri = new Uri(Constants.ThumbnailURI);
-            var storageFile = await StorageFile.GetFileFromApplicationUriAsync(uri);
-            var randomAccessStream = await storageFile.OpenReadAsync();
+                // Convert the stream to a byte array
+                var bytes = new byte[randomAccessStream.Size];
+                await randomAccessStream.ReadAsync(bytes.AsBuffer(), (uint)randomAccessStream.Size, InputStreamOptions.None);
 
-            // Convert the stream to a byte array
-            byte[] bytes = new byte[randomAccessStream.Size];
-            await randomAccessStream.ReadAsync(bytes.AsBuffer(), (uint)randomAccessStream.Size, InputStreamOptions.None);
-
-            return new ComputeSystemThumbnailResult(bytes);
+                return new ComputeSystemThumbnailResult(bytes);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger()?.ReportError($"Error getting thumbnail for {Name}: {ex.ToString}");
+                return new ComputeSystemThumbnailResult(ex, string.Empty);
+            }
         }).AsAsyncOperation();
     }
 
@@ -346,21 +386,61 @@ public class DevBoxInstance : IComputeSystem
     }
 
     // Unsupported operations
-    public IAsyncOperation<ComputeSystemOperationResult> ApplyConfigurationAsync(string configuration) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> RevertSnapshotAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> RevertSnapshotAsync(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> CreateSnapshotAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> CreateSnapshotAsync(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> DeleteSnapshotAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> DeleteSnapshotAsync(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> PauseAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> PauseAsync(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> ResumeAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> ResumeAsync(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> SaveAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> SaveAsync(string options) => throw new NotImplementedException();
+    public IAsyncOperation<ComputeSystemOperationResult> ModifyPropertiesAsync(string options)
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+        }).AsAsyncOperation();
+    }
 
-    public IAsyncOperation<ComputeSystemOperationResult> ModifyPropertiesAsync(string options) => throw new NotImplementedException();
-
-    IAsyncOperationWithProgress<ComputeSystemOperationResult, ComputeSystemOperationData> IComputeSystem.ApplyConfigurationAsync(string configuration) => throw new NotImplementedException();
+    public IApplyConfigurationOperation ApplyConfiguration(string configuration) => throw new NotImplementedException();
 }
