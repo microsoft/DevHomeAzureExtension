@@ -5,7 +5,7 @@ using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.Account.Client;
-using Microsoft.VisualStudio.Services.Common;
+using Microsoft.VisualStudio.Services.Organization;
 using Microsoft.VisualStudio.Services.WebApi;
 
 // In the past, an organization was known as an account.  Typedef to organization to make the code easier to read.
@@ -17,9 +17,11 @@ public class AzureRepositoryHierarchy
 {
     private readonly DeveloperId _developerId;
 
-    private readonly Task _buildingHierarchyTask;
+    private readonly Dictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects;
 
-    private List<KeyValuePair<Organization, List<TeamProjectReference>>> _organizationsToTheirProjects = new();
+    private Task<List<Organization>>? _queryOrganizationsTask;
+
+    private Dictionary<Organization, Task<IPagedList<TeamProjectReference>>> _organizationsAndProjectTask;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureRepositoryHierarchy"/> class.
@@ -34,62 +36,55 @@ public class AzureRepositoryHierarchy
     public AzureRepositoryHierarchy(DeveloperId developerId)
     {
         _developerId = developerId;
-        _buildingHierarchyTask = BuildHierarchy();
+        _organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
+        _organizationsAndProjectTask = new Dictionary<Organization, Task<IPagedList<TeamProjectReference>>>();
     }
 
-    public List<Organization> GetOrganizations(string? project = null)
+    public async Task<List<Organization>> GetOrganizationsAsync()
     {
-        Task.WaitAny(_buildingHierarchyTask);
-
-        IEnumerable<KeyValuePair<Organization, List<TeamProjectReference>>> organizationsToReturn = _organizationsToTheirProjects;
-
-        if (!string.IsNullOrEmpty(project))
+        // if something is running the query, wait for it to finish.
+        if (_queryOrganizationsTask != null)
         {
-            organizationsToReturn = organizationsToReturn.Where(x => x.Value.Any(y => y.Name.Contains(project)));
+            await _queryOrganizationsTask;
+            return _organizationsAndProjects.Keys.ToList();
         }
 
-        return organizationsToReturn.Select(x => x.Key).ToList();
-    }
-
-    public List<TeamProjectReference> GetProjects(string? organization = null)
-    {
-        Task.WaitAny(_buildingHierarchyTask);
-
-        IEnumerable<KeyValuePair<Organization, List<TeamProjectReference>>> projectsToReturn = _organizationsToTheirProjects;
-
-        if (!string.IsNullOrEmpty(organization))
+        var organizations = QueryForOrganizations();
+        foreach (var organization in organizations)
         {
-            projectsToReturn = projectsToReturn.Where(x => x.Key.AccountName.Equals(organization, StringComparison.OrdinalIgnoreCase));
+            // Extra protection against duplicates if two threads run QueryForOrganizations at the same time.
+            _organizationsAndProjects.TryAdd(organization, new List<TeamProjectReference>());
         }
 
-        List<TeamProjectReference> projectNames = new();
-        projectsToReturn.ForEach(x => projectNames.AddRange(x.Value));
-
-        return projectNames;
+        return _organizationsAndProjects.Keys.ToList();
     }
 
-    private async Task BuildHierarchy()
+    public async Task<List<TeamProjectReference>> GetProjectsAsync(Organization organization)
     {
-        await QueryForOrganizations();
-
-        var options = new ParallelOptions()
+        // if something is running the query, wait for it to finish.
+        if (_queryOrganizationsTask != null)
         {
-            MaxDegreeOfParallelism = -1,
-        };
+            await _queryOrganizationsTask;
+        }
 
-        Parallel.ForEach(_organizationsToTheirProjects.Select(x => x.Key), options, async organization =>
+        // if the task has been started
+        if (_organizationsAndProjectTask.ContainsKey(organization))
         {
-            var projects = await QueryForProjects(organization);
-
-            // Only add the organization and projects if the organization hasn't been added yet.
-            if (!_organizationsToTheirProjects.Select(x => x.Key).Contains(organization))
+            if (_organizationsAndProjectTask[organization] != null)
             {
-                _organizationsToTheirProjects.Add(new KeyValuePair<Organization, List<TeamProjectReference>>(organization, projects));
+                // Wait for it.
+                await _organizationsAndProjectTask[organization];
+                return _organizationsAndProjects[organization];
             }
-        });
+        }
+
+        var projects = QueryForProjects(organization);
+        _organizationsAndProjects[organization] = projects;
+
+        return _organizationsAndProjects[organization];
     }
 
-    private async Task<List<Organization>> QueryForOrganizations()
+    private List<Organization> QueryForOrganizations()
     {
         // Establish a connection to get all organizations.
         // The library calls these "accounts".
@@ -108,8 +103,9 @@ public class AzureRepositoryHierarchy
 
         try
         {
-            return await accountClient.GetAccountsByMemberAsync(
-                memberId: accountConnection.AuthorizedIdentity.Id, new List<string> { "organization" });
+            _queryOrganizationsTask = accountClient.GetAccountsByMemberAsync(
+                memberId: accountConnection.AuthorizedIdentity.Id);
+            return _queryOrganizationsTask.Result;
         }
         catch
         {
@@ -117,7 +113,7 @@ public class AzureRepositoryHierarchy
         }
     }
 
-    private async Task<List<TeamProjectReference>> QueryForProjects(Organization organization)
+    private List<TeamProjectReference> QueryForProjects(Organization organization)
     {
         try
         {
@@ -127,7 +123,13 @@ public class AzureRepositoryHierarchy
             if (connection != null)
             {
                 var projectClient = connection.GetClient<ProjectHttpClient>();
-                return (await projectClient.GetProjects()).ToList();
+                var getProjectsTask = projectClient.GetProjects();
+
+                // Add the task if it does not yet exist.
+                _organizationsAndProjectTask.TryAdd(organization, getProjectsTask);
+
+                // in both cases, wait for the task to finish.
+                return _organizationsAndProjectTask[organization].Result.ToList();
             }
         }
         catch (Exception e)
