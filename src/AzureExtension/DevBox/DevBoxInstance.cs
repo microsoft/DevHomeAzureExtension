@@ -21,10 +21,7 @@ namespace AzureExtension.DevBox;
 /// </summary>
 public class DevBoxInstance : IComputeSystem
 {
-    private readonly IDevBoxAuthService _authService;
-
-    public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
-
+#region IComputeSystem Properties
     public IDeveloperId? DevId
     {
         get; private set;
@@ -60,11 +57,6 @@ public class DevBoxInstance : IComputeSystem
         get; private set;
     }
 
-    public string? DiskSize
-    {
-        get; private set;
-    }
-
     public Uri? WebURI
     {
         get; private set;
@@ -86,6 +78,16 @@ public class DevBoxInstance : IComputeSystem
     }
 
     public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
+#endregion
+
+    private string? DiskSize
+    {
+        get; set;
+    }
+
+    private readonly IDevBoxAuthService _authService;
+
+    public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
     public DevBoxInstance(IDevBoxAuthService devBoxAuthService)
     {
