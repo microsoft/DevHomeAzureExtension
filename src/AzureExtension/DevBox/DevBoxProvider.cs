@@ -31,10 +31,19 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public string Properties => throw new NotImplementedException();
 
+    private string PackageFullName => Windows.ApplicationModel.Package.Current.Id.FullName;
+
     // No create operation supported
     ComputeSystemProviderOperations IComputeSystemProvider.SupportedOperations => 0x0;
 
-    public Uri Icon => new Uri(Constants.ProviderURI);
+    public Uri Icon
+    {
+        get
+        {
+            var tempUri = new Uri(Constants.ProviderURI);
+            return new Uri("ms-appx://" + PackageFullName + tempUri.AbsolutePath);
+        }
+    }
 
     /// <summary>
     /// Checks the validity of the JsonElement returned by the DevCenter API.
