@@ -162,7 +162,10 @@ public class DevBoxInstance : IComputeSystem
         {
             if (storageProfile.TryGetProperty("osDisk", out var diskSizeGB))
             {
-                DiskSize = diskSizeGB.ToString();
+                if (diskSizeGB.TryGetProperty("diskSizeGB", out var diskSize))
+                {
+                    DiskSize = diskSize.ToString();
+                }
             }
         }
 
