@@ -25,20 +25,16 @@ public class DevBoxProvider : IComputeSystemProvider
         _devBoxManagementService = mgmtSvc;
     }
 
-    string IComputeSystemProvider.DefaultComputeSystemProperties
-    {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
-    }
+    public string DisplayName => "Microsoft DevBox";
 
-    public string DisplayName => "Microsoft DevBox Provider";
-
-    public string Id => "Microsoft.DevBox";
+    public string Id => Constants.DevBoxProviderName;
 
     public string Properties => throw new NotImplementedException();
 
     // No create operation supported
-    public ComputeSystemProviderOperation SupportedOperations => 0x0;
+    ComputeSystemProviderOperations IComputeSystemProvider.SupportedOperations => 0x0;
+
+    public Uri Icon => new Uri(Constants.ProviderURI);
 
     /// <summary>
     /// Checks the validity of the JsonElement returned by the DevCenter API.
@@ -60,13 +56,6 @@ public class DevBoxProvider : IComputeSystemProvider
     {
         var project = data.GetProperty("name").ToString();
         var devCenterUri = data.GetProperty("properties").GetProperty("devCenterUri").ToString();
-
-        // Todo: Remove this test in Prod
-        if (project != "DevBoxUnitTestProject" && project != "EngProdADEPT")
-        {
-            return;
-        }
-
         var devBoxes = await _devBoxManagementService.GetDevBoxesAsJsonAsync(devCenterUri, project);
         if (IsValid(devBoxes))
         {
@@ -115,8 +104,6 @@ public class DevBoxProvider : IComputeSystemProvider
         return computeSystems;
     }
 
-    public IAsyncOperation<CreateComputeSystemResult> CreateComputeSystemAsync(string options) => throw new NotImplementedException();
-
     /// <summary>
     /// Wrapper for GetComputeSystemsAsync
     /// </summary>
@@ -130,4 +117,14 @@ public class DevBoxProvider : IComputeSystemProvider
             return new ComputeSystemsResult(computeSystems);
         }).AsAsyncOperation();
     }
+
+    public IAsyncOperation<CreateComputeSystemResult> CreateComputeSystemAsync(string options) => throw new NotImplementedException();
+
+    public IAsyncOperationWithProgress<CreateComputeSystemResult, ComputeSystemOperationData> CreateComputeSystemAsync(IDeveloperId developerId, string options) => throw new NotImplementedException();
+
+    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind) => throw new NotImplementedException();
+
+    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind) => throw new NotImplementedException();
+
+    public ICreateComputeSystemOperation CreateComputeSystem(IDeveloperId developerId, string options) => throw new NotImplementedException();
 }

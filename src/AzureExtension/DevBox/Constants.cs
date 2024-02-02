@@ -38,4 +38,24 @@ public static class Constants
     /// </summary>
     /// <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
     public const string APIVersion = "api-version=2023-04-01";
+
+    /// <summary>
+    /// Location of the thumbnail that is shown for all Dev Boxes in the UI
+    /// </summary>
+    public const string ThumbnailURI = "ms-appx:///AzureExtension/Assets/DevBoxThumbnail.png";
+
+    /// <summary>
+    /// Location of the provider icon
+    /// </summary>
+    public const string ProviderURI = "ms-appx:///AzureExtension/Assets/DevBoxProvider.png";
+
+    /// <summary>
+    /// Name of the DevBox provider
+    /// </summary>
+    public const string DevBoxProviderName = "Microsoft.DevBox";
+
+    /// <summary>
+    /// Size of a GB in bytes
+    /// </summary>
+    public const long BytesInGb = 1073741824L;
 }
