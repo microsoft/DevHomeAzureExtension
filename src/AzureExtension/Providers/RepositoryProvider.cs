@@ -49,7 +49,7 @@ public class RepositoryProvider : IRepositoryProvider
             var azureUri = new AzureUri(uri);
             if (!azureUri.IsValid)
             {
-                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure DevOps Uri"), "Uri isn not valid");
+                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure DevOps Uri"), "Uri is not valid");
             }
 
             if (!azureUri.IsRepository)
