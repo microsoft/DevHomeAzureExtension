@@ -3,8 +3,6 @@
 
 using Microsoft.Identity.Client;
 using Microsoft.UI;
-using Microsoft.Windows.DevHome.SDK;
-using Windows.Foundation;
 
 namespace DevHomeAzureExtension.DeveloperId;
 

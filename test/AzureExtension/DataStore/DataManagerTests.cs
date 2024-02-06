@@ -1,8 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.VisualStudio.Services.WebApi;
-
 namespace DevHomeAzureExtension.Test;
 
 public partial class DataStoreTests
@@ -78,7 +76,7 @@ public partial class DataStoreTests
     [TestCategory("Unit")]
     public void DataManagerGetAndUpdateQuery()
     {
-        // In absence of public data and a private devops server, this test will just verify
+        // In absence of public data and a private DevOps server, this test will just verify
         // accessibility of the methods.
         using var log = new DevHome.Logging.Logger("TestStore", TestOptions.LogOptions);
         var testListener = new TestListener("TestListener", TestContext!);
@@ -88,7 +86,7 @@ public partial class DataStoreTests
         using var dataManager = AzureDataManager.CreateInstance("Test", TestOptions.DataStoreOptions);
         Assert.IsNotNull(dataManager);
 
-        // Skipping the request test here becuase this test runs unpackaged and
+        // Skipping the request test here because this test runs unpackaged and
         // AuthenticationSettings does not work correctly in this scenario in setting the MSIL
         // cache location.
         var query = dataManager.GetQuery("NotARealQuery", "SomeDevId");

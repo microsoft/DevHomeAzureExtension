@@ -140,7 +140,7 @@ public partial class WidgetTests
             Tuple.Create("https://vssps.dev.azure.com:443/organization/with/extra/stuff", AzureUriType.SignIn, false),
             Tuple.Create("https://vssps.dev.azure.com:443/organization/with/extra/stuff/", AzureUriType.SignIn, false),
 
-            // Azure Devops SignIn Uris, legacy format.
+            // Azure DevOps SignIn Uris, legacy format.
             // Note port 443 is the default port for https, so Uri objects remove it.
             Tuple.Create("https://app.vssps.visualstudio.com/", AzureUriType.SignIn, false),
             Tuple.Create("https://app.vssps.visualstudio.com:443/", AzureUriType.SignIn, false),
@@ -194,9 +194,9 @@ public partial class WidgetTests
 
             if (uriTuple.Item2 != AzureUriType.SignIn && uriTuple.Item2 != AzureUriType.RepositoryNoProject && uriTuple.Item2 != AzureUriType.NamesWithSpaces)
             {
-                // Signin Uris may not have project.
+                // SignIn Uris may not have project.
                 // Some repository URIs will have a different project.
-                // Signin Uris can also have "app" as the organization.
+                // SignIn Uris can also have "app" as the organization.
                 // Organization will be validated as part of that type.
                 Assert.AreEqual("organization", azureUri.Organization);
                 Assert.AreEqual("project", azureUri.Project);
@@ -361,8 +361,8 @@ public partial class WidgetTests
         }
 
         // Null string input validation
-        string? nullstr = null;
-        var nullTest = new AzureUri(nullstr);
+        string? nullStr = null;
+        var nullTest = new AzureUri(nullStr);
         Assert.IsNotNull(nullTest);
         Assert.AreEqual(string.Empty, nullTest.ToString());
         Assert.IsFalse(nullTest.IsValid);
@@ -374,8 +374,8 @@ public partial class WidgetTests
         Assert.IsFalse(nullTest.IsValid);
 
         // Null Uri input validation
-        Uri? nulluri = null;
-        nullTest = new AzureUri(nulluri);
+        Uri? nullUri = null;
+        nullTest = new AzureUri(nullUri);
         Assert.IsNotNull(nullTest);
         Assert.AreEqual(string.Empty, nullTest.ToString());
         Assert.IsFalse(nullTest.IsValid);

@@ -305,12 +305,12 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
         catch (MsalServiceException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal service error: {ex}");
+            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
             throw;
         }
         catch (MsalClientException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal client error: {ex}");
+            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
             throw;
         }
         catch (Exception ex)

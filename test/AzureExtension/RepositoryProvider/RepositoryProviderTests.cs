@@ -1,10 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Runtime.CompilerServices;
 using DevHomeAzureExtension.Client;
 using Microsoft.Windows.DevHome.SDK;
-using static DevHomeAzureExtension.Test.WidgetTests;
 
 namespace DevHomeAzureExtension.Test;
 

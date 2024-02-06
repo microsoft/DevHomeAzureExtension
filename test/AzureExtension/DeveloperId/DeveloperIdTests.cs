@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.DeveloperId;
-using Microsoft.UI;
 
 namespace DevHomeAzureExtension.Test;
 

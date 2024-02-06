@@ -44,12 +44,12 @@ public class AzureClientProvider
             }
             catch (MsalServiceException ex)
             {
-                Log.Logger()?.ReportError($"Unable to get credentials for developerId: failed with msal service error: {ex}");
+                Log.Logger()?.ReportError($"Unable to get credentials for developerId: failed with MSAL service error: {ex}");
                 return null;
             }
             catch (MsalClientException ex)
             {
-                Log.Logger()?.ReportError($"Unable to get credentials for developerId: failed with msal client error: {ex}");
+                Log.Logger()?.ReportError($"Unable to get credentials for developerId: failed with MSAL client error: {ex}");
                 return null;
             }
             catch (Exception ex)
@@ -105,12 +105,12 @@ public class AzureClientProvider
         }
         catch (MsalServiceException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal service error: {ex}");
+            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.MsalServiceError, false, ex);
         }
         catch (MsalClientException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal client error: {ex}");
+            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.MsalClientError, false, ex);
         }
         catch (Exception ex)
@@ -143,9 +143,9 @@ public class AzureClientProvider
     }
 
     /// <summary>
-    /// Gets the azure devops connection for the specified developer id.
+    /// Gets the Azure DevOps connection for the specified developer id.
     /// </summary>
-    /// <param name="uri">The uri to an azure devops resource.</param>
+    /// <param name="uri">The uri to an Azure DevOps resource.</param>
     /// <param name="developerId">The developer to authenticate with.</param>
     /// <returns>An authorized connection to the resource.</returns>
     /// <exception cref="ArgumentException">If the azure uri is not valid.</exception>
