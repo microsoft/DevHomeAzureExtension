@@ -1,9 +1,8 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
-using static DevHomeAzureExtension.Test.WidgetTests;
 
 namespace DevHomeAzureExtension.Test;
 
