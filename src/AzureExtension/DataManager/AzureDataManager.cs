@@ -371,6 +371,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
                     break;
 
+                case TFModels.QueryType.OneHop:
+
+                    // OneHop work item structure is the same as the tree type.
+                    goto case TFModels.QueryType.Tree;
+
                 default:
                     Log.Logger()?.ReportWarn(Name, InstanceName, $"Found unhandled QueryType: {queryResult.QueryType} for query: {queryId}");
                     break;
