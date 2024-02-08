@@ -46,7 +46,7 @@ Invoke-Expression "& { $(irm https://aka.ms/install-artifacts-credprovider.ps1) 
 $env:Build_RootDirectory = (Get-Item $PSScriptRoot).parent.parent.FullName
 $env:Build_Platform = $Platform.ToLower()
 $env:Build_Configuration = $Configuration.ToLower()
-$env:msix_version = build\Scripts\CreateBuildInfo.ps1 -Version $Version -IsAzurePipelineBuild $IsAzurePipelineBuild
+$env:msix_version = "0.899.402.128"
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')
 
 if ($IsAzurePipelineBuild) {

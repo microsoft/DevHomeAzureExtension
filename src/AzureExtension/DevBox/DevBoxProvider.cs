@@ -34,7 +34,7 @@ public class DevBoxProvider : IComputeSystemProvider
     // No create operation supported
     ComputeSystemProviderOperations IComputeSystemProvider.SupportedOperations => 0x0;
 
-    public Uri Icon => new Uri(Constants.ProviderURI);
+    public Uri Icon => new(Constants.ProviderURI);
 
     /// <summary>
     /// Checks the validity of the JsonElement returned by the DevCenter API.

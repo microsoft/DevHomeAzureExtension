@@ -21,7 +21,6 @@ namespace AzureExtension.DevBox;
 /// </summary>
 public class DevBoxInstance : IComputeSystem
 {
-#region IComputeSystem Properties
     public IDeveloperId? DevId
     {
         get; private set;
@@ -78,7 +77,6 @@ public class DevBoxInstance : IComputeSystem
     }
 
     public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
-#endregion
 
     private string? DiskSize
     {
@@ -109,16 +107,16 @@ public class DevBoxInstance : IComputeSystem
 
                 if (Memory is not null)
                 {
-                    int memoryInGB = int.Parse(Memory, CultureInfo.CurrentCulture);
-                    long memoryInBytes = memoryInGB * Constants.BytesInGb;
+                    var memoryInGB = int.Parse(Memory, CultureInfo.CurrentCulture);
+                    var memoryInBytes = memoryInGB * Constants.BytesInGb;
                     var memory = new ComputeSystemProperty(memoryInBytes, ComputeSystemPropertyKind.AssignedMemorySizeInBytes);
                     properties.Add(memory);
                 }
 
                 if (DiskSize is not null)
                 {
-                    int diskSizeInGB = int.Parse(DiskSize, CultureInfo.CurrentCulture);
-                    long diskSizeInBytes = diskSizeInGB * Constants.BytesInGb;
+                    var diskSizeInGB = int.Parse(DiskSize, CultureInfo.CurrentCulture);
+                    var diskSizeInBytes = diskSizeInGB * Constants.BytesInGb;
                     var diskSize = new ComputeSystemProperty(diskSizeInBytes, ComputeSystemPropertyKind.StorageSizeInBytes);
                     properties.Add(diskSize);
                 }
@@ -221,7 +219,7 @@ public class DevBoxInstance : IComputeSystem
     }
 
     // To Do: Move this to a resource file
-    public string AlternativeDisplayName => new string("Project : " + ProjectName ?? "Unknown");
+    public string AlternativeDisplayName => new("Project : " + ProjectName ?? "Unknown");
 
     public IDeveloperId AssociatedDeveloperId
     {

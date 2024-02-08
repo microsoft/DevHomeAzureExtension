@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using DevHomeAzureExtension.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 using static DevHomeAzureExtension.Test.WidgetTests;
@@ -67,7 +68,9 @@ public partial class RepositoryProviderTests
         return _invalidUrls;
     }
 
+#pragma warning disable IDE0044 // Add readonly modifier
     private List<string> _validNotRepoUrls = new();
+#pragma warning restore IDE0044 // Add readonly modifier
 
     private List<string> GetValidNotRepoUrls()
     {
