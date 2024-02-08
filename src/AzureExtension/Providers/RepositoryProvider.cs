@@ -21,9 +21,15 @@ using Organization = Microsoft.VisualStudio.Services.Account.Account;
 
 namespace DevHomeAzureExtension.Providers;
 
-public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRepositoryData
+public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
 {
+    private static readonly object _constructorLock = new();
+
+    private static RepositoryProvider? _repositoryProvider;
+
     private AzureRepositoryHierarchy? _azureHierarchy;
+
+    private const string _defaultSearchServerName = "dev.azure.com";
 
     private const string _server = "server";
 
@@ -37,6 +43,10 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
 
     private string _selectedProject;
 
+    private bool _isFirstQuery;
+
+    private CancellationTokenSource _tokenSource;
+
     public string DisplayName => Resources.GetResource(@"RepositoryProviderDisplayName");
 
     public IRandomAccessStreamReference Icon
@@ -44,19 +54,33 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
         get; private set;
     }
 
-    string[] IRepositoryData.GetSearchFieldNames => new string[3] { _server, _organization, _project };
+    string[] IRepositoryProvider2.GetSearchFieldNames => new string[3] { _server, _organization, _project };
+
+    private bool _shouldIgnorePRDate;
 
     public RepositoryProvider(IRandomAccessStreamReference icon)
     {
         Icon = icon;
+        _isFirstQuery = true;
         _selectedServer = string.Empty;
         _selectedOrganization = string.Empty;
         _selectedProject = string.Empty;
+        _tokenSource = new();
     }
 
     public RepositoryProvider()
         : this(RandomAccessStreamReference.CreateFromUri(new Uri("ms-appx:///AzureExtension/Assets/AzureExtensionDark.png")))
     {
+    }
+
+    public static RepositoryProvider GetInstance()
+    {
+        lock (_constructorLock)
+        {
+            _repositoryProvider ??= new RepositoryProvider();
+        }
+
+        return _repositoryProvider;
     }
 
     public IAsyncOperation<RepositoryUriSupportResult> IsUriSupportedAsync(Uri uri)
@@ -86,7 +110,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
     /// <summary>
     /// Gets all repos from the project that the user did a pull request into
     /// </summary>
-    private List<IRepository> GetRepos(VssConnection connection, TeamProjectReference project, GitPullRequestSearchCriteria criteria, bool shouldCheckForPrs)
+    private List<IRepository> GetRepos(VssConnection connection, TeamProjectReference project, GitPullRequestSearchCriteria criteria, bool shouldIgnorePRDate)
     {
         Log.Logger()?.ReportInfo("DevHomeRepository", $"Getting all repos for {project.Name}");
         try
@@ -99,7 +123,11 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
             {
                 try
                 {
-                    if (shouldCheckForPrs)
+                    if (shouldIgnorePRDate)
+                    {
+                        reposToReturn.Add(new DevHomeRepository(repo));
+                    }
+                    else
                     {
                         var pullRequests = gitClient.GetPullRequestsAsync(repo.Id, criteria).Result;
 
@@ -107,10 +135,6 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
                         {
                             reposToReturn.Add(new DevHomeRepository(repo));
                         }
-                    }
-                    else
-                    {
-                        reposToReturn.Add(new DevHomeRepository(repo));
                     }
                 }
                 catch
@@ -129,7 +153,28 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
 
     public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IDeveloperId developerId)
     {
-        return GetRepositoriesAsync(new Dictionary<string, string>(), developerId);
+        if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
+        {
+            return Task.Run(() =>
+            {
+                var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
+                return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
+            }).AsAsyncOperation();
+        }
+
+        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+
+        var server = string.Empty;
+        var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+#pragma warning disable CA1309 // Use ordinal string comparison
+        var defaultOrg = organizations.FirstOrDefault(x => x.AccountName.Equals(_defaultSearchServerName));
+#pragma warning restore CA1309 // Use ordinal string comparison
+        if (defaultOrg != null)
+        {
+            server = _defaultSearchServerName;
+        }
+
+        return GetRepositoriesAsync(new Dictionary<string, string> { { _server, server } }, developerId);
     }
 
     public IAsyncOperation<RepositoryResult> GetRepositoryFromUriAsync(Uri uri)
@@ -304,86 +349,129 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
 
     public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IReadOnlyDictionary<string, string> searchTerms, IDeveloperId developerId)
     {
-        var serverToUse = searchTerms.ContainsKey(_server) ? searchTerms[_server] : string.Empty;
-        _selectedServer = serverToUse;
-
-        var organizationToUse = searchTerms.ContainsKey(_organization) ? searchTerms[_organization] : string.Empty;
-        _selectedOrganization = organizationToUse;
-
-        var projectToUse = searchTerms.ContainsKey(_project) ? searchTerms[_project] : string.Empty;
-        _selectedProject = projectToUse;
-
-        // Get access token for ADO API calls.
-        if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
+        if (!_isFirstQuery)
         {
-            return Task.Run(() =>
-            {
-                var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
-                return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
-            }).AsAsyncOperation();
+            _tokenSource.Cancel();
+            _tokenSource = new CancellationTokenSource();
+        }
+        else
+        {
+            _isFirstQuery = false;
         }
 
-        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
-
-        var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
-        if (!string.IsNullOrEmpty(_selectedOrganization))
+        var shouldIgnorePRDateOld = _shouldIgnorePRDate;
+        _shouldIgnorePRDate = true;
+        try
         {
-#pragma warning disable CA1309 // Use ordinal string comparison.  Organization names should match exactly.
-            organizations = organizations.Where(x => x.AccountName.Equals(_selectedOrganization)).ToList();
-#pragma warning restore CA1309 // Use ordinal string comparison
-        }
-
-        var options = new ParallelOptions()
-        {
-            // Let the program decide
-            MaxDegreeOfParallelism = -1,
-        };
-
-        Dictionary<Organization, List<TeamProjectReference>> organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
-
-        Parallel.ForEach(organizations, options, orgnization =>
-        {
-            var projects = _azureHierarchy.GetProjectsAsync(orgnization).Result;
-            if (!string.IsNullOrEmpty(_selectedProject))
-            {
-#pragma warning disable CA1309 // Use ordinal string comparison.  Organization names should match exactly.
-                projects = projects.Where(x => x.Name.Equals(_selectedProject)).ToList();
-#pragma warning restore CA1309 // Use ordinal string comparison
-            }
-
-            if (projects.Count != 0)
-            {
-                organizationsAndProjects.Add(orgnization, projects);
-            }
-        });
-
-        var reposToReturn = new List<IRepository>();
-
-        // By now organizationAndProjects include all relevant information to get repos.
-        Parallel.ForEach(organizationsAndProjects, options, organizationAndProject =>
+            return Task.Run(
+            () =>
         {
             try
             {
-                // Making a connection can throw.
-                var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organizationAndProject.Key.AccountUri, azureDeveloperId);
-                var criteria = new GitPullRequestSearchCriteria();
-                criteria.CreatorId = connection.AuthorizedIdentity.Id;
+                var serverToUse = searchTerms.ContainsKey(_server) ? searchTerms[_server] : string.Empty;
+                _selectedServer = serverToUse;
 
-                Parallel.ForEach(organizationAndProject.Value, options, project =>
+                var organizationToUse = searchTerms.ContainsKey(_organization) ? searchTerms[_organization] : string.Empty;
+                _selectedOrganization = organizationToUse;
+
+                var projectToUse = searchTerms.ContainsKey(_project) ? searchTerms[_project] : string.Empty;
+                _selectedProject = projectToUse;
+
+                // Get access token for ADO API calls.
+                if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
                 {
-                    reposToReturn.AddRange(GetRepos(connection, project, criteria, true));
-                });
-            }
-            catch (Exception e)
-            {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
-            }
-        });
+                    var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
+                    return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
+                }
 
-        return Task.Run(() =>
+                _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+
+#pragma warning disable CA1309 // Use ordinal string comparison.  Organization names should match exactly.
+                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                var orgsInModernUrlFormat = new List<Organization>();
+                if (_selectedServer.Equals(_defaultSearchServerName))
+                {
+                    // For a default search, look up all orgs with the modern URL format
+                    orgsInModernUrlFormat = organizations.Where(x => x.AccountUri.Host.Equals(_defaultSearchServerName)).ToList();
+                }
+
+                // If the user is apart of orgs in the modern URL format, use these going forward.
+                if (orgsInModernUrlFormat.Count > 0)
+                {
+                    organizations = orgsInModernUrlFormat;
+                }
+
+                if (!string.IsNullOrEmpty(_selectedOrganization))
+                {
+                    organizations = organizations.Where(x => x.AccountName.Equals(_selectedOrganization)).ToList();
+                }
+#pragma warning restore CA1309 // Use ordinal string comparison
+
+                var options = new ParallelOptions()
+                {
+                    // Let the program decide
+                    MaxDegreeOfParallelism = -1,
+                };
+
+                Dictionary<Organization, List<TeamProjectReference>> organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
+
+                Parallel.ForEach(organizations, options, orgnization =>
+                {
+                    var projects = _azureHierarchy.GetProjectsAsync(orgnization).Result;
+                    if (!string.IsNullOrEmpty(_selectedProject))
+                    {
+#pragma warning disable CA1309 // Use ordinal string comparison.  Organization names should match exactly.
+                        projects = projects.Where(x => x.Name.Equals(_selectedProject)).ToList();
+#pragma warning restore CA1309 // Use ordinal string comparison
+                    }
+
+                    if (projects.Count != 0)
+                    {
+                        organizationsAndProjects.Add(orgnization, projects);
+                    }
+                });
+
+                var reposToReturn = new List<IRepository>();
+
+                // organizationAndProjects include all relevant information to get repos.
+                Parallel.ForEach(organizationsAndProjects, options, organizationAndProject =>
+                {
+                    try
+                    {
+                        // Making a connection can throw.
+                        var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organizationAndProject.Key.AccountUri, azureDeveloperId);
+                        var criteria = new GitPullRequestSearchCriteria();
+                        criteria.CreatorId = connection.AuthorizedIdentity.Id;
+
+                        Parallel.ForEach(organizationAndProject.Value, options, project =>
+                        {
+                            reposToReturn.AddRange(GetRepos(connection, project, criteria, shouldIgnorePRDateOld));
+                        });
+                    }
+                    catch (Exception e)
+                    {
+                        Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
+                    }
+                });
+
+                return new RepositoriesResult(reposToReturn);
+            }
+            catch (Exception ex)
+            {
+                Providers.Log.Logger()?.ReportError("DevHomeRepository", ex);
+                return new RepositoriesResult(new List<IRepository>());
+            }
+        },
+            _tokenSource.Token).AsAsyncOperation();
+        }
+        catch (Exception ex)
         {
-            return new RepositoriesResult(reposToReturn);
-        }).AsAsyncOperation();
+            return Task.Run(() =>
+            {
+                Providers.Log.Logger()?.ReportError("DevHomeRepository", ex);
+                return new RepositoriesResult(new List<IRepository>());
+            }).AsAsyncOperation();
+        }
     }
 
     public IReadOnlyList<string> GetSearchFieldNames()
@@ -402,110 +490,95 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2, IRe
             }).AsAsyncOperation();
         }
 
-#pragma warning disable IDE0059 // Unnecessary assignment of a value.  Server isn't needed until users use on prem.
-        var serverToUse = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
-#pragma warning restore IDE0059 // Unnecessary assignment of a value
-
-        var organizationToUse = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
-        var projectToUse = fieldValues.ContainsKey(_project) ? fieldValues[_project] : string.Empty;
-
-        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
-
-#pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
-        if (fieldName.Equals(_organization))
-        {
-            var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
-            if (!string.IsNullOrEmpty(organizationToUse))
-            {
-                organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
-            }
-
-            if (string.IsNullOrEmpty(projectToUse))
-            {
-                return Task.Run(() =>
-                {
-                    return organizations.Select(x => x.AccountName).ToList() as IList<string>;
-                }).AsAsyncOperation();
-            }
-            else
-            {
-                var organizationsToReturn = new List<string>();
-                foreach (var organization in organizations)
-                {
-                    var projects = _azureHierarchy.GetProjectsAsync(organization).Result.Where(x => x.Name.Equals(projectToUse)).ToList();
-                    if (projects.Count > 0)
-                    {
-                        organizationsToReturn.Add(organization.AccountName);
-                    }
-                }
-
-                return Task.Run(() =>
-                {
-                    return organizationsToReturn as IList<string>;
-                }).AsAsyncOperation();
-            }
-        }
-        else if (fieldName.Equals(_project))
-        {
-            // Because projects exist in an organization searching behavior is different for each combonation.
-            var isOrganizationInInput = !string.IsNullOrEmpty(organizationToUse);
-            var isProjectInInput = !string.IsNullOrEmpty(projectToUse);
-
-            if (isOrganizationInInput && !isProjectInInput)
-            {
-                // get all projects in the organization.
-                var organizations = _azureHierarchy.GetOrganizationsAsync().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
-                List<string> projectNames = new List<string>();
-                foreach (var organization in organizations)
-                {
-                    projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
-                }
-
-                return Task.Run(() =>
-                {
-                    return projectNames as IList<string>;
-                }).AsAsyncOperation();
-            }
-
-            if (isProjectInInput && !isOrganizationInInput)
-            {
-                // Get all projects with the same name in all organizations.
-                // This does mean the project drop down might have duplicate names.
-                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
-                List<string> projectNames = new List<string>();
-                foreach (var organization in organizations)
-                {
-                    projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Where(x => x.Name.Equals(projectToUse)).Select(x => x.Name));
-                }
-
-                return Task.Run(() =>
-                {
-                    return projectNames as IList<string>;
-                }).AsAsyncOperation();
-            }
-
-            if (isOrganizationInInput && isProjectInInput)
-            {
-                // Get the organization.  If the organization does not exist, return nothing.
-                // If the organization has the project, return the project name.
-                // otherwise, return nothing.
-                var organizations = _azureHierarchy.GetOrganizationsAsync().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
-
-                List<string> projectNames = new List<string>();
-                foreach (var organization in organizations)
-                {
-                    projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
-                }
-
-                return Task.Run(() =>
-                {
-                    return projectNames as IList<string>;
-                }).AsAsyncOperation();
-            }
-        }
-
         return Task.Run(() =>
         {
+#pragma warning disable IDE0059 // Unnecessary assignment of a value.  Server isn't needed until users use on prem.
+            var serverToUse = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
+#pragma warning restore IDE0059 // Unnecessary assignment of a value
+
+            var organizationToUse = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
+            var projectToUse = fieldValues.ContainsKey(_project) ? fieldValues[_project] : string.Empty;
+
+            _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+
+#pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
+            if (fieldName.Equals(_organization))
+            {
+                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                if (!string.IsNullOrEmpty(organizationToUse))
+                {
+                    organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).OrderBy(x => x.AccountName).ToList();
+                }
+
+                if (string.IsNullOrEmpty(projectToUse))
+                {
+                    return organizations.Select(x => x.AccountName).Order().ToList() as IList<string>;
+                }
+                else
+                {
+                    var organizationsToReturn = new List<string>();
+                    foreach (var organization in organizations)
+                    {
+                        var projects = _azureHierarchy.GetProjectsAsync(organization).Result.Where(x => x.Name.Equals(projectToUse)).ToList();
+                        if (projects.Count > 0)
+                        {
+                            organizationsToReturn.Add(organization.AccountName);
+                        }
+                    }
+
+                    return organizationsToReturn.Order().ToList() as IList<string>;
+                }
+            }
+            else if (fieldName.Equals(_project))
+            {
+                // Because projects exist in an organization searching behavior is different for each combonation.
+                var isOrganizationInInput = !string.IsNullOrEmpty(organizationToUse);
+                var isProjectInInput = !string.IsNullOrEmpty(projectToUse);
+
+                if (isOrganizationInInput && !isProjectInInput)
+                {
+                    // get all projects in the organization.
+                    var organizations = _azureHierarchy.GetOrganizationsAsync().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
+                    List<string> projectNames = new List<string>();
+                    foreach (var organization in organizations)
+                    {
+                        projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
+                    }
+
+                    return projectNames.Order().ToList() as IList<string>;
+                }
+
+                if (isProjectInInput && !isOrganizationInInput)
+                {
+                    // Get all projects with the same name in all organizations.
+                    // This does mean the project drop down might have duplicate names.
+                    var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                    List<string> projectNames = new List<string>();
+                    foreach (var organization in organizations)
+                    {
+                        projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Where(x => x.Name.Equals(projectToUse)).Select(x => x.Name));
+                    }
+
+                    return projectNames.Order().ToList() as IList<string>;
+                }
+
+                if (isOrganizationInInput && isProjectInInput)
+                {
+                    // Get the organization.  If the organization does not exist, return nothing.
+                    // If the organization has the project, return the project name.
+                    // otherwise, return nothing.
+                    var organizations = _azureHierarchy.GetOrganizationsAsync().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
+
+                    List<string> projectNames = new List<string>();
+                    foreach (var organization in organizations)
+                    {
+                        projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
+                    }
+
+                    return projectNames.Order().ToList() as IList<string>;
+                }
+            }
+
             return new List<string>() as IList<string>;
         }).AsAsyncOperation();
 #pragma warning restore CA1309 // Use ordinal string comparison

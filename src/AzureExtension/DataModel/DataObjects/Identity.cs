@@ -146,10 +146,12 @@ public class Identity
 
     public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef)
     {
+#pragma warning disable CA1510 // Use ArgumentNullException throw helper ThrowIfNull does not tell compiler that the value is not null
         if (identityRef == null)
         {
             throw new ArgumentNullException(nameof(identityRef));
         }
+#pragma warning restore CA1510 // Use ArgumentNullException throw helper
 
         var newIdentity = CreateFromIdentityRef(identityRef);
         return AddOrUpdateIdentity(dataStore, newIdentity);

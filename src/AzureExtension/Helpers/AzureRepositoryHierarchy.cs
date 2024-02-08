@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
+using System.Collections.Concurrent;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.TeamFoundation.Core.WebApi;
@@ -17,11 +18,11 @@ public class AzureRepositoryHierarchy
 {
     private readonly DeveloperId _developerId;
 
-    private readonly Dictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects;
+    private readonly ConcurrentDictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects;
 
     private Task<List<Organization>>? _queryOrganizationsTask;
 
-    private Dictionary<Organization, Task<IPagedList<TeamProjectReference>>> _organizationsAndProjectTask;
+    private ConcurrentDictionary<Organization, Task<IPagedList<TeamProjectReference>>> _organizationsAndProjectTask;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureRepositoryHierarchy"/> class.
@@ -36,8 +37,8 @@ public class AzureRepositoryHierarchy
     public AzureRepositoryHierarchy(DeveloperId developerId)
     {
         _developerId = developerId;
-        _organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
-        _organizationsAndProjectTask = new Dictionary<Organization, Task<IPagedList<TeamProjectReference>>>();
+        _organizationsAndProjects = new ConcurrentDictionary<Organization, List<TeamProjectReference>>();
+        _organizationsAndProjectTask = new ConcurrentDictionary<Organization, Task<IPagedList<TeamProjectReference>>>();
     }
 
     public async Task<List<Organization>> GetOrganizationsAsync()
@@ -53,7 +54,11 @@ public class AzureRepositoryHierarchy
         foreach (var organization in organizations)
         {
             // Extra protection against duplicates if two threads run QueryForOrganizations at the same time.
-            _organizationsAndProjects.TryAdd(organization, new List<TeamProjectReference>());
+            var duplicateOrganization = _organizationsAndProjects.Keys.FirstOrDefault(x => x.AccountId == organization.AccountId);
+            if (duplicateOrganization == null)
+            {
+                _organizationsAndProjects.TryAdd(organization, new List<TeamProjectReference>());
+            }
         }
 
         return _organizationsAndProjects.Keys.ToList();
@@ -68,12 +73,12 @@ public class AzureRepositoryHierarchy
         }
 
         // if the task has been started
-        if (_organizationsAndProjectTask.ContainsKey(organization))
+        if (_organizationsAndProjectTask.TryGetValue(organization, out var projectsTask))
         {
-            if (_organizationsAndProjectTask[organization] != null)
+            if (projectsTask != null)
             {
                 // Wait for it.
-                await _organizationsAndProjectTask[organization];
+                await projectsTask;
                 return _organizationsAndProjects[organization];
             }
         }

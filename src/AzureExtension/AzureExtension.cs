@@ -27,7 +27,7 @@ public sealed class AzureExtension : IExtension
             case ProviderType.DeveloperId:
                 return DeveloperIdProvider.GetInstance();
             case ProviderType.Repository:
-                return new RepositoryProvider();
+                return RepositoryProvider.GetInstance();
             case ProviderType.FeaturedApplications:
                 return new object();
             default:

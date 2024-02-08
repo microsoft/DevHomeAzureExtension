@@ -45,7 +45,7 @@ public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
         }
 
         var repoInformation = new AzureUri(localUrl);
-        _owningAccountName = Path.Join(repoInformation.Organization, repoInformation.Project);
+        _owningAccountName = Path.Join(repoInformation.Connection.Host, repoInformation.Organization, repoInformation.Project);
 
         cloneUrl = localUrl;
 

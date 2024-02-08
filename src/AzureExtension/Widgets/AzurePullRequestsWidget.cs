@@ -12,11 +12,11 @@ using Newtonsoft.Json;
 
 namespace DevHomeAzureExtension.Widgets;
 
-internal class AzurePullRequestsWidget : AzureWidget
+internal sealed class AzurePullRequestsWidget : AzureWidget
 {
     private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
-    protected static readonly new string Name = nameof(AzurePullRequestsWidget);
+    private static readonly new string Name = nameof(AzurePullRequestsWidget);
 
     private static readonly string DefaultSelectedView = "Mine";
 
@@ -35,7 +35,7 @@ internal class AzurePullRequestsWidget : AzureWidget
 
     public override void CreateWidget(WidgetContext widgetContext, string state)
     {
-        if (state.Any())
+        if (state.Length == 0)
         {
             ResetDataFromState(state);
         }

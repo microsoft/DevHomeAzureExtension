@@ -102,7 +102,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             Log.Logger()?.ReportWarn(Name, InstanceName, "Failed setting DeveloperId change handler.", ex);
         }
 
-        if (Instances.ContainsKey(InstanceName))
+        if (Instances.TryGetValue(InstanceName, out var value))
         {
             // We should not have duplicate AzureDataManagers, as every client should have one,
             // but the identifiers may not be unique if using partial Guids. Note in the log
@@ -819,7 +819,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 try
                 {
                     Log.Logger()?.ReportDebug(Name, InstanceName, "Disposing of all Disposable resources.");
-                    if (Instances.ContainsKey(InstanceName) && Instances[InstanceName] == UniqueName)
+                    if (Instances.TryGetValue(InstanceName, out var instanceName) && instanceName == UniqueName)
                     {
                         Instances.TryRemove(InstanceName, out _);
                         Log.Logger()?.ReportInfo(Name, InstanceName, $"Removed AzureDataManager: {UniqueName}.");
