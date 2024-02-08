@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 namespace DevHomeAzureExtension.Widgets.Enums;
 
@@ -9,11 +9,6 @@ public enum WidgetAction
     /// Error condition where the action cannot be determined.
     /// </summary>
     Unknown,
-
-    /// <summary>
-    /// Action to validate the URL provided by the user.
-    /// </summary>
-    Submit,
 
     /// <summary>
     /// Action to initiate the user Sign-In.

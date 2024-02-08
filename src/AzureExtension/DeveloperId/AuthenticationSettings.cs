@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using Windows.Storage;
 
@@ -49,6 +49,17 @@ public class AuthenticationSettings
     public string[] ScopesArray => Scopes.Split(' ');
 
     public AuthenticationSettings()
+    {
+        Authority = string.Empty;
+        ClientId = string.Empty;
+        TenantId = string.Empty;
+        RedirectURI = string.Empty;
+        CacheFileName = string.Empty;
+        CacheDir = string.Empty;
+        Scopes = string.Empty;
+    }
+
+    public void InitializeSettings()
     {
         Authority = "https://login.microsoftonline.com/organizations";
         ClientId = "318b152a-4c0e-4050-879d-5e98031c4ccf";

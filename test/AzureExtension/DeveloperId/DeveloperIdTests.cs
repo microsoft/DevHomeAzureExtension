@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using DevHomeAzureExtension.DeveloperId;
 
@@ -18,8 +18,10 @@ public partial class DeveloperIdTests
         // Register for Login and Logout Events
         authProvider.Changed += AuthenticationEvent;
 
-        // Start a new login flow. Control flows to browser.
-        // Task.Run(async () => { await authProvider.LoginNewDeveloperIdAsync(); });
+        // Start a new interactive login flow
+        // var windowHandle = Application.Current.GetService<WindowEx>().GetWindowHandle();
+        // var windowPtr = Win32Interop.GetWindowIdFromWindow(windowHandle);
+        // Task.Run(async () => { await authProvider.ShowLogonSession(windowPtr); });
 
         // Get the list of DeveloperIds
         var devIds = authProvider.GetLoggedInDeveloperIdsInternal();

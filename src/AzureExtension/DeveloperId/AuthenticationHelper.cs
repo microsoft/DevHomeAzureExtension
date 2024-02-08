@@ -1,6 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+using System.Globalization;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using Microsoft.IdentityModel.Abstractions;
@@ -8,11 +9,11 @@ using Microsoft.UI;
 
 namespace DevHomeAzureExtension.DeveloperId;
 
-public class AuthenticationHelper
+public class AuthenticationHelper : IAuthenticationHelper
 {
     public AuthenticationSettings MicrosoftEntraIdSettings
     {
-        get; private set;
+        get; set;
     }
 
     private PublicClientApplicationBuilder? PublicClientApplicationBuilder
@@ -34,20 +35,26 @@ public class AuthenticationHelper
 
     public static Guid TransferTenetId { get; } = new("f8cdef31-a31e-4b4a-93e4-5f571e91255a");
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "Globalization not required as the strings are not being displayed to user and are used in initialization")]
     public AuthenticationHelper()
     {
         MicrosoftEntraIdSettings = new AuthenticationSettings();
+
+        InitializePublicClientApplicationBuilder();
+
+        InitializePublicClientAppForWAMBrokerAsync();
+    }
+
+    public void InitializePublicClientApplicationBuilder()
+    {
+        MicrosoftEntraIdSettings.InitializeSettings();
         Log.Logger()?.ReportInfo($"Initialized MicrosoftEntraIdSettings");
 
         PublicClientApplicationBuilder = PublicClientApplicationBuilder.Create(MicrosoftEntraIdSettings.ClientId)
-            .WithAuthority(string.Format(MicrosoftEntraIdSettings.Authority, MicrosoftEntraIdSettings.TenantId))
-            .WithRedirectUri(string.Format(MicrosoftEntraIdSettings.RedirectURI, MicrosoftEntraIdSettings.ClientId))
-            .WithLogging(new MSALLogger(EventLogLevel.Warning), enablePiiLogging: false)
-            .WithClientCapabilities(new string[] { "cp1" });
+           .WithAuthority(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.Authority, MicrosoftEntraIdSettings.TenantId))
+           .WithRedirectUri(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.RedirectURI, MicrosoftEntraIdSettings.ClientId))
+           .WithLogging(new MSALLogger(EventLogLevel.Warning), enablePiiLogging: false)
+           .WithClientCapabilities(new string[] { "cp1" });
         Log.Logger()?.ReportInfo($"Created PublicClientApplicationBuilder");
-
-        InitializePublicClientAppForWAMBrokerAsync();
     }
 
     public async void InitializePublicClientAppForWAMBrokerAsync()
@@ -186,8 +193,8 @@ public class AuthenticationHelper
         }
         catch (Exception ex)
         {
-           // This is best effort
-           Log.Logger()?.ReportInfo($"Azure SSO failed with exception:{ex}");
+            // This is best effort
+            Log.Logger()?.ReportInfo($"Azure SSO failed with exception:{ex}");
         }
 
         return null;
@@ -296,12 +303,12 @@ public class AuthenticationHelper
             }
             catch (MsalServiceException ex)
             {
-                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal service error: {ex}");
+                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
                 throw;
             }
             catch (MsalClientException ex)
             {
-                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal client error: {ex}");
+                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
                 throw;
             }
             catch (Exception ex)

@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
@@ -71,6 +71,16 @@ internal class AzureQueryTilesWidget : AzureWidget
         UpdateWidget();
     }
 
+    private string RemoveLastTileFromData(string data)
+    {
+        var dataObject = JsonObject.Parse(data)!.AsObject();
+
+        dataObject.Remove($"tileTitle{tiles.Count}");
+        dataObject.Remove($"query{tiles.Count}");
+
+        return dataObject.ToJsonString();
+    }
+
     protected void HandleRemoveTile(WidgetActionInvokedArgs args)
     {
         Page = WidgetPageState.Loading;
@@ -81,21 +91,7 @@ internal class AzureQueryTilesWidget : AzureWidget
             tiles.RemoveAt(tiles.Count - 1);
         }
 
-        UpdateAllTiles(args.Data);
-        ValidateConfigurationData();
-
-        Page = WidgetPageState.Configure;
-        UpdateWidget();
-    }
-
-    protected override void HandleSubmit(WidgetActionInvokedArgs args)
-    {
-        // This is the action when the user clicks the submit button after entering some data on the widget while in
-        // the Configure state.
-        Page = WidgetPageState.Loading;
-        UpdateWidget();
-
-        UpdateAllTiles(args.Data);
+        UpdateAllTiles(RemoveLastTileFromData(args.Data));
         ValidateConfigurationData();
 
         Page = WidgetPageState.Configure;
@@ -109,10 +105,6 @@ internal class AzureQueryTilesWidget : AzureWidget
 
         switch (verb)
         {
-            case WidgetAction.Submit:
-                HandleSubmit(actionInvokedArgs);
-                break;
-
             case WidgetAction.AddTile:
                 HandleAddTile(actionInvokedArgs);
                 break;
@@ -126,21 +118,25 @@ internal class AzureQueryTilesWidget : AzureWidget
                 break;
 
             case WidgetAction.Save:
-                SavedConfigurationData = string.Empty;
-                ContentData = EmptyJson;
-                SetActive();
+                if (ValidateConfiguration(actionInvokedArgs))
+                {
+                    SavedConfigurationData = string.Empty;
+                    ContentData = EmptyJson;
+                    DataState = WidgetDataState.Unknown;
+                    SetActive();
+                }
+
                 break;
 
             case WidgetAction.Cancel:
                 // Put back the configuration data from before we started changing the widget.
                 ConfigurationData = SavedConfigurationData;
                 SavedConfigurationData = string.Empty;
-                CanPin = true;
+                CanSave = true;
 
-                // Tiles were updated on Submit, restore them from the saved configuration data.
-                ResetNumberOfTilesFromData(ConfigurationData);
-                UpdateAllTiles(ConfigurationData);
-                ValidateConfigurationData();
+                // Tiles were updated on Save, restore them from the saved configuration data.
+                ResetDataFromState(ConfigurationData);
+
                 SetActive();
                 break;
 
@@ -150,10 +146,31 @@ internal class AzureQueryTilesWidget : AzureWidget
         }
     }
 
+    protected override bool ValidateConfiguration(WidgetActionInvokedArgs actionInvokedArgs)
+    {
+        Page = WidgetPageState.Loading;
+        UpdateWidget();
+
+        UpdateAllTiles(actionInvokedArgs.Data);
+        bool hasValidData = ValidateConfigurationData();
+        if (hasValidData)
+        {
+            Page = WidgetPageState.Content;
+            Pinned = true;
+        }
+        else
+        {
+            Page = WidgetPageState.Configure;
+        }
+
+        UpdateActivityState();
+        return hasValidData;
+    }
+
     public override void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
     {
-        // Set CanPin to false so user will have to Submit again before Saving.
-        CanPin = false;
+        // Set CanSave to false so user will have to Submit again before Saving.
+        CanSave = false;
         SavedConfigurationData = ConfigurationData;
         SetConfigure();
     }
@@ -209,6 +226,13 @@ internal class AzureQueryTilesWidget : AzureWidget
 
         Log.Logger()?.ReportInfo(Name, ShortId, $"Requested data update for this widget.");
         DataState = WidgetDataState.Requested;
+    }
+
+    protected override void ResetDataFromState(string state)
+    {
+        ResetNumberOfTilesFromData(ConfigurationData);
+        UpdateAllTiles(ConfigurationData);
+        ValidateConfigurationData();
     }
 
     public override void LoadContentData()
@@ -277,21 +301,21 @@ internal class AzureQueryTilesWidget : AzureWidget
         UpdateActivityState();
     }
 
-    private void ValidateConfigurationData()
+    private bool ValidateConfigurationData()
     {
-        CanPin = false;
+        CanSave = false;
         var pinIssueFound = false;
 
         SetDefaultDeveloperLoginId();
         var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
         {
-            return;
+            return false;
         }
 
         if (!tiles.Any())
         {
-            return;
+            return false;
         }
 
         for (var i = 0; i < tiles.Count; ++i)
@@ -323,10 +347,9 @@ internal class AzureQueryTilesWidget : AzureWidget
             tiles[i] = tile;
         }
 
-        if (!pinIssueFound)
-        {
-            CanPin = true;
-        }
+        CanSave = !pinIssueFound;
+
+        return !pinIssueFound;
     }
 
     private void ResetNumberOfTilesFromData(string data)
@@ -441,7 +464,6 @@ internal class AzureQueryTilesWidget : AzureWidget
 
         configurationData.Add("tiles", tilesArray);
         configurationData.Add("selectedDevId", DeveloperLoginId);
-        configurationData.Add("configuring", !CanPin);
         configurationData.Add("pinned", Pinned);
         configurationData.Add("arrow", IconLoader.GetIconAsBase64("arrow.png"));
 
@@ -468,7 +490,7 @@ internal class AzureQueryTilesWidget : AzureWidget
             WidgetPageState.SignIn => GetSignIn(),
             WidgetPageState.Configure => GetConfiguration(string.Empty),
             WidgetPageState.Content => ContentData,
-            WidgetPageState.Loading => new JsonObject { { "configuring", true } }.ToJsonString(),
+            WidgetPageState.Loading => EmptyJson,
             _ => throw new NotImplementedException(Page.GetType().Name),
         };
     }
