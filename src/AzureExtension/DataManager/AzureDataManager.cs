@@ -432,7 +432,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
                     if (fieldValue == "Microsoft.VisualStudio.Services.WebApi.IdentityRef")
                     {
-                        var identity = Identity.GetOrCreateIdentity(DataStore, workItem.Fields[field] as IdentityRef);
+                        var identity = Identity.GetOrCreateIdentity(DataStore, workItem.Fields[field] as IdentityRef, result.Connection);
                         workItemObjFields.Add(field, identity);
                         continue;
                     }
@@ -575,7 +575,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
                 pullRequestObjFields.Add("Title", pullRequest.Title);
 
-                var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy);
+                var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy, result.Connection);
                 pullRequestObjFields.Add("CreatedBy", creator);
                 pullRequestObjFields.Add("CreationDate", pullRequest.CreationDate.Ticks);
                 pullRequestObjFields.Add("TargetBranch", pullRequest.TargetRefName);
