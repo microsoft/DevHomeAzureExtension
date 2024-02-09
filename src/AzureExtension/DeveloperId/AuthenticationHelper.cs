@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Globalization;
 using Microsoft.Identity.Client;
@@ -303,12 +303,12 @@ public class AuthenticationHelper : IAuthenticationHelper
             }
             catch (MsalServiceException ex)
             {
-                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal service error: {ex}");
+                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
                 throw;
             }
             catch (MsalClientException ex)
             {
-                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal client error: {ex}");
+                Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
                 throw;
             }
             catch (Exception ex)
