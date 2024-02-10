@@ -35,7 +35,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
 
     public override void CreateWidget(WidgetContext widgetContext, string state)
     {
-        if (state.Length == 0)
+        if (state.Length != 0)
         {
             ResetDataFromState(state);
         }
