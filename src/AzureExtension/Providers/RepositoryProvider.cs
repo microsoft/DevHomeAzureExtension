@@ -365,7 +365,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                 // Get access token for ADO API calls.
                 if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
                 {
-                    var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
+                    var exception = new NotSupportedException("The DeveloperId is not valid.");
                     return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
                 }
 
