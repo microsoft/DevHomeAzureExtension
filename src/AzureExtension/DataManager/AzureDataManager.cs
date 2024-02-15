@@ -102,13 +102,13 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             Log.Logger()?.ReportWarn(Name, InstanceName, "Failed setting DeveloperId change handler.", ex);
         }
 
-        if (Instances.TryGetValue(InstanceName, out var value))
+        if (Instances.TryGetValue(InstanceName, out var instanceIdentifier))
         {
             // We should not have duplicate AzureDataManagers, as every client should have one,
             // but the identifiers may not be unique if using partial Guids. Note in the log
             // the duplicate as a warning and the existing unique name so we can see in the log what
             // client created the duplicate in order to discern random chance / consistent pattern.
-            Log.Logger()?.ReportWarn(Name, InstanceName, $"Duplicate instance created for identifier {InstanceName}:{Instances[InstanceName]}.");
+            Log.Logger()?.ReportWarn(Name, InstanceName, $"Duplicate instance created for identifier {InstanceName}:{instanceIdentifier}.");
         }
         else
         {
