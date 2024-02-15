@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Telemetry;
 
 namespace DevHomeAzureExtension.Telemetry;
 
-internal sealed class Logger : ILogger
+internal class Logger : ILogger
 {
     private const string ProviderName = "Microsoft.AzureExtension";
 

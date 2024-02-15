@@ -19,12 +19,12 @@ namespace AzureExtension.Helpers;
 /// </summary>
 public class AzureRepositoryHierarchy
 {
-    private readonly ConcurrentDictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects;
+    private readonly ConcurrentDictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects = new();
 
     /// <summary>
     /// Used to keep track of multiple Get requests to make sure work isn't duplicated.
     /// </summary>
-    private readonly ConcurrentDictionary<Organization, Task<IPagedList<TeamProjectReference>>> _organizationsAndProjectTask;
+    private readonly ConcurrentDictionary<Organization, Task<IPagedList<TeamProjectReference>>> _organizationsAndProjectTask = new();
 
     private readonly DeveloperId _developerId;
 
@@ -46,12 +46,10 @@ public class AzureRepositoryHierarchy
     public AzureRepositoryHierarchy(DeveloperId developerId)
     {
         _developerId = developerId;
-        _organizationsAndProjects = new ConcurrentDictionary<Organization, List<TeamProjectReference>>();
-        _organizationsAndProjectTask = new ConcurrentDictionary<Organization, Task<IPagedList<TeamProjectReference>>>();
     }
 
     /// <summary>
-    /// Get all organizations the is apart of.
+    /// Get all organizations the user is apart of.
     /// </summary>
     /// <returns>A list of all organizations.</returns>
     public async Task<List<Organization>> GetOrganizationsAsync()

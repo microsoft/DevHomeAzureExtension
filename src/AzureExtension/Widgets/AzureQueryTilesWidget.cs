@@ -11,7 +11,7 @@ using Microsoft.Windows.Widgets.Providers;
 
 namespace DevHomeAzureExtension.Widgets;
 
-internal sealed class AzureQueryTilesWidget : AzureWidget
+internal class AzureQueryTilesWidget : AzureWidget
 {
     private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
@@ -19,7 +19,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     private readonly int maxNumColumns = 2;
 
     // Widget data
-    private static readonly new string Name = nameof(AzureQueryTilesWidget);
+    protected static readonly new string Name = nameof(AzureQueryTilesWidget);
     private readonly List<QueryTile> tiles = new();
 
     // Creation and destruction methods
@@ -30,7 +30,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
     public override void CreateWidget(WidgetContext widgetContext, string state)
     {
-        if (state.Length != 0)
+        if (state.Any())
         {
             // Not newly created widget, recovering tiles from state
             ResetNumberOfTilesFromData(state);
@@ -54,7 +54,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     }
 
     // Action handler methods
-    private void HandleAddTile(WidgetActionInvokedArgs args)
+    protected void HandleAddTile(WidgetActionInvokedArgs args)
     {
         Page = WidgetPageState.Loading;
         UpdateWidget();
@@ -81,12 +81,12 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         return dataObject.ToJsonString();
     }
 
-    private void HandleRemoveTile(WidgetActionInvokedArgs args)
+    protected void HandleRemoveTile(WidgetActionInvokedArgs args)
     {
         Page = WidgetPageState.Loading;
         UpdateWidget();
 
-        if (tiles.Count != 0)
+        if (tiles.Any())
         {
             tiles.RemoveAt(tiles.Count - 1);
         }
@@ -152,7 +152,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         UpdateWidget();
 
         UpdateAllTiles(actionInvokedArgs.Data);
-        var hasValidData = ValidateConfigurationData();
+        bool hasValidData = ValidateConfigurationData();
         if (hasValidData)
         {
             Page = WidgetPageState.Content;
@@ -313,7 +313,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
             return false;
         }
 
-        if (tiles.Count == 0)
+        if (!tiles.Any())
         {
             return false;
         }
@@ -458,7 +458,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
             {
                 { "url", tiles[i].AzureUri.ToString() },
                 { "title", tiles[i].Title },
-                { "message", tiles[i].Message.Length != 0 ? tiles[i].Message : null },
+                { "message", tiles[i].Message.Any() ? tiles[i].Message : null },
             });
         }
 

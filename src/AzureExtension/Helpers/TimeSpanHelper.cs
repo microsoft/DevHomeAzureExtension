@@ -6,7 +6,7 @@ using Jeffijoe.MessageFormat;
 
 namespace DevHomeAzureExtension.Helpers;
 
-internal sealed class TimeSpanHelper
+internal class TimeSpanHelper
 {
     public static string TimeSpanToDisplayString(TimeSpan timeSpan, Logger? log = null)
     {

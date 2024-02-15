@@ -35,8 +35,6 @@ public class AuthenticationHelper : IAuthenticationHelper
 
     public static Guid TransferTenetId { get; } = new("f8cdef31-a31e-4b4a-93e4-5f571e91255a");
 
-    private static readonly string[] _capabilities = new string[1] { "cp1" };
-
     public AuthenticationHelper()
     {
         MicrosoftEntraIdSettings = new AuthenticationSettings();
@@ -55,7 +53,7 @@ public class AuthenticationHelper : IAuthenticationHelper
            .WithAuthority(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.Authority, MicrosoftEntraIdSettings.TenantId))
            .WithRedirectUri(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.RedirectURI, MicrosoftEntraIdSettings.ClientId))
            .WithLogging(new MSALLogger(EventLogLevel.Warning), enablePiiLogging: false)
-           .WithClientCapabilities(_capabilities);
+           .WithClientCapabilities(new string[] { "cp1" });
         Log.Logger()?.ReportInfo($"Created PublicClientApplicationBuilder");
     }
 

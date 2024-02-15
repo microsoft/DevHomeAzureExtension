@@ -18,13 +18,15 @@ public class NotificationHandler
     {
         Log.Logger()?.ReportInfo($"Notification Activated with args: {NotificationArgsToString(args)}");
 
-        if (args.Arguments.TryGetValue("htmlurl", out var urlString))
+        if (args.Arguments.ContainsKey("htmlurl"))
         {
             try
             {
                 // Do not assume this string is a safe URL and blindly execute it; verify that it is
                 // in fact a valid Azure URL.
                 // TODO: Validate Azure URL
+                var urlString = args.Arguments["htmlurl"];
+
                 Log.Logger()?.ReportInfo($"Launching Uri: {urlString}");
                 var processStartInfo = new ProcessStartInfo
                 {

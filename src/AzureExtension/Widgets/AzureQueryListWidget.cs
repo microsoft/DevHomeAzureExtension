@@ -11,11 +11,11 @@ using Newtonsoft.Json;
 
 namespace DevHomeAzureExtension.Widgets;
 
-internal sealed class AzureQueryListWidget : AzureWidget
+internal class AzureQueryListWidget : AzureWidget
 {
     private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
-    private static readonly new string Name = nameof(AzureQueryListWidget);
+    protected static readonly new string Name = nameof(AzureQueryListWidget);
 
     // Widget Data
     private string widgetTitle = string.Empty;
@@ -31,7 +31,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
 
     public override void CreateWidget(WidgetContext widgetContext, string state)
     {
-        if (state.Length != 0)
+        if (state.Any())
         {
             ResetDataFromState(state);
         }

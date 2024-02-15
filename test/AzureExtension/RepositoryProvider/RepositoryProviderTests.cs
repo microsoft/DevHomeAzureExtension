@@ -20,7 +20,7 @@ public partial class RepositoryProviderTests
 
     private List<Tuple<string, bool>> GetValidUrls()
     {
-        if (_validUrls.Count != 0)
+        if (_validUrls.Any())
         {
             return _validUrls;
         }
@@ -58,7 +58,7 @@ public partial class RepositoryProviderTests
 
     private List<string> GetInvalidUrls()
     {
-        if (_invalidUrls.Count != 0)
+        if (_invalidUrls.Any())
         {
             return _invalidUrls;
         }
@@ -72,7 +72,7 @@ public partial class RepositoryProviderTests
 
     private List<string> GetValidNotRepoUrls()
     {
-        if (_validNotRepoUrls.Count != 0)
+        if (_validNotRepoUrls.Any())
         {
             return _validNotRepoUrls;
         }

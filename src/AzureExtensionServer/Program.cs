@@ -172,9 +172,10 @@ public sealed class Program
         try
         {
             var localSettings = ApplicationData.Current.LocalSettings;
-            if (localSettings.Values.TryGetValue(AzureDataManager.RecreateDataStoreSettingsKey, out var recreateDataStore))
+            if (localSettings.Values.ContainsKey(AzureDataManager.RecreateDataStoreSettingsKey))
             {
-                if ((bool)recreateDataStore)
+                var recreateDataStore = (bool)localSettings.Values[AzureDataManager.RecreateDataStoreSettingsKey];
+                if (recreateDataStore)
                 {
                     Log.Logger()?.ReportInfo("Recreating DataStore");
 

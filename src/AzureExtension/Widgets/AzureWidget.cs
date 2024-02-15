@@ -106,7 +106,7 @@ public abstract class AzureWidget : WidgetImpl
 
         // If there is a state, it is being retrieved from the widget service, so
         // this widget was pinned before.
-        if (state.Length != 0)
+        if (state.Any())
         {
             Pinned = true;
             CanSave = true;
@@ -324,10 +324,10 @@ public abstract class AzureWidget : WidgetImpl
 
     protected string GetTemplateForPage(WidgetPageState page)
     {
-        if (Template.TryGetValue(page, out var azureTemplate))
+        if (Template.ContainsKey(page))
         {
             Log.Logger()?.ReportDebug(Name, ShortId, $"Using cached template for {page}");
-            return azureTemplate;
+            return Template[page];
         }
 
         try
