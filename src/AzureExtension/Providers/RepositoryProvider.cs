@@ -20,7 +20,7 @@ using Organization = Microsoft.VisualStudio.Services.Account.Account;
 
 namespace DevHomeAzureExtension.Providers;
 
-public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
+public class RepositoryProvider : IRepositoryProvider2
 {
     /// <summary>
     /// Used for singleton instance.
