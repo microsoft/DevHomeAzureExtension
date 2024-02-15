@@ -28,7 +28,13 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     public static readonly string RecreateDataStoreSettingsKey = "RecreateDataStore";
 
+    public static readonly string IdentityRefFieldValueName = "Microsoft.VisualStudio.Services.WebApi.IdentityRef";
+
+    public static readonly string SystemIdFieldName = "System.Id";
+
     public static readonly string WorkItemHtmlUrlFieldName = "DevHome.AzureExtension.WorkItemHtmlUrl";
+
+    public static readonly string WorkItemTypeFieldName = "System.WorkItemType";
 
     // Max number pull requests to fetch for a repository search.
     public static readonly int PullRequestResultLimit = 25;
@@ -395,7 +401,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 var workItemObjFields = (IDictionary<string, object>)workItemObj;
 
                 // System.Id is excluded from the query result.
-                workItemObjFields.Add("System.Id", workItem.Id!);
+                workItemObjFields.Add(SystemIdFieldName, workItem.Id!);
 
                 var htmlUrl = Links.GetLinkHref(workItem.Links, "html");
                 workItemObjFields.Add(WorkItemHtmlUrlFieldName, htmlUrl);
@@ -430,14 +436,14 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                         continue;
                     }
 
-                    if (fieldValue == "Microsoft.VisualStudio.Services.WebApi.IdentityRef")
+                    if (fieldValue == IdentityRefFieldValueName)
                     {
                         var identity = Identity.GetOrCreateIdentity(DataStore, workItem.Fields[field] as IdentityRef, result.Connection);
                         workItemObjFields.Add(field, identity);
                         continue;
                     }
 
-                    if (field == "System.WorkItemType")
+                    if (field == WorkItemTypeFieldName)
                     {
                         var workItemType = WorkItemType.Get(DataStore, fieldValue, project.Id);
                         if (workItemType == null)

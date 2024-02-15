@@ -173,7 +173,7 @@ public class Identity
         // Check for whether we need to update the record.
         // We don't want to create an identity object and download a new avatar unlesss it needs to
         // be updated.
-        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold))
+        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold) || string.IsNullOrEmpty(existing.Avatar))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
             return AddOrUpdateIdentity(dataStore, newIdentity);
