@@ -1,10 +1,8 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using Microsoft.Identity.Client;
 using Microsoft.UI;
-using Microsoft.Windows.DevHome.SDK;
-using Windows.Foundation;
 
 namespace DevHomeAzureExtension.DeveloperId;
 

@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Collections.Concurrent;
 using System.Dynamic;
@@ -370,6 +370,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     }
 
                     break;
+
+                case TFModels.QueryType.OneHop:
+
+                    // OneHop work item structure is the same as the tree type.
+                    goto case TFModels.QueryType.Tree;
 
                 default:
                     Log.Logger()?.ReportWarn(Name, InstanceName, $"Found unhandled QueryType: {queryResult.QueryType} for query: {queryId}");

@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Security.Authentication;
 using AzureExtension.Helpers;
@@ -85,7 +85,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
             var azureUri = new AzureUri(uri);
             if (!azureUri.IsValid)
             {
-                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure Devops Uri"), "Uri isn not valid");
+                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure DevOps Uri"), "Uri is not valid");
             }
 
             if (!azureUri.IsRepository)
@@ -211,7 +211,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                 var repoInformation = new AzureUri(uri);
                 if (!repoInformation.IsValid)
                 {
-                    var exception = new NotSupportedException("Uri isn't a valid Azure Devops uri.");
+                    var exception = new NotSupportedException("Uri isn't a valid Azure DevOps uri.");
                     return new RepositoryResult(exception, $"{exception.Message} HResult: {exception.HResult}");
                 }
 

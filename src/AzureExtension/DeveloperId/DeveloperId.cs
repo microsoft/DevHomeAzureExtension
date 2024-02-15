@@ -1,12 +1,11 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using Microsoft.Identity.Client;
 using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.Windows.DevHome.SDK;
-using Newtonsoft.Json.Linq;
 
 namespace DevHomeAzureExtension.DeveloperId;
 
@@ -65,12 +64,12 @@ public class DeveloperId : IDeveloperId
         }
         catch (MsalServiceException ex)
         {
-            Log.Logger()?.ReportError($"GetVssCredentials failed with msal service error: {ex}");
+            Log.Logger()?.ReportError($"GetVssCredentials failed with MSAL service error: {ex}");
             throw;
         }
         catch (MsalClientException ex)
         {
-            Log.Logger()?.ReportError($"GetVssCredentials failed with msal client error: {ex}");
+            Log.Logger()?.ReportError($"GetVssCredentials failed with MSAL client error: {ex}");
             throw;
         }
         catch (Exception ex)
