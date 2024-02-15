@@ -12,7 +12,7 @@ public class IconLoader
     public static string GetIconAsBase64(string filename)
     {
         Log.Logger()?.ReportDebug(nameof(IconLoader), $"Asking for icon: {filename}");
-        if (!Base64ImageRegistry.ContainsKey(filename))
+        if (!Base64ImageRegistry.TryGetValue(filename, out var value))
         {
             Base64ImageRegistry.Add(filename, ConvertIconToDataString(filename));
             Log.Logger()?.ReportDebug(nameof(IconLoader), $"The icon {filename} was converted and is now stored.");

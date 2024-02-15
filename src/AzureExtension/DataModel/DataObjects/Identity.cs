@@ -146,10 +146,7 @@ public class Identity
 
     public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef)
     {
-        if (identityRef == null)
-        {
-            throw new ArgumentNullException(nameof(identityRef));
-        }
+        ArgumentNullException.ThrowIfNull(identityRef);
 
         var newIdentity = CreateFromIdentityRef(identityRef);
         return AddOrUpdateIdentity(dataStore, newIdentity);
