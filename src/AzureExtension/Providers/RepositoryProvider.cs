@@ -98,7 +98,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
     }
 
     /// <summary>
-    /// Get all repositories under a porject.
+    /// Get all repositories under a project.
     /// </summary>
     /// <param name="organizationConnection">The connection to the organization.</param>
     /// <param name="project">The project to get the repos for</param>
