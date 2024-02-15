@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
-using System.Drawing;
 using System.Security.Authentication;
 using AzureExtension.Helpers;
 using DevHomeAzureExtension.Client;
@@ -40,12 +39,6 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
 
     private const string _project = "project";
 
-    private string _selectedServer;
-
-    private string _selectedOrganization;
-
-    private string _selectedProject;
-
     public string DisplayName => Resources.GetResource(@"RepositoryProviderDisplayName");
 
     public IRandomAccessStreamReference Icon
@@ -53,7 +46,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
         get; private set;
     }
 
-    string[] IRepositoryProvider2.GetSearchFieldNames => new string[3] { _server, _organization, _project };
+    public string[] SearchFieldNames => new string[3] { _server, _organization, _project };
 
     /// <summary>
     /// On first query, get repos based on the PR date.  All other requests won't check for PRs.
@@ -63,9 +56,6 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
     public RepositoryProvider(IRandomAccessStreamReference icon)
     {
         Icon = icon;
-        _selectedServer = string.Empty;
-        _selectedOrganization = string.Empty;
-        _selectedProject = string.Empty;
     }
 
     public RepositoryProvider()
@@ -358,7 +348,8 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
         GC.SuppressFinalize(this);
     }
 
-    public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IReadOnlyDictionary<string, string> searchTerms, IDeveloperId developerId)
+#pragma warning disable CA1309 // Use ordinal string comparison. I want to use linguistic comparison.
+    public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
     {
         // First query will find repos only if the user made a PR.
         var shouldIgnorePRDateOld = _shouldIgnorePRDate;
@@ -367,15 +358,9 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
         {
             try
             {
-                // Store the search terms.
-                var serverToUse = searchTerms.ContainsKey(_server) ? searchTerms[_server] : string.Empty;
-                _selectedServer = serverToUse;
-
-                var organizationToUse = searchTerms.ContainsKey(_organization) ? searchTerms[_organization] : string.Empty;
-                _selectedOrganization = organizationToUse;
-
-                var projectToUse = searchTerms.ContainsKey(_project) ? searchTerms[_project] : string.Empty;
-                _selectedProject = projectToUse;
+                var serverToUse = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
+                var organizationToUse = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
+                var projectToUse = fieldValues.ContainsKey(_project) ? fieldValues[_project] : string.Empty;
 
                 // Get access token for ADO API calls.
                 if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
@@ -386,10 +371,9 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
 
                 _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-#pragma warning disable CA1309 // Use ordinal string comparison.  Organization names should match exactly.
                 var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
                 var orgsInModernUrlFormat = new List<Organization>();
-                if (_selectedServer.Equals(_defaultSearchServerName))
+                if (serverToUse.Equals(_defaultSearchServerName))
                 {
                     // For a default search, look up all orgs with the modern URL format
                     orgsInModernUrlFormat = organizations.Where(x => x.AccountUri.Host.Equals(_defaultSearchServerName)).ToList();
@@ -401,11 +385,10 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                     organizations = orgsInModernUrlFormat;
                 }
 
-                if (!string.IsNullOrEmpty(_selectedOrganization))
+                if (!string.IsNullOrEmpty(organizationToUse))
                 {
-                    organizations = organizations.Where(x => x.AccountName.Equals(_selectedOrganization)).ToList();
+                    organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
                 }
-#pragma warning restore CA1309 // Use ordinal string comparison
 
                 var options = new ParallelOptions()
                 {
@@ -419,11 +402,9 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                 Parallel.ForEach(organizations, options, orgnization =>
                 {
                     var projects = _azureHierarchy.GetProjectsAsync(orgnization).Result;
-                    if (!string.IsNullOrEmpty(_selectedProject))
+                    if (!string.IsNullOrEmpty(projectToUse))
                     {
-#pragma warning disable CA1309 // Use ordinal string comparison.  Organization names should match exactly.
-                        projects = projects.Where(x => x.Name.Equals(_selectedProject)).ToList();
-#pragma warning restore CA1309 // Use ordinal string comparison
+                        projects = projects.Where(x => x.Name.Equals(projectToUse)).ToList();
                     }
 
                     if (projects.Count != 0)
@@ -464,6 +445,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
             }
         }).AsAsyncOperation();
     }
+#pragma warning restore CA1309 // Use ordinal string comparison
 
     /// <summary>
     /// Returns a list of field names this will accept as search input.
@@ -474,21 +456,22 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
         return new List<string> { _server, _organization, _project };
     }
 
+#pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
     /// <summary>
     /// Gets a list of values that work with the given input.
     /// </summary>
-    /// <param name="fieldName">Results will be for this search field.</param>
+    /// <param name="requestedSearchField">Results will be for this search field.</param>
     /// <param name="fieldValues">The inputs used to filter the results.</param>
     /// <param name="developerId">Used to access private org and project information.</param>
     /// <returns>A list of all values for fieldName that makes snes given the input.</returns>
-    public IAsyncOperation<IList<string>> GetValuesForField(string fieldName, IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
+    public IAsyncOperation<IReadOnlyList<string>> GetValuesForSearchFieldAsync(string requestedSearchField, IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
     {
         // Get access token for ADO API calls.
         if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
         {
             return Task.Run(() =>
             {
-                return new List<string>() as IList<string>;
+                return new List<string>() as IReadOnlyList<string>;
             }).AsAsyncOperation();
         }
 
@@ -503,8 +486,30 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
 
             _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-#pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
-            if (fieldName.Equals(_organization))
+            if (requestedSearchField.Equals(_server))
+            {
+                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                if (!string.IsNullOrEmpty(organizationToUse))
+                {
+                    organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).OrderBy(x => x.AccountName).ToList();
+                }
+
+                HashSet<string> servers = new();
+                foreach (var organization in organizations)
+                {
+                    if (organization.AccountUri.OriginalString.Contains("dev.azure.com"))
+                    {
+                        servers.Add("dev.azure.com");
+                    }
+                    else
+                    {
+                        servers.Add($"{organization.AccountName}.visualstudio.com");
+                    }
+                }
+
+                return servers.Order().ToList() as IReadOnlyList<string>;
+            }
+            else if (requestedSearchField.Equals(_organization))
             {
                 // Requesting organizations and an organization is given.
                 var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
@@ -516,7 +521,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                 // If no projects are in the input, return the organizations.
                 if (string.IsNullOrEmpty(projectToUse))
                 {
-                    return organizations.Select(x => x.AccountName).Order().ToList() as IList<string>;
+                    return organizations.Select(x => x.AccountName).Order().ToList() as IReadOnlyList<string>;
                 }
                 else
                 {
@@ -531,10 +536,10 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                         }
                     }
 
-                    return organizationsToReturn.Order().ToList() as IList<string>;
+                    return organizationsToReturn.Order().ToList() as IReadOnlyList<string>;
                 }
             }
-            else if (fieldName.Equals(_project))
+            else if (requestedSearchField.Equals(_project))
             {
                 // Because projects exist in an organization searching behavior is different for each combonation.
                 var isOrganizationInInput = !string.IsNullOrEmpty(organizationToUse);
@@ -550,7 +555,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                         projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
                     }
 
-                    return projectNames.Order().ToList() as IList<string>;
+                    return projectNames.Order().ToList() as IReadOnlyList<string>;
                 }
 
                 if (isProjectInInput && !isOrganizationInInput)
@@ -564,7 +569,7 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                         projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Where(x => x.Name.Equals(projectToUse)).Select(x => x.Name));
                     }
 
-                    return projectNames.Order().ToList() as IList<string>;
+                    return projectNames.Order().ToList() as IReadOnlyList<string>;
                 }
 
                 if (isOrganizationInInput && isProjectInInput)
@@ -580,36 +585,14 @@ public class RepositoryProvider : IRepositoryProvider, IRepositoryProvider2
                         projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
                     }
 
-                    return projectNames.Order().ToList() as IList<string>;
+                    return projectNames.Order().ToList() as IReadOnlyList<string>;
                 }
             }
 
-            return new List<string>() as IList<string>;
+            return new List<string>() as IReadOnlyList<string>;
         }).AsAsyncOperation();
-#pragma warning restore CA1309 // Use ordinal string comparison
     }
-
-    public string? GetFieldSearchValue(string field, IDeveloperId developerId)
-    {
-#pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
-        if (field.Equals(_server))
-        {
-            return _selectedServer;
-        }
-        else if (field.Equals(_organization))
-        {
-            return _selectedOrganization;
-        }
-        else if (field.Equals(_project))
-        {
-            return _selectedProject;
-        }
-        else
-        {
-            return null;
-        }
 #pragma warning restore CA1309 // Use ordinal string comparison
-    }
 
     /// <summary>
     /// Used to return terms used for a default search.
