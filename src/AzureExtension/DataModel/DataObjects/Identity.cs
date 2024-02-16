@@ -159,10 +159,7 @@ public class Identity
 
     public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef, VssConnection connection)
     {
-        if (identityRef == null)
-        {
-            throw new ArgumentNullException(nameof(identityRef));
-        }
+        ArgumentNullException.ThrowIfNull(identityRef);
 
         Identity? existing;
         if (identityRef.Id == null)

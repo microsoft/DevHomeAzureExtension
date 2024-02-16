@@ -148,7 +148,7 @@ public class RepositoryProvider : IRepositoryProvider
             Parallel.ForEach(theseOrganizations, options, organization =>
             {
                 var projects = GetProjects(organization, azureDeveloperId);
-                if (projects.Any())
+                if (projects.Count != 0)
                 {
                     foreach (var project in projects)
                     {
