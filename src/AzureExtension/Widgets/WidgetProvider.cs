@@ -33,12 +33,11 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         var widgetId = widgetContext.Id;
         var widgetDefinitionId = widgetContext.DefinitionId;
         Log.Logger()?.ReportDebug($"Calling Initialize for Widget Id: {widgetId} - {widgetDefinitionId}");
-        if (widgetDefinitionRegistry.TryGetValue(widgetDefinitionId, out var _))
+        if (widgetDefinitionRegistry.TryGetValue(widgetDefinitionId, out var widgetFactory))
         {
             if (!runningWidgets.ContainsKey(widgetId))
             {
-                var factory = widgetDefinitionRegistry[widgetDefinitionId];
-                var widgetImpl = factory.Create(widgetContext, state);
+                var widgetImpl = widgetFactory.Create(widgetContext, state);
                 runningWidgets.Add(widgetId, widgetImpl);
             }
             else
