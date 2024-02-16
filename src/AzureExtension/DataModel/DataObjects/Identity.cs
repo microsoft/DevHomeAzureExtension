@@ -6,6 +6,8 @@ using System.Text.Json.Serialization;
 using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Helpers;
+using Microsoft.VisualStudio.Services.Profile;
+using Microsoft.VisualStudio.Services.Profile.Client;
 using Microsoft.VisualStudio.Services.WebApi;
 
 namespace DevHomeAzureExtension.DataModel;
@@ -15,8 +17,14 @@ public class Identity
 {
     // This is the time between seeing a potential updated Identity record and updating it.
     // This value / 2 is the average time between Identity updating their Identity data and having
-    // it reflected in the datastore.
-    private static readonly long UpdateThreshold = TimeSpan.FromHours(4).Ticks;
+    // it reflected in the datastore. We expect identity data to change very infrequently.
+    // Since updating an identity involves re-fetching an avatar image, we want to do this
+    // infrequently.
+    private static readonly long UpdateThreshold = TimeSpan.FromDays(3).Ticks;
+
+    // Avatars may fail to download, in this case we will retry more frequently than the normal
+    // update threshold since this can be intermittent.
+    private static readonly long AvatarRetryDelay = TimeSpan.FromHours(1).Ticks;
 
     [Key]
     [JsonIgnore]
@@ -40,6 +48,22 @@ public class Identity
     public string ToJson() => JsonSerializer.Serialize(this);
 
     public override string ToString() => Name;
+
+    public static string GetAvatar(VssConnection connection, Guid identity)
+    {
+        try
+        {
+            var client = connection.GetClient<ProfileHttpClient>();
+            var avatar = client.GetAvatarAsync(identity, AvatarSize.Small).Result;
+            Log.Logger()?.ReportDebug($"Avatar found: {avatar.Value.Length} bytes.");
+            return Convert.ToBase64String(avatar.Value);
+        }
+        catch (Exception ex)
+        {
+            Log.Logger()?.ReportWarn($"Failed getting Avatar for {identity}.", ex);
+            return string.Empty;
+        }
+    }
 
     public static Identity? FromJson(DataStore dataStore, string json)
     {
@@ -65,7 +89,7 @@ public class Identity
         }
     }
 
-    private static Identity CreateFromIdentityRef(IdentityRef identityRef)
+    private static Identity CreateFromIdentityRef(IdentityRef identityRef, VssConnection connection)
     {
         // It is possible the IdentityRef object content is null but contains
         // a display name like "Closed". This is what is given to work items
@@ -81,7 +105,7 @@ public class Identity
                 // real identity guids.
                 InternalId = identityRef.DisplayName,
                 Name = identityRef.DisplayName,
-                Avatar = Links.GetLinkHref(identityRef.Links, "avatar"),
+                Avatar = string.Empty,
                 TimeUpdated = DateTime.Now.ToDataStoreInteger(),
             };
         }
@@ -90,7 +114,7 @@ public class Identity
         {
             InternalId = identityRef.Id,
             Name = identityRef.DisplayName,
-            Avatar = Links.GetLinkHref(identityRef.Links, "avatar"),
+            Avatar = GetAvatar(connection, new Guid(identityRef.Id)),
             TimeUpdated = DateTime.Now.ToDataStoreInteger(),
         };
     }
@@ -101,20 +125,9 @@ public class Identity
         var existingIdentity = GetByInternalId(dataStore, identity.InternalId);
         if (existingIdentity is not null)
         {
-            // Many of the same Identity records will be created on a sync, and to
-            // avoid unnecessary updating and database operations for data that
-            // is extremely unlikely to have changed in any significant way, we
-            // will only update every UpdateThreshold amount of time.
-            if ((identity.TimeUpdated - existingIdentity.TimeUpdated) > UpdateThreshold)
-            {
-                identity.Id = existingIdentity.Id;
-                dataStore.Connection!.Update(identity);
-                return identity;
-            }
-            else
-            {
-                return existingIdentity;
-            }
+            identity.Id = existingIdentity.Id;
+            dataStore.Connection!.Update(identity);
+            return identity;
         }
 
         // No existing pull request, add it.
@@ -144,15 +157,35 @@ public class Identity
         return dataStore.Connection!.QueryFirstOrDefault<Identity>(sql, param, null);
     }
 
-    public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef)
+    public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef, VssConnection connection)
     {
         if (identityRef == null)
         {
             throw new ArgumentNullException(nameof(identityRef));
         }
 
-        var newIdentity = CreateFromIdentityRef(identityRef);
-        return AddOrUpdateIdentity(dataStore, newIdentity);
+        Identity? existing;
+        if (identityRef.Id == null)
+        {
+            existing = GetByInternalId(dataStore, identityRef.DisplayName);
+        }
+        else
+        {
+            existing = GetByInternalId(dataStore, identityRef.Id);
+        }
+
+        // Check for whether we need to update the record.
+        // We don't want to create an identity object and download a new avatar unlesss it needs to
+        // be updated. In the event of an empty avatar we will retry more frequently to update it,
+        // but not every time.
+        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
+            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
+        {
+            var newIdentity = CreateFromIdentityRef(identityRef, connection);
+            return AddOrUpdateIdentity(dataStore, newIdentity);
+        }
+
+        return existing;
     }
 
     public static void DeleteBefore(DataStore dataStore, DateTime date)

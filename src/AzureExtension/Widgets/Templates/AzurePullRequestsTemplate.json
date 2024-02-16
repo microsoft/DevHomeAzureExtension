@@ -42,7 +42,7 @@
                 {
                   "type": "Image",
                   "style": "Person",
-                  "url": "${avatar}",
+                  "url": "data:image/png;base64,${avatar}",
                   "height": "25px"
                 }
               ],
