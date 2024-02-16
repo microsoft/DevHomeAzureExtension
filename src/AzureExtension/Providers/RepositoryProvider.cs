@@ -175,7 +175,117 @@ public class RepositoryProvider : IRepositoryProvider2
             server = _defaultSearchServerName;
         }
 
+<<<<<<< HEAD
         return GetRepositoriesAsync(new Dictionary<string, string> { { _server, server } }, developerId);
+=======
+        var accountClient = accountConnection.GetClient<AccountHttpClient>();
+
+        // Get all organizations the current user belongs to.
+        var internalDevId = DeveloperIdProvider.GetInstance().GetDeveloperIdInternal(developerId);
+        IReadOnlyList<Microsoft.VisualStudio.Services.Account.Account>? theseOrganizations;
+
+        try
+        {
+            theseOrganizations = accountClient.GetAccountsByMemberAsync(
+                memberId: accountConnection.AuthorizedIdentity.Id).Result;
+        }
+        catch (Exception e)
+        {
+            return Task.Run(() =>
+            {
+                return new RepositoriesResult(e, "Could not get the member id for this user.");
+            }).AsAsyncOperation();
+        }
+
+        // Set up parallel options to get all projects for each organization.
+        var options = new ParallelOptions()
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+        };
+
+        var projectsWithOrgName = new List<(TeamProjectReference, Microsoft.VisualStudio.Services.Account.Account)>();
+
+        try
+        {
+            Parallel.ForEach(theseOrganizations, options, organization =>
+            {
+                var projects = GetProjects(organization, azureDeveloperId);
+                if (projects.Count != 0)
+                {
+                    foreach (var project in projects)
+                    {
+                        projectsWithOrgName.Add((project, organization));
+                    }
+                }
+            });
+        }
+        catch (AggregateException aggregateException)
+        {
+            var exceptionMessages = new StringBuilder();
+
+            foreach (var exceptionMessage in aggregateException.InnerExceptions)
+            {
+                exceptionMessages.AppendLine(exceptionMessage.Message);
+            }
+
+            return Task.Run(() =>
+            {
+                return new RepositoriesResult(aggregateException, exceptionMessages.ToString());
+            }).AsAsyncOperation();
+        }
+        catch (Exception e)
+        {
+            return Task.Run(() =>
+            {
+                return new RepositoriesResult(e, e.Message);
+            }).AsAsyncOperation();
+        }
+
+        projectsWithOrgName = projectsWithOrgName.OrderByDescending(x => x.Item1.LastUpdateTime).ToList();
+
+        // Get a list of the 200 most recently updated repos.
+        var reposToReturn = new List<IRepository>();
+        foreach (var projectWithOrgName in projectsWithOrgName)
+        {
+            // Hard limit on 200.
+            // TODO: Figure out a better way to limit results, or, at least, pagination.
+            if (reposToReturn.Count >= 200)
+            {
+                break;
+            }
+
+            try
+            {
+                // Making a connection can throw.
+                var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(projectWithOrgName.Item2.AccountUri, azureDeveloperId);
+
+                // Make the GitHttpClient inside try/catch because an exception happens if the project is disabled.
+                var gitClient = connection.GetClient<GitHttpClient>();
+                var repos = gitClient.GetRepositoriesAsync(projectWithOrgName.Item1.Id, false, false).Result;
+                foreach (var repo in repos)
+                {
+                    if (repo.IsDisabled.HasValue && !repo.IsDisabled.Value)
+                    {
+                        if (reposToReturn.Count >= 200)
+                        {
+                            break;
+                        }
+
+                        reposToReturn.Add(new DevHomeRepository(repo));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
+            }
+        }
+
+        return Task.Run(() =>
+        {
+            return new RepositoriesResult(reposToReturn);
+        }).AsAsyncOperation();
+>>>>>>> main
     }
 
     public IAsyncOperation<RepositoryResult> GetRepositoryFromUriAsync(Uri uri)

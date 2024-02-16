@@ -28,7 +28,13 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     public static readonly string RecreateDataStoreSettingsKey = "RecreateDataStore";
 
+    public static readonly string IdentityRefFieldValueName = "Microsoft.VisualStudio.Services.WebApi.IdentityRef";
+
+    public static readonly string SystemIdFieldName = "System.Id";
+
     public static readonly string WorkItemHtmlUrlFieldName = "DevHome.AzureExtension.WorkItemHtmlUrl";
+
+    public static readonly string WorkItemTypeFieldName = "System.WorkItemType";
 
     // Max number pull requests to fetch for a repository search.
     public static readonly int PullRequestResultLimit = 25;
@@ -102,13 +108,13 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             Log.Logger()?.ReportWarn(Name, InstanceName, "Failed setting DeveloperId change handler.", ex);
         }
 
-        if (Instances.ContainsKey(InstanceName))
+        if (Instances.TryGetValue(InstanceName, out var instanceIdentifier))
         {
             // We should not have duplicate AzureDataManagers, as every client should have one,
             // but the identifiers may not be unique if using partial Guids. Note in the log
             // the duplicate as a warning and the existing unique name so we can see in the log what
             // client created the duplicate in order to discern random chance / consistent pattern.
-            Log.Logger()?.ReportWarn(Name, InstanceName, $"Duplicate instance created for identifier {InstanceName}:{Instances[InstanceName]}.");
+            Log.Logger()?.ReportWarn(Name, InstanceName, $"Duplicate instance created for identifier {InstanceName}:{instanceIdentifier}.");
         }
         else
         {
@@ -400,7 +406,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 var workItemObjFields = (IDictionary<string, object>)workItemObj;
 
                 // System.Id is excluded from the query result.
-                workItemObjFields.Add("System.Id", workItem.Id!);
+                workItemObjFields.Add(SystemIdFieldName, workItem.Id!);
 
                 var htmlUrl = Links.GetLinkHref(workItem.Links, "html");
                 workItemObjFields.Add(WorkItemHtmlUrlFieldName, htmlUrl);
@@ -435,14 +441,14 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                         continue;
                     }
 
-                    if (fieldValue == "Microsoft.VisualStudio.Services.WebApi.IdentityRef")
+                    if (fieldValue == IdentityRefFieldValueName)
                     {
-                        var identity = Identity.GetOrCreateIdentity(DataStore, workItem.Fields[field] as IdentityRef);
+                        var identity = Identity.GetOrCreateIdentity(DataStore, workItem.Fields[field] as IdentityRef, result.Connection);
                         workItemObjFields.Add(field, identity);
                         continue;
                     }
 
-                    if (field == "System.WorkItemType")
+                    if (field == WorkItemTypeFieldName)
                     {
                         var workItemType = WorkItemType.Get(DataStore, fieldValue, project.Id);
                         if (workItemType == null)
@@ -580,7 +586,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
                 pullRequestObjFields.Add("Title", pullRequest.Title);
 
-                var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy);
+                var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy, result.Connection);
                 pullRequestObjFields.Add("CreatedBy", creator);
                 pullRequestObjFields.Add("CreationDate", pullRequest.CreationDate.Ticks);
                 pullRequestObjFields.Add("TargetBranch", pullRequest.TargetRefName);
@@ -824,7 +830,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 try
                 {
                     Log.Logger()?.ReportDebug(Name, InstanceName, "Disposing of all Disposable resources.");
-                    if (Instances.ContainsKey(InstanceName) && Instances[InstanceName] == UniqueName)
+                    if (Instances.TryGetValue(InstanceName, out var instanceName) && instanceName == UniqueName)
                     {
                         Instances.TryRemove(InstanceName, out _);
                         Log.Logger()?.ReportInfo(Name, InstanceName, $"Removed AzureDataManager: {UniqueName}.");
