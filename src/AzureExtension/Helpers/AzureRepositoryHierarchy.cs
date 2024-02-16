@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
@@ -74,7 +74,9 @@ public class AzureRepositoryHierarchy
 
         lock (_getProjectsLock)
         {
-            if (!_organizationsAndProjects.TryGetValue(organization, out var _))
+            _organizationsAndProjects.TryGetValue(organization, out var projects);
+
+            if (projects == null || projects.Count == 0)
             {
                 _organizationsAndProjects[organization] = QueryForProjects(organization);
             }
