@@ -165,7 +165,7 @@ public class RepositoryProvider : IRepositoryProvider2
         _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
         var server = string.Empty;
-        var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+        var organizations = _azureHierarchy.GetOrganizations();
 #pragma warning disable CA1309 // Use ordinal string comparison
         // Try to find any organizations with the modern URL format.
         var defaultOrg = organizations.FirstOrDefault(x => x.AccountName.Equals(_defaultSearchServerName));
@@ -371,7 +371,7 @@ public class RepositoryProvider : IRepositoryProvider2
 
                 _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                var organizations = _azureHierarchy.GetOrganizations().Result;
                 var orgsInModernUrlFormat = new List<Organization>();
                 if (serverToUse.Equals(_defaultSearchServerName))
                 {
@@ -488,7 +488,7 @@ public class RepositoryProvider : IRepositoryProvider2
 
             if (requestedSearchField.Equals(_server))
             {
-                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                var organizations = _azureHierarchy.GetOrganizations().Result;
                 if (!string.IsNullOrEmpty(organizationToUse))
                 {
                     organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).OrderBy(x => x.AccountName).ToList();
@@ -512,7 +512,7 @@ public class RepositoryProvider : IRepositoryProvider2
             else if (requestedSearchField.Equals(_organization))
             {
                 // Requesting organizations and an organization is given.
-                var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                var organizations = _azureHierarchy.GetOrganizations().Result;
                 if (!string.IsNullOrEmpty(organizationToUse))
                 {
                     organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).OrderBy(x => x.AccountName).ToList();
@@ -548,7 +548,7 @@ public class RepositoryProvider : IRepositoryProvider2
                 if (isOrganizationInInput && !isProjectInInput)
                 {
                     // get all projects in the organization.
-                    var organizations = _azureHierarchy.GetOrganizationsAsync().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
+                    var organizations = _azureHierarchy.GetOrganizations().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
                     List<string> projectNames = new List<string>();
                     foreach (var organization in organizations)
                     {
@@ -562,7 +562,7 @@ public class RepositoryProvider : IRepositoryProvider2
                 {
                     // Get all projects with the same name in all organizations.
                     // This does mean the project drop down might have duplicate names.
-                    var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+                    var organizations = _azureHierarchy.GetOrganizations().Result;
                     List<string> projectNames = new List<string>();
                     foreach (var organization in organizations)
                     {
@@ -577,7 +577,7 @@ public class RepositoryProvider : IRepositoryProvider2
                     // Get the organization.  If the organization does not exist, return nothing.
                     // If the organization has the project, return the project name.
                     // otherwise, return nothing.
-                    var organizations = _azureHierarchy.GetOrganizationsAsync().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
+                    var organizations = _azureHierarchy.GetOrganizations().Result.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
 
                     List<string> projectNames = new List<string>();
                     foreach (var organization in organizations)
@@ -612,7 +612,7 @@ public class RepositoryProvider : IRepositoryProvider2
 
         _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-        var organizations = _azureHierarchy.GetOrganizationsAsync().Result;
+        var organizations = _azureHierarchy.GetOrganizations().Result;
 
         // Get a default server name.
         if (field.Equals(_server, StringComparison.OrdinalIgnoreCase))

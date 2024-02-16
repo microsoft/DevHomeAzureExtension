@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation and Contributors
 // Licensed under the MIT license.
 
-using System.Collections.Concurrent;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.Account.Client;
-using Microsoft.VisualStudio.Services.Organization;
 using Microsoft.VisualStudio.Services.WebApi;
 
 // In the past, an organization was known as an account.  Typedef to organization to make the code easier to read.
@@ -19,19 +17,14 @@ namespace AzureExtension.Helpers;
 /// </summary>
 public class AzureRepositoryHierarchy
 {
-    private readonly ConcurrentDictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects = new();
+    private readonly object _getOrganizationsLock = new();
 
-    /// <summary>
-    /// Used to keep track of multiple Get requests to make sure work isn't duplicated.
-    /// </summary>
-    private readonly ConcurrentDictionary<Organization, Task<IPagedList<TeamProjectReference>>> _organizationsAndProjectTask = new();
+    private readonly object _getProjectsLock = new();
+
+    // 1:N Organization to project.
+    private readonly Dictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects = new();
 
     private readonly DeveloperId _developerId;
-
-    /// <summary>
-    /// Used to keep track of all GetOrganization requests to make sure work isn't duplicated.
-    /// </summary>
-    private Task<List<Organization>>? _queryOrganizationsTask;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureRepositoryHierarchy"/> class.
@@ -52,27 +45,21 @@ public class AzureRepositoryHierarchy
     /// Get all organizations the user is apart of.
     /// </summary>
     /// <returns>A list of all organizations.</returns>
-    public async Task<List<Organization>> GetOrganizationsAsync()
+    public List<Organization> GetOrganizations()
     {
-        // if something is running the query, wait for it to finish.
-        if (_queryOrganizationsTask != null)
+        lock (_getOrganizationsLock)
         {
-            await _queryOrganizationsTask;
+            if (_organizationsAndProjects.Keys.Count == 0)
+            {
+                var organizations = QueryForOrganizations();
+                foreach (var organization in organizations)
+                {
+                    _organizationsAndProjects.TryAdd(organization, new List<TeamProjectReference>());
+                }
+            }
+
             return _organizationsAndProjects.Keys.ToList();
         }
-
-        var organizations = QueryForOrganizations();
-        foreach (var organization in organizations)
-        {
-            // Extra protection against duplicates if two threads run QueryForOrganizations at the same time.
-            var duplicateOrganization = _organizationsAndProjects.Keys.FirstOrDefault(x => x.AccountId == organization.AccountId);
-            if (duplicateOrganization == null)
-            {
-                _organizationsAndProjects.TryAdd(organization, new List<TeamProjectReference>());
-            }
-        }
-
-        return _organizationsAndProjects.Keys.ToList();
     }
 
     /// <summary>
@@ -82,27 +69,18 @@ public class AzureRepositoryHierarchy
     /// <returns>A list of projects.</returns>
     public async Task<List<TeamProjectReference>> GetProjectsAsync(Organization organization)
     {
-        // if something is running the query, wait for it to finish.
-        if (_queryOrganizationsTask != null)
-        {
-            await _queryOrganizationsTask;
-        }
+        // Makes sure _organizationsAndProjects has all organizations.
+        await Task.Run(() => GetOrganizations());
 
-        // if the task has been started
-        if (_organizationsAndProjectTask.TryGetValue(organization, out var projectsTask))
+        lock (_getProjectsLock)
         {
-            if (projectsTask != null)
+            if (!_organizationsAndProjects.TryGetValue(organization, out var _))
             {
-                // Wait for it.
-                await projectsTask;
-                return _organizationsAndProjects[organization];
+                _organizationsAndProjects[organization] = QueryForProjects(organization);
             }
+
+            return _organizationsAndProjects[organization];
         }
-
-        var projects = QueryForProjects(organization);
-        _organizationsAndProjects[organization] = projects;
-
-        return _organizationsAndProjects[organization];
     }
 
     /// <summary>
@@ -132,9 +110,8 @@ public class AzureRepositoryHierarchy
 
         try
         {
-            _queryOrganizationsTask = accountClient.GetAccountsByMemberAsync(
-                memberId: accountConnection.AuthorizedIdentity.Id);
-            return _queryOrganizationsTask.Result;
+            return accountClient.GetAccountsByMemberAsync(
+                memberId: accountConnection.AuthorizedIdentity.Id).Result;
         }
         catch
         {
@@ -160,13 +137,11 @@ public class AzureRepositoryHierarchy
             if (connection != null)
             {
                 var projectClient = connection.GetClient<ProjectHttpClient>();
-                var getProjectsTask = projectClient.GetProjects();
-
-                // Add the task if it does not yet exist.
-                _organizationsAndProjectTask.TryAdd(organization, getProjectsTask);
+                var projects = projectClient.GetProjects().Result.ToList();
+                _organizationsAndProjects[organization] = projects;
 
                 // in both cases, wait for the task to finish.
-                return _organizationsAndProjectTask[organization].Result.ToList();
+                return projects;
             }
         }
         catch (Exception e)
