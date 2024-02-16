@@ -68,9 +68,8 @@ public class RepositoryProvider : IRepositoryProvider2
         lock (_constructorLock)
         {
             _repositoryProvider ??= new RepositoryProvider();
+            return _repositoryProvider;
         }
-
-        return _repositoryProvider;
     }
 
     public IAsyncOperation<RepositoryUriSupportResult> IsUriSupportedAsync(Uri uri)
