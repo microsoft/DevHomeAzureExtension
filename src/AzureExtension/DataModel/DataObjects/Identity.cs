@@ -22,6 +22,10 @@ public class Identity
     // infrequently.
     private static readonly long UpdateThreshold = TimeSpan.FromDays(3).Ticks;
 
+    // Avatars may fail to download, in this case we will retry more frequently than the normal
+    // update threshold since this can be intermittent.
+    private static readonly long AvatarRetryDelay = TimeSpan.FromHours(1).Ticks;
+
     [Key]
     [JsonIgnore]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -172,8 +176,10 @@ public class Identity
 
         // Check for whether we need to update the record.
         // We don't want to create an identity object and download a new avatar unlesss it needs to
-        // be updated.
-        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold) || string.IsNullOrEmpty(existing.Avatar))
+        // be updated. In the event of an empty avatar we will retry more frequently to update it,
+        // but not every time.
+        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
+            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
             return AddOrUpdateIdentity(dataStore, newIdentity);
