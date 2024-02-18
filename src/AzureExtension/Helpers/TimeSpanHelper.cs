@@ -1,12 +1,12 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using DevHome.Logging;
 using Jeffijoe.MessageFormat;
 
 namespace DevHomeAzureExtension.Helpers;
 
-internal class TimeSpanHelper
+internal sealed class TimeSpanHelper
 {
     public static string TimeSpanToDisplayString(TimeSpan timeSpan, Logger? log = null)
     {

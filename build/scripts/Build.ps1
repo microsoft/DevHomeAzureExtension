@@ -12,7 +12,7 @@ $StartTime = Get-Date
 
 if ($Help) {
     Write-Host @"
-Copyright (c) Microsoft Corporation and Contributors.
+Copyright (c) Microsoft Corporation.
 Licensed under the MIT License.
 
 Syntax:
@@ -173,7 +173,7 @@ Try {
       .\build\scripts\Create-AppxBundle.ps1 -InputPath (Join-Path $env:Build_RootDirectory "AppxPackages\$configuration") -ProjectName AzureExtension -BundleVersion ([version]$env:msix_version) -OutputPath (Join-Path $env:Build_RootDirectory ("AppxBundles\$configuration\AzureExtension_" + $env:msix_version + "_8wekyb3d8bbwe.msixbundle"))
       if (-not($IsAzurePipelineBuild) -And $isAdmin) {
         # This can fail if SignTool.exe is not found, which is part of the Windows SDK.
-        Invoke-SignPackage ("AppxBundles\$configuration\DevHomeAzureExtension_" + $env:msix_version + "_8wekyb3d8bbwe.msixbundle")
+        Invoke-SignPackage ("AppxBundles\$configuration\AzureExtension_" + $env:msix_version + "_8wekyb3d8bbwe.msixbundle")
       }
     }
   }

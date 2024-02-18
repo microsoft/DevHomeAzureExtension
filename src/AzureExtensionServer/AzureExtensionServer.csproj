@@ -1,4 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(SolutionDir)ToolingVersions.props" />
+
   <!-- Debug builds produce a console app; otherwise a Windows app -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <OutputType>Exe</OutputType>
@@ -8,10 +10,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows10.0.22000.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <StartupObject>DevHomeAzureExtension.Program</StartupObject>
     <UseWinUI>false</UseWinUI>
@@ -31,26 +31,6 @@
   <ItemGroup>
     <ProjectReference Include="..\AzureExtension\AzureExtension.csproj" />
     <ProjectReference Include="..\Logging\DevHome.Logging.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.4">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Identity.Client" Version="4.56.0" />
-    <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.56.0" />
-    <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.2.206-beta" />
-    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.0.2" />
-    <PackageReference Include="Microsoft.Windows.DevHome.SDK" Version="0.100.323" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.4.231008000" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.756" />
-    <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="16.205.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Services.Client" Version="16.205.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Services.InteractiveClient" Version="16.205.1" />
   </ItemGroup>
 
   <ItemGroup>

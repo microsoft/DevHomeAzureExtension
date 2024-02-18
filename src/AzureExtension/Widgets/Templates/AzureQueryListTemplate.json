@@ -69,7 +69,7 @@
                         {
                           "type": "Image",
                           "style": "Person",
-                          "url": "${avatar}",
+                          "url": "data:image/png;base64,${avatar}",
                           "size": "small"
                         }
                       ]

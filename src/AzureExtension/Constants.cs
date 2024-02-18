@@ -1,9 +1,9 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 namespace DevHomeAzureExtension;
 
-internal class Constants
+internal sealed class Constants
 {
 #pragma warning disable SA1310 // Field names should not contain underscore
     public const string DEV_HOME_APPLICATION_NAME = "DevHome";

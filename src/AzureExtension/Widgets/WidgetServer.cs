@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -62,7 +62,7 @@ public sealed class WidgetServer : IDisposable
         }
     }
 
-    private class Ole32
+    private sealed class Ole32
     {
 #pragma warning disable SA1310 // Field names should not contain underscore
         // https://docs.microsoft.com/windows/win32/api/wtypesbase/ne-wtypesbase-clsctx

@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Runtime.InteropServices;
 using Microsoft.Windows.Widgets.Providers;
@@ -33,12 +33,11 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         var widgetId = widgetContext.Id;
         var widgetDefinitionId = widgetContext.DefinitionId;
         Log.Logger()?.ReportDebug($"Calling Initialize for Widget Id: {widgetId} - {widgetDefinitionId}");
-        if (widgetDefinitionRegistry.ContainsKey(widgetDefinitionId))
+        if (widgetDefinitionRegistry.TryGetValue(widgetDefinitionId, out var widgetFactory))
         {
             if (!runningWidgets.ContainsKey(widgetId))
             {
-                var factory = widgetDefinitionRegistry[widgetDefinitionId];
-                var widgetImpl = factory.Create(widgetContext, state);
+                var widgetImpl = widgetFactory.Create(widgetContext, state);
                 runningWidgets.Add(widgetId, widgetImpl);
             }
             else
@@ -92,37 +91,37 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
     {
         Log.Logger()?.ReportDebug($"Activate id: {widgetContext.Id} definitionId: {widgetContext.DefinitionId}");
         var widgetId = widgetContext.Id;
-        if (runningWidgets.ContainsKey(widgetId))
+        if (runningWidgets.TryGetValue(widgetId, out var widgetImpl))
         {
-            runningWidgets[widgetId].Activate(widgetContext);
+            widgetImpl.Activate(widgetContext);
         }
         else
         {
             // Called to activate a widget that we don't know about, which is unexpected. Try to recover by creating it.
             Log.Logger()?.ReportWarn($"Found WidgetId that was not known: {widgetContext.Id}, attempting to recover by creating it.");
             CreateWidget(widgetContext);
-            if (runningWidgets.ContainsKey(widgetId))
+            if (runningWidgets.TryGetValue(widgetId, out var widgetImplForUnknownWidget))
             {
-                runningWidgets[widgetId].Activate(widgetContext);
+                widgetImplForUnknownWidget.Activate(widgetContext);
             }
         }
     }
 
     public void Deactivate(string widgetId)
     {
-        if (runningWidgets.ContainsKey(widgetId))
+        if (runningWidgets.TryGetValue(widgetId, out var widgetToDeactivate))
         {
             Log.Logger()?.ReportDebug($"Deactivate id: {widgetId}");
-            runningWidgets[widgetId].Deactivate(widgetId);
+            widgetToDeactivate.Deactivate(widgetId);
         }
     }
 
     public void DeleteWidget(string widgetId, string customState)
     {
-        if (runningWidgets.ContainsKey(widgetId))
+        if (runningWidgets.TryGetValue(widgetId, out var widgetToDelete))
         {
             Log.Logger()?.ReportInfo($"DeleteWidget id: {widgetId}");
-            runningWidgets[widgetId].DeleteWidget(widgetId, customState);
+            widgetToDelete.DeleteWidget(widgetId, customState);
             runningWidgets.Remove(widgetId);
         }
     }
@@ -132,9 +131,9 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         Log.Logger()?.ReportDebug($"OnActionInvoked id: {actionInvokedArgs.WidgetContext.Id} definitionId: {actionInvokedArgs.WidgetContext.DefinitionId}");
         var widgetContext = actionInvokedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
-        if (runningWidgets.ContainsKey(widgetId))
+        if (runningWidgets.TryGetValue(widgetId, out var widgetToInvokeAnActionOn))
         {
-            runningWidgets[widgetId].OnActionInvoked(actionInvokedArgs);
+            widgetToInvokeAnActionOn.OnActionInvoked(actionInvokedArgs);
         }
     }
 
@@ -143,9 +142,9 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         Log.Logger()?.ReportDebug($"OnCustomizationRequested id: {customizationRequestedArgs.WidgetContext.Id} definitionId: {customizationRequestedArgs.WidgetContext.DefinitionId}");
         var widgetContext = customizationRequestedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
-        if (runningWidgets.ContainsKey(widgetId))
+        if (runningWidgets.TryGetValue(widgetId, out var widgetToCustomize))
         {
-            runningWidgets[widgetId].OnCustomizationRequested(customizationRequestedArgs);
+            widgetToCustomize.OnCustomizationRequested(customizationRequestedArgs);
         }
     }
 
@@ -154,9 +153,9 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         Log.Logger()?.ReportDebug($"OnWidgetContextChanged id: {contextChangedArgs.WidgetContext.Id} definitionId: {contextChangedArgs.WidgetContext.DefinitionId}");
         var widgetContext = contextChangedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
-        if (runningWidgets.ContainsKey(widgetId))
+        if (runningWidgets.TryGetValue(widgetId, out var widgetWithAChangedContext))
         {
-            runningWidgets[widgetId].OnWidgetContextChanged(contextChangedArgs);
+            widgetWithAChangedContext.OnWidgetContextChanged(contextChangedArgs);
         }
     }
 }

@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ using Microsoft.Diagnostics.Telemetry;
 
 namespace DevHomeAzureExtension.Telemetry;
 
-internal class Logger : ILogger
+internal sealed class Logger : ILogger
 {
     private const string ProviderName = "Microsoft.AzureExtension";
 

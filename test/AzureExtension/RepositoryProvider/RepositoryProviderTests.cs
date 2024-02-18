@@ -1,9 +1,9 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+using DevHomeAzureExtension.Client;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
-using static DevHomeAzureExtension.Test.WidgetTests;
 
 namespace DevHomeAzureExtension.Test;
 
@@ -19,7 +19,7 @@ public partial class RepositoryProviderTests
 
     private List<Tuple<string, bool>> GetValidUrls()
     {
-        if (_validUrls.Any())
+        if (_validUrls.Count != 0)
         {
             return _validUrls;
         }
@@ -53,11 +53,11 @@ public partial class RepositoryProviderTests
         return _validUrls;
     }
 
-    private List<string> _invalidUrls = new();
+    private readonly List<string> _invalidUrls = new();
 
     private List<string> GetInvalidUrls()
     {
-        if (_invalidUrls.Any())
+        if (_invalidUrls.Count != 0)
         {
             return _invalidUrls;
         }
@@ -67,11 +67,11 @@ public partial class RepositoryProviderTests
         return _invalidUrls;
     }
 
-    private List<string> _validNotRepoUrls = new();
+    private readonly List<string> _validNotRepoUrls = new();
 
     private List<string> GetValidNotRepoUrls()
     {
-        if (_validNotRepoUrls.Any())
+        if (_validNotRepoUrls.Count != 0)
         {
             return _validNotRepoUrls;
         }

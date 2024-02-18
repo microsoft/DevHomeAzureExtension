@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using DevHome.Logging;
 using DevHome.Logging.Helpers;
@@ -36,7 +36,7 @@ public partial class TestHelpers
         }
         catch (IOException)
         {
-            // Log writing being asychronous can sometimes lead to a test finishing before its
+            // Log writing being asynchronous can sometimes lead to a test finishing before its
             // log is done writing. This was leading to random intermittent test failures due
             // to the log file being in use. If we encounter an IOException, wait a few seconds
             // and try again.

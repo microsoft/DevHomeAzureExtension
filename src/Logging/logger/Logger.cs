@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Collections.Concurrent;
 using DevHome.Logging.Helpers;
@@ -7,7 +7,7 @@ using DevHome.Logging.Listeners;
 
 namespace DevHome.Logging;
 
-public class Logger : ILoggerHost, IDisposable
+public sealed class Logger : ILoggerHost, IDisposable
 {
     public Logger(string name, Options options)
     {
@@ -395,7 +395,7 @@ public class Logger : ILoggerHost, IDisposable
 
     private bool disposed; // To detect redundant calls
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
         if (!disposed)
         {

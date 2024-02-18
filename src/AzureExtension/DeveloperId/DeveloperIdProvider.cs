@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using Microsoft.Identity.Client;
 using Microsoft.UI;
@@ -21,7 +21,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         get; set;
     }
 
-    private AuthenticationHelper DeveloperIdAuthenticationHelper
+    private IAuthenticationHelper DeveloperIdAuthenticationHelper
     {
         get; set;
     }
@@ -36,7 +36,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     public string DisplayName => "Azure";
 
     // Private constructor for Singleton class.
-    private DeveloperIdProvider()
+    private DeveloperIdProvider(IAuthenticationHelper authenticationHelper)
     {
         Log.Logger()?.ReportInfo($"Creating DeveloperIdProvider singleton instance");
 
@@ -44,7 +44,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         {
             DeveloperIds ??= new List<DeveloperId>();
 
-            DeveloperIdAuthenticationHelper = new AuthenticationHelper();
+            DeveloperIdAuthenticationHelper = authenticationHelper;
 
             // Retrieve and populate Logged in DeveloperIds from previous launch.
             RestoreDeveloperIds(DeveloperIdAuthenticationHelper.GetAllStoredLoginIdsAsync());
@@ -89,11 +89,13 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         return new DeveloperIdsResult(null, "No account remediation required");
     }
 
-    public static DeveloperIdProvider GetInstance()
+    public static DeveloperIdProvider GetInstance(IAuthenticationHelper? authenticationHelper = null)
     {
+        authenticationHelper ??= new AuthenticationHelper();
+
         lock (AuthenticationProviderLock)
         {
-            singletonDeveloperIdProvider ??= new DeveloperIdProvider();
+            singletonDeveloperIdProvider ??= new DeveloperIdProvider(authenticationHelper);
         }
 
         return singletonDeveloperIdProvider;
@@ -303,12 +305,12 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
         catch (MsalServiceException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal service error: {ex}");
+            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
             throw;
         }
         catch (MsalClientException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with msal client error: {ex}");
+            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
             throw;
         }
         catch (Exception ex)

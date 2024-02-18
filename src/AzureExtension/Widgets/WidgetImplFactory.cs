@@ -1,12 +1,12 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using Microsoft.Windows.Widgets.Providers;
 
 namespace DevHomeAzureExtension.Widgets;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.DocumentationRules", "SA1649:File name should match first type name", Justification = "Templated class")]
-internal class WidgetImplFactory<T> : IWidgetImplFactory
+internal sealed class WidgetImplFactory<T> : IWidgetImplFactory
     where T : WidgetImpl, new()
 {
     public WidgetImpl Create(WidgetContext widgetContext, string state)

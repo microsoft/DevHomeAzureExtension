@@ -1,5 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Security.Authentication;
 using System.Text;
@@ -49,7 +49,7 @@ public class RepositoryProvider : IRepositoryProvider
             var azureUri = new AzureUri(uri);
             if (!azureUri.IsValid)
             {
-                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure Devops Uri"), "Uri isn not valid");
+                return new RepositoryUriSupportResult(new ArgumentException("Not a valid Azure DevOps Uri"), "Uri is not valid");
             }
 
             if (!azureUri.IsRepository)
@@ -148,7 +148,7 @@ public class RepositoryProvider : IRepositoryProvider
             Parallel.ForEach(theseOrganizations, options, organization =>
             {
                 var projects = GetProjects(organization, azureDeveloperId);
-                if (projects.Any())
+                if (projects.Count != 0)
                 {
                     foreach (var project in projects)
                     {
@@ -258,7 +258,7 @@ public class RepositoryProvider : IRepositoryProvider
                 var repoInformation = new AzureUri(uri);
                 if (!repoInformation.IsValid)
                 {
-                    var exception = new NotSupportedException("Uri isn't a valid Azure Devops uri.");
+                    var exception = new NotSupportedException("Uri isn't a valid Azure DevOps uri.");
                     return new RepositoryResult(exception, $"{exception.Message} HResult: {exception.HResult}");
                 }
 
@@ -347,7 +347,7 @@ public class RepositoryProvider : IRepositoryProvider
                     return new ProviderOperationResult(ProviderOperationStatus.Failure, e, $"Could not get the logged in developer.  HResult: {e.HResult}", e.Message);
                 }
 
-                cloneOptions.CredentialsProvider = (url, user, cred) => new LibGit2Sharp.UsernamePasswordCredentials
+                cloneOptions.FetchOptions.CredentialsProvider = (url, user, cred) => new LibGit2Sharp.UsernamePasswordCredentials
                 {
                     // Password is a PAT unique to GitHub.
                     Username = authResult.AccessToken,
