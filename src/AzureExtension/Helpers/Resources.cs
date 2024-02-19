@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Globalization;
 using DevHome.Logging;
 using Microsoft.Windows.ApplicationModel.Resources;
 
@@ -28,6 +29,29 @@ public static class Resources
             // If we fail, load the original identifier so it is obvious which resource is missing.
             return identifier;
         }
+    }
+
+    /// <summary>
+    /// Gets the localized string of a resource key.
+    /// </summary>
+    /// <param name="key">Resource key.</param>
+    /// <param name="args">Placeholder arguments.</param>
+    /// <returns>Localized value, or resource key if the value is empty or an exception occurred.</returns>
+    public static string GetResource(string key, params object[] args)
+    {
+        string value;
+
+        try
+        {
+            value = GetResource(key);
+            value = string.Format(CultureInfo.CurrentCulture, value, args);
+        }
+        catch
+        {
+            value = string.Empty;
+        }
+
+        return string.IsNullOrEmpty(value) ? key : value;
     }
 
     // Replaces all identifiers in the provided list in the target string. Assumes all identifiers

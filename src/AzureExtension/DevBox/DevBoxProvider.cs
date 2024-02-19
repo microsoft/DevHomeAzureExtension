@@ -1,11 +1,11 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
-using DevHomeAzureExtension.DeveloperId;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using AzureExtension.DevBox.DevBoxJsonToCsClasses;
+using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
@@ -16,60 +16,74 @@ namespace AzureExtension.DevBox;
 /// </summary>
 public class DevBoxProvider : IComputeSystemProvider
 {
-    private readonly IHost _host;
     private readonly IDevBoxManagementService _devBoxManagementService;
 
-    public DevBoxProvider(IHost host, IDevBoxManagementService mgmtSvc)
+    private readonly IDevBoxCreationManager _devBoxCreationManager;
+
+    private readonly CreateComputeSystemOperationFactory _createComputeSystemOperationFactory;
+
+    private readonly DevBoxInstanceFactory _devBoxInstanceFactory;
+
+    public DevBoxProvider(
+        IDevBoxManagementService mgmtSvc,
+        CreateComputeSystemOperationFactory createComputeSystemOperationFactory,
+        DevBoxInstanceFactory devBoxInstanceFactory,
+        IDevBoxCreationManager devBoxCreationManager)
     {
-        _host = host;
         _devBoxManagementService = mgmtSvc;
+        _createComputeSystemOperationFactory = createComputeSystemOperationFactory;
+        _devBoxInstanceFactory = devBoxInstanceFactory;
+        _devBoxCreationManager = devBoxCreationManager;
     }
 
-    public string DisplayName => "Microsoft DevBox";
+    public string DisplayName => Constants.DevBoxProviderDisplayName;
 
     public string Id => Constants.DevBoxProviderName;
 
-    public string Properties => throw new NotImplementedException();
+    public ICreateComputeSystemOperation? ComputeSystemOp { get; set; }
 
-    // No create operation supported
-    ComputeSystemProviderOperations IComputeSystemProvider.SupportedOperations => 0x0;
+    public ComputeSystemProviderOperations SupportedOperations => ComputeSystemProviderOperations.CreateComputeSystem;
 
-    public Uri Icon => new Uri(Constants.ProviderURI);
-
-    /// <summary>
-    /// Checks the validity of the JsonElement returned by the DevCenter API.
-    /// Validity is determined by the presence of the "value" array property.
-    /// i.e. - Projects/DevBoxes are returned as an array of objects.
-    /// </summary>
-    private bool IsValid(JsonElement jsonElement)
-    {
-        return jsonElement.ValueKind == JsonValueKind.Array;
-    }
+    public Uri Icon => new(Constants.ProviderURI);
 
     /// <summary>
     /// Adds all DevBoxes for a given project to the list of systems.
     /// </summary>
-    /// <param name="data">Object with the properties of the project</param>
+    /// <param name="devBoxProject">Object with the properties of the project</param>
     /// <param name="devId">DeveloperID to be used for the authentication token service</param>
     /// <param name="systems">List of valid dev box objects</param>
-    private async Task ProcessAllDevBoxesInProjectAsync(JsonElement data, IDeveloperId? devId, List<IComputeSystem> systems)
+    private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId, List<IComputeSystem> systems)
     {
-        var project = data.GetProperty("name").ToString();
-        var devCenterUri = data.GetProperty("properties").GetProperty("devCenterUri").ToString();
-        var devBoxes = await _devBoxManagementService.GetDevBoxesAsJsonAsync(devCenterUri, project);
-        if (IsValid(devBoxes))
-        {
-            Log.Logger()?.ReportInfo($"Found {devBoxes.EnumerateArray().Count()} boxes for project {project}");
+        var devCenterUri = devBoxProject.Properties.DevCenterUri;
+        var webUri = new Uri($"{devCenterUri}{Constants.Projects}/{devBoxProject.Name}{Constants.DevBoxAPI}");
+        var devBoxJsonArray = await _devBoxManagementService.HttpRequestToDataPlane(webUri, devId, HttpMethod.Get, null);
+        var devBoxMachines = JsonSerializer.Deserialize<DevBoxMachines>(devBoxJsonArray.JsonResponseRoot.ToString(), Constants.JsonOptions);
 
-            foreach (var item in devBoxes.EnumerateArray())
+        if (devBoxMachines?.Value != null && devBoxMachines.Value.Length != 0)
+        {
+            Log.Logger()?.ReportInfo($"Found {devBoxMachines!.Value.Length} boxes for project {devBoxProject.Name}");
+
+            foreach (var devBoxState in devBoxMachines!.Value)
             {
-                // Get an empty dev box object and fill in the details
-                var devBox = _host.Services.GetService<DevBoxInstance>();
-                devBox?.FillFromJson(item, project, devId);
-                if (devBox is not null && devBox.IsValid)
+                if (_devBoxCreationManager.TryGetDevBoxInstanceIfBeingCreated(devBoxState.UniqueId, out var devBox))
                 {
-                    systems.Add(devBox);
+                    // If the Dev Box's creation operation or its provisioning state are being tracked by us, then don't make a new instance.
+                    // Add the one we're tracking. This is to avoid adding the same Dev Box twice. E.g User clicks Dev Homes refresh button while
+                    // the Dev Box is being created.
+                    systems.Add(devBox!);
+                    continue;
                 }
+
+                var newDevBoxInstance = _devBoxInstanceFactory(devId, devBoxState);
+
+                if (newDevBoxInstance.IsDevBoxBeingCreatedOrProvisioned)
+                {
+                    // DevBox is being created but we aren't tracking it yet. So we'll start tracking its provisioning state until its fully provisioned.
+                    // It was likely created by Dev Portals UI or some other non-Dev Home related UI.
+                    _devBoxCreationManager.StartDevBoxProvisioningStateMonitor(newDevBoxInstance.AssociatedDeveloperId, newDevBoxInstance);
+                }
+
+                systems.Add(newDevBoxInstance);
             }
         }
     }
@@ -78,25 +92,25 @@ public class DevBoxProvider : IComputeSystemProvider
     /// Gets the list of DevBoxes for all projects that a user has access to.
     /// </summary>
     /// <param name="developerId">DeveloperID to be used by the authentication token service</param>
-    public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId? developerId)
+    public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId developerId)
     {
-        _devBoxManagementService.DevId = developerId;
-        var projectJSONs = await _devBoxManagementService.GetAllProjectsAsJsonAsync();
+        var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
+        var result = await _devBoxManagementService.HttpRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
+        var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
         var computeSystems = new List<IComputeSystem>();
 
-        if (IsValid(projectJSONs))
+        if (devBoxProjects?.Data != null && devBoxProjects.Data.Length > 0)
         {
-            Log.Logger()?.ReportInfo($"Found {projectJSONs.EnumerateArray().Count()} projects");
-            foreach (var dataItem in projectJSONs.EnumerateArray())
+            Log.Logger()?.ReportInfo($"Found {devBoxProjects.Data.Length} projects");
+            foreach (var project in devBoxProjects.Data)
             {
                 try
                 {
-                    await ProcessAllDevBoxesInProjectAsync(dataItem, developerId, computeSystems);
+                    await ProcessAllDevBoxesInProjectAsync(project, developerId, computeSystems);
                 }
                 catch (Exception ex)
                 {
-                    dataItem.TryGetProperty("name", out var name);
-                    Log.Logger()?.ReportError($"Error processing project {name.ToString()}: {ex.ToString}");
+                    Log.Logger()?.ReportError($"Error processing project {project.Name}", ex);
                 }
             }
         }
@@ -113,18 +127,44 @@ public class DevBoxProvider : IComputeSystemProvider
     {
         return Task.Run(async () =>
         {
-            var computeSystems = await GetComputeSystemsAsync(developerId);
-            return new ComputeSystemsResult(computeSystems);
+            try
+            {
+                ArgumentNullException.ThrowIfNull(developerId);
+
+                var computeSystems = await GetComputeSystemsAsync(developerId);
+                return new ComputeSystemsResult(computeSystems);
+            }
+            catch (Exception ex)
+            {
+                Log.Logger()?.ReportError($"Unable to get all Dev Boxes", ex);
+                return new ComputeSystemsResult(ex, ex.Message);
+            }
         }).AsAsyncOperation();
     }
 
-    public IAsyncOperation<CreateComputeSystemResult> CreateComputeSystemAsync(string options) => throw new NotImplementedException();
+    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind)
+    {
+        var exception = new NotImplementedException();
+        return new ComputeSystemAdaptiveCardResult(exception, exception.Message);
+    }
 
-    public IAsyncOperationWithProgress<CreateComputeSystemResult, ComputeSystemOperationData> CreateComputeSystemAsync(IDeveloperId developerId, string options) => throw new NotImplementedException();
+    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind)
+    {
+        var exception = new NotImplementedException();
+        return new ComputeSystemAdaptiveCardResult(exception, exception.Message);
+    }
 
-    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind) => throw new NotImplementedException();
+    public ICreateComputeSystemOperation? CreateComputeSystem(IDeveloperId developerId, string options)
+    {
+        if (developerId is null)
+        {
+            // var nullArgException = new ArgumentNullException(nameof(developerId));
+            // return new ComputeSystemsResult(nullArgException, nullArgException.Message);
+            return null;
+        }
 
-    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind) => throw new NotImplementedException();
-
-    public ICreateComputeSystemOperation CreateComputeSystem(IDeveloperId developerId, string options) => throw new NotImplementedException();
+        var op = _createComputeSystemOperationFactory(developerId, options);
+        op.Start();
+        return op;
+    }
 }
