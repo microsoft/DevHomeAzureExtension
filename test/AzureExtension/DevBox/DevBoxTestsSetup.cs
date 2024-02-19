@@ -1,8 +1,20 @@
-// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Http.Headers;
+using System.Reflection.Metadata.Ecma335;
+using AzureExtension.Contracts;
+using AzureExtension.DevBox;
+using AzureExtension.DevBox.DevBoxJsonToCsClasses;
+using AzureExtension.DevBox.Models;
+using AzureExtension.Services.DevBox;
+using AzureExtension.Test.DevBox;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Moq;
+using Moq.Language;
 using Moq.Protected;
 
 namespace DevHomeAzureExtension.Test;
@@ -11,6 +23,10 @@ namespace DevHomeAzureExtension.Test;
 public partial class DevBoxTests : IDisposable
 {
     private readonly Mock<IHttpClientFactory> mockFactory = new();
+
+    public Mock<HttpMessageHandler> HttpHandler { get; set; } = new(MockBehavior.Strict);
+
+    public IHost? TestHost { get; set; }
 
     public TestContext? TestContext
     {
@@ -28,7 +44,7 @@ public partial class DevBoxTests : IDisposable
     /// <summary>
     /// This is a mock JSON response from the DevCenter API.
     /// </summary>
-    private const string MockTestJson =
+    private const string MockProjectJson =
             @"{
             ""totalRecords"": 10,
             ""count"": 10,
@@ -46,8 +62,11 @@ public partial class DevBoxTests : IDisposable
               },
               ""type"": ""microsoft.devcenter/projects""
             }
-            ],
-                ""value"": [
+            ]
+        }";
+
+    private const string MockDevBoxListJson =
+           @"{ ""value"": [
                 {
                     ""uri"": ""https://72f9feed-86f1-41af-91ab-beefd011db47-devcenter-dc.westus3.devcenter.azure.com/projects/nonprod/users/28feedaeb-996b-434b-bb57-4969cbeef8f0/devboxes/two"",
                     ""name"": ""Two"",
@@ -81,36 +100,84 @@ public partial class DevBoxTests : IDisposable
                     ""createdTime"": ""2023-08-22T19:06:51.0750942+00:00"",
                     ""localAdministrator"": ""Enabled""
                 }
-                ],
-            ""facets"": [],
-            ""resultTruncated"": ""false"",
-            ""rdpConnectionUrl"": ""https://sample.uri.com"",
-            ""webUrl"": ""https://sample.uri.com""
+            ]
         }";
 
+    private const string MockTestOperationJson =
+        @"{
+              ""id"": ""3c0b24dd-53e3-48a1-889b-83088048a1fc"",
+              ""name"": ""3c0b24dd-53e3-48a1-889b-83088048a1fc"",
+              ""status"": ""Running"",
+              ""startTime"": ""2024-02-20T08:23:16.8547869+00:00""
+        }";
+
+    private const string MockTestRemoteConnectionJson =
+        @"{
+              ""webUrl"": ""https://devcenter.azure.com/projects/project/users/b214d34a-3feb-12ab-96bd-cca70d0c9d69/devboxes/DevBox1"",
+              ""rdpConnectionUrl"": ""3c0b24dd-53e3-48a1-889b-83088048a1fc""
+        }";
+
+    private const string MockTestCreationParametersJson =
+        @"{
+              ""devBoxName"": ""MyDevBox"",
+              ""projectName"": ""MyProject"",
+              ""poolName"": ""MyPoolName"",
+              ""devCenterUri"": ""https://devcenter.azure.com""
+        }";
+
+    public static HttpResponseHeaders GetHeadersMock()
+    {
+        var requestMessage = new HttpResponseMessage();
+        var headers = requestMessage.Headers;
+        headers.Add("Operation-Location", "https://devcenter.azure.com/projects/project/projects/engprodadept/operationStatuses/3c0b24dd-53e3-48a1-889b-83088048a1fc");
+        headers.Add("Location", "https://devcenter.azure.com/projects/project/projects/engprodadept/operationStatuses/3c0b24dd-53e3-48a1-889b-83088048a1fc");
+        return headers;
+    }
+
     private HttpClient mockHttpClient = new();
+
+    public void UpdateHttpClientResponseMock(List<HttpContent> returnList)
+    {
+        var handlerSequence = HttpHandler
+           .Protected()
+           .SetupSequence<Task<HttpResponseMessage>>(
+              "SendAsync",
+              ItExpr.IsAny<HttpRequestMessage>(),
+              ItExpr.IsAny<CancellationToken>());
+
+        foreach (var item in returnList)
+        {
+            handlerSequence = AddResponse(handlerSequence, item);
+        }
+    }
+
+    private ISetupSequentialResult<Task<HttpResponseMessage>> AddResponse(ISetupSequentialResult<Task<HttpResponseMessage>> handlerSequence, HttpContent content)
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        };
+
+        foreach (var header in GetHeadersMock())
+        {
+            response.Headers.Add(header.Key, header.Value);
+        }
+
+        return handlerSequence.ReturnsAsync(response);
+    }
 
     [TestInitialize]
     public void TestInitialize()
     {
         TestOptions = TestHelpers.SetupTempTestOptions(TestContext!);
 
-        // Create a mock HttpMessageHandler
-        var handlerMock = new Mock<HttpMessageHandler>();
-
-        handlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
-            .ReturnsAsync(new HttpResponseMessage
-            {
-                StatusCode = HttpStatusCode.OK,
-                Content = new StringContent(MockTestJson),
-            });
-
         // Create an HttpClient using the mocked handler
-        mockHttpClient = new HttpClient(handlerMock.Object);
+        mockHttpClient = new HttpClient(HttpHandler.Object);
 
         mockFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(mockHttpClient);
+
+        TestHost = BuildhostContainer();
     }
 
     [TestCleanup]
@@ -122,5 +189,33 @@ public partial class DevBoxTests : IDisposable
     public void Dispose()
     {
         GC.SuppressFinalize(this);
+    }
+
+    public IHost BuildhostContainer()
+    {
+        return Host.
+            CreateDefaultBuilder().
+            UseContentRoot(AppContext.BaseDirectory).
+            UseDefaultServiceProvider((context, options) =>
+            {
+                options.ValidateOnBuild = true;
+            }).
+            ConfigureServices((context, services) =>
+            {
+                services.AddSingleton<IHttpClientFactory>(mockFactory.Object);
+                services.AddSingleton<HttpClient>(mockHttpClient);
+                services.AddSingleton<IDevBoxManagementService, DevBoxManagementService>();
+                services.AddSingleton<IDevBoxAuthService, AuthService>();
+                services.AddSingleton<IArmTokenService, ArmTestTokenService>();
+                services.AddSingleton<IDataTokenService, DataTestTokenService>();
+                services.AddSingleton<DevBoxProvider>();
+
+                services.AddSingleton<ITimeSpanService, TimeSpanServiceMock>();
+                services.AddSingleton<IDevBoxOperationWatcher, DevBoxOperationWatcher>();
+                services.AddTransient<IDevBoxCreationManager, DevBoxCreationManager>();
+                services.AddTransient<DevBoxInstanceFactory>(sp => (developerId, dexBoxMachine) => ActivatorUtilities.CreateInstance<DevBoxInstance>(sp, developerId, dexBoxMachine));
+                services.AddTransient<CreateComputeSystemOperationFactory>(sp => (devId, userOptions) => ActivatorUtilities.CreateInstance<CreateComputeSystemOperation>(sp, devId, userOptions));
+            })
+            .Build();
     }
 }

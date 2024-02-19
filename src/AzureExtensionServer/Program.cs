@@ -3,6 +3,7 @@
 
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
+using AzureExtension.DevBox.Models;
 using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
@@ -228,7 +229,11 @@ public sealed class Program
                 services.AddSingleton<IArmTokenService, ARMTokenService>();
                 services.AddSingleton<IDataTokenService, DataTokenService>();
                 services.AddSingleton<DevBoxProvider>();
-                services.AddTransient<DevBoxInstance>();
+                services.AddSingleton<ITimeSpanService, TimeSpanService>();
+                services.AddSingleton<IDevBoxOperationWatcher, DevBoxOperationWatcher>();
+                services.AddTransient<IDevBoxCreationManager, DevBoxCreationManager>();
+                services.AddTransient<DevBoxInstanceFactory>(sp => (developerId, dexBoxMachine) => ActivatorUtilities.CreateInstance<DevBoxInstance>(sp, developerId, dexBoxMachine));
+                services.AddTransient<CreateComputeSystemOperationFactory>(sp => (devId, userOptions) => ActivatorUtilities.CreateInstance<CreateComputeSystemOperation>(sp, devId, userOptions));
             }).
         Build();
 

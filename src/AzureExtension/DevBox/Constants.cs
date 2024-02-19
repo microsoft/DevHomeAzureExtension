@@ -1,5 +1,8 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System.Text.Json;
+using AzureExtension.DevBox.Helpers;
 
 namespace AzureExtension.DevBox;
 
@@ -20,8 +23,17 @@ public static class Constants
     /// <summary>
     /// DevCenter API to get all devboxes
     /// </summary>
-    /// <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
-    public const string DevBoxAPI = "/users/me/devboxes?api-version=2023-07-01-preview";
+    /// for stable api's <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
+    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
+    public const string DevBoxAPI = "/users/me/devboxes?api-version=2023-10-01-preview";
+
+    public const string DevBoxUserSegmentOfUri = "/users/me/devboxes";
+
+    public const string OperationsParameter = "operations";
+
+    public const string TopParameter = "top=1";
+
+    public const string NameRegexPattern = @"^[a-zA-Z0-9][a-zA-Z0-9-_.]{2,62}$";
 
     /// <summary>
     /// Scope to manage devboxes
@@ -36,8 +48,70 @@ public static class Constants
     /// <summary>
     /// API version used for start, stop, and restart APIs
     /// </summary>
-    /// <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
-    public const string APIVersion = "api-version=2023-04-01";
+    /// For stable api's <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
+    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
+    public const string APIVersion = "api-version=2023-10-01-preview";
+
+    public const string Pools = "pools";
+
+    public const string Projects = "projects";
+
+    public const string Name = "name";
+
+    public const string Properties = "properties";
+
+    public const string DevCenterUri = "devCenterUri";
+
+    public const string PoolNameForCreationRequest = "poolName";
+
+    public const uint IndefiniteProgress = 0;
+
+    public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
+
+    public static readonly TimeSpan FiveMinutePeriod = TimeSpan.FromMinutes(5);
+
+    public static readonly TimeSpan OperationDeadline = TimeSpan.FromHours(2);
+
+    public const string DevBoxStartOperation = "start";
+
+    public const string DevBoxStopOperation = "stop";
+
+    public const string DevBoxRestartOperation = "restart";
+
+    public const string DevBoxRepairOperation = "repair";
+
+    public const string DevBoxCreatingProvisioningState = "Creating";
+
+    public const string DevBoxProvisioningState = "Provisioning";
+
+    public const string DevBoxProvisioningFailedState = "ProvisioningFailed";
+
+    public const string DevBoxUnknownState = "Unknown";
+
+    public const string DevBoxRunningState = "Running";
+
+    public const string DevBoxDeallocatedState = "Deallocated";
+
+    public const string DevBoxPoweredOffState = "PoweredOff";
+
+    public const string DevBoxHibernatedState = "Hibernated";
+
+    public const string DevBoxDeletedState = "Deleted";
+
+    public const string DevBoxOperationNotStartedState = "NotStarted";
+
+    public const string DevBoxOperationSucceededState = "Succeeded";
+
+    public const string DevBoxOperationCanceledState = "Canceled";
+
+    public const string DevBoxOperationFailedState = "Failed";
+
+    public static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new DevCenterOperationStatusConverter() },
+    };
 
     /// <summary>
     /// Location of the thumbnail that is shown for all Dev Boxes in the UI
@@ -55,7 +129,12 @@ public static class Constants
     public const string DevBoxProviderName = "Microsoft.DevBox";
 
     /// <summary>
+    /// Non localized display Name for Microsoft Dev Box.
+    /// </summary>
+    public const string DevBoxProviderDisplayName = "Microsoft DevBox";
+
+    /// <summary>
     /// Size of a GB in bytes
     /// </summary>
-    public const long BytesInGb = 1073741824L;
+    public const ulong BytesInGb = 1073741824UL;
 }

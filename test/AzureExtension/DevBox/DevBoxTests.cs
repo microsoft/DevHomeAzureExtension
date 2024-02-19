@@ -1,47 +1,152 @@
-// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
+using System.Text.Json;
+using System.Threading;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
+using AzureExtension.DevBox.DevBoxJsonToCsClasses;
+using AzureExtension.DevBox.Models;
 using AzureExtension.Services.DevBox;
 using AzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;
 
 public partial class DevBoxTests
 {
+    private readonly AutoResetEvent _autoResetEvent = new(false);
+
+    public bool CreationCompletedSuccessfully { get; set; }
+
+    public ComputeSystemState ActualState { get; set; }
+
+    public void OnStateChange(IComputeSystem sender, ComputeSystemState state)
+    {
+        ActualState = state;
+    }
+
+    public void OnProgress(ICreateComputeSystemOperation op, ComputeSystemOperationData data)
+    {
+    }
+
+    public void OnCompleted(ICreateComputeSystemOperation op, CreateComputeSystemResult result)
+    {
+        if (result.Result.Status == ProviderOperationStatus.Success)
+        {
+            CreationCompletedSuccessfully = true;
+        }
+
+        _autoResetEvent.Set();
+    }
+
     [TestMethod]
     [TestCategory("Unit")]
-    public void DevBox_MockHTTPCalls()
+    public void DevBox_GetAllDevBoxes()
     {
         // Arrange
-        var host = Microsoft.Extensions.Hosting.Host.
-            CreateDefaultBuilder().
-            UseContentRoot(AppContext.BaseDirectory).
-            UseDefaultServiceProvider((context, options) =>
-            {
-                options.ValidateOnBuild = true;
-            }).
-            ConfigureServices((context, services) =>
-            {
-                services.AddSingleton<IHttpClientFactory>(mockFactory.Object);
-                services.AddSingleton<HttpClient>(mockHttpClient);
-                services.AddSingleton<IDevBoxManagementService, DevBoxManagementService>();
-                services.AddSingleton<IDevBoxAuthService, AuthService>();
-                services.AddSingleton<IArmTokenService, ArmTestTokenService>();
-                services.AddSingleton<IDataTokenService, DataTestTokenService>();
-                services.AddSingleton<DevBoxProvider>();
-                services.AddTransient<DevBoxInstance>();
-            }).
-            Build();
+        var contentList = new List<HttpContent>
+        {
+            new StringContent(MockProjectJson),
+            new StringContent(MockDevBoxListJson),
+        };
+        UpdateHttpClientResponseMock(contentList);
 
         // Act
-        var instance = host.Services.GetService<DevBoxProvider>();
-        var systems = instance?.GetComputeSystemsAsync(null).Result;
+        var provider = TestHost!.Services.GetService<DevBoxProvider>();
+        var systems = provider?.GetComputeSystemsAsync(new EmptyDeveloperId()).Result;
 
         // Assert
         Assert.IsTrue(systems?.Any());
+    }
+
+    [TestMethod]
+    [TestCategory("Unit")]
+    public void DevBox_CreateDevBox()
+    {
+        // Arrange
+        var devBoxList = JsonSerializer.Deserialize<DevBoxMachines>(MockDevBoxListJson, Constants.JsonOptions);
+        devBoxList!.Value![0].ProvisioningState = "Creating";
+        var devBoxJsonBeingCreated = JsonSerializer.Serialize(devBoxList!.Value![0], Constants.JsonOptions);
+        devBoxList!.Value![0].ProvisioningState = "Succeeded";
+        var devBoxJsonSucceeded = JsonSerializer.Serialize(devBoxList!.Value![0], Constants.JsonOptions);
+
+        var contentList = new List<HttpContent>
+        {
+            new StringContent(devBoxJsonBeingCreated), // creation call output
+            new StringContent(devBoxJsonSucceeded), // creation succeeded.
+        };
+
+        UpdateHttpClientResponseMock(contentList);
+
+        // Act
+        var provider = TestHost!.Services.GetService<DevBoxProvider>();
+
+        if (provider?.CreateComputeSystem(new EmptyDeveloperId(), MockTestCreationParametersJson) is CreateComputeSystemOperation operation)
+        {
+            operation.Completed += OnCompleted;
+            operation.Progress += OnProgress;
+            operation.Start();
+            _autoResetEvent.WaitOne(TimeSpan.FromSeconds(10));
+            operation.Completed -= OnCompleted;
+            operation.Progress -= OnProgress;
+        }
+
+        _autoResetEvent.WaitOne(TimeSpan.FromSeconds(6));
+
+        // Assert
+        Assert.IsTrue(CreationCompletedSuccessfully);
+    }
+
+    [TestMethod]
+    [TestCategory("Unit")]
+    public async Task DevBox_DevBoxOperationsSucceed()
+    {
+        // Arrange
+        var devBoxList = JsonSerializer.Deserialize<DevBoxMachines>(MockDevBoxListJson, Constants.JsonOptions);
+        devBoxList!.Value![0].PowerState = Constants.DevBoxPoweredOffState;
+        var devBoxListPoweredOffJson = JsonSerializer.Serialize(devBoxList!, Constants.JsonOptions);
+        devBoxList!.Value![0].PowerState = Constants.DevBoxRunningState;
+        var runningDevBox = devBoxList!.Value![0];
+        var runningDevBoxJson = JsonSerializer.Serialize(runningDevBox, Constants.JsonOptions);
+        var operationCompletedSucceeded = JsonSerializer.Deserialize<DevBoxOperation>(MockTestOperationJson, Constants.JsonOptions);
+        operationCompletedSucceeded!.Status = DevCenterOperationStatus.Succeeded;
+        var succeededJson = JsonSerializer.Serialize(operationCompletedSucceeded!, Constants.JsonOptions);
+
+        var contentList = new List<HttpContent>
+        {
+            new StringContent(MockProjectJson),
+            new StringContent(devBoxListPoweredOffJson),
+            new StringContent(MockTestOperationJson), // initial operation status with 'Running' status
+            new StringContent(succeededJson), // ending operation status with 'Succeeded' status
+            new StringContent(runningDevBoxJson), // ending operation status with 'Succeeded' status
+        };
+
+        UpdateHttpClientResponseMock(contentList);
+
+        // Act
+        var provider = TestHost!.Services.GetService<DevBoxProvider>();
+        var systems = provider?.GetComputeSystemsAsync(new EmptyDeveloperId()).Result;
+        var devBox = systems?.FirstOrDefault();
+
+        Assert.IsNotNull(devBox);
+        var currentState = await devBox!.GetStateAsync(string.Empty);
+        Assert.IsTrue(currentState.State == ComputeSystemState.Stopped);
+
+        devBox!.StateChanged += OnStateChange;
+        var result = await devBox.StartAsync(string.Empty);
+        Assert.IsTrue(result.Result.Status == ProviderOperationStatus.Success);
+
+        while (ActualState != ComputeSystemState.Running)
+        {
+            await Task.Delay(1);
+        }
+
+        devBox!.StateChanged -= OnStateChange;
+
+        // Assert
+        Assert.AreEqual(ComputeSystemState.Running, ActualState);
     }
 }
