@@ -67,6 +67,6 @@ public class AuthenticationSettings
         RedirectURI = "ms-appx-web://microsoft.aad.brokerplugin/{0}";
         CacheFileName = "msal_cache";
         CacheDir = ApplicationData.Current != null ? ApplicationData.Current.LocalFolder.Path : cacheFolderPathDefault;
-        Scopes = "499b84ac-1321-427f-aa17-267ca6975798/user_impersonation";
+        Scopes = "499b84ac-1321-427f-aa17-267ca6975798/.default";
     }
 }
