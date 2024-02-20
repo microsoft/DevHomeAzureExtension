@@ -389,18 +389,12 @@ public class RepositoryProvider : IRepositoryProvider2
                     organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
                 }
 
-                var options = new ParallelOptions()
-                {
-                    // Let the program decide
-                    MaxDegreeOfParallelism = -1,
-                };
-
                 Dictionary<Organization, List<TeamProjectReference>> organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
 
                 // Establish a connection between organizations and their projects.
-                Parallel.ForEach(organizations, options, orgnization =>
+                Parallel.ForEach(organizations, organization =>
                 {
-                    var projects = _azureHierarchy.GetProjectsAsync(orgnization).Result;
+                    var projects = _azureHierarchy.GetProjectsAsync(organization).Result;
                     if (!string.IsNullOrEmpty(projectToUse))
                     {
                         projects = projects.Where(x => x.Name.Equals(projectToUse)).ToList();
@@ -408,14 +402,14 @@ public class RepositoryProvider : IRepositoryProvider2
 
                     if (projects.Count != 0)
                     {
-                        organizationsAndProjects.Add(orgnization, projects);
+                        organizationsAndProjects.Add(organization, projects);
                     }
                 });
 
                 var reposToReturn = new List<IRepository>();
 
                 // organizationAndProjects include all relevant information to get repos.
-                Parallel.ForEach(organizationsAndProjects, options, organizationAndProject =>
+                Parallel.ForEach(organizationsAndProjects, organizationAndProject =>
                 {
                     try
                     {
@@ -424,7 +418,7 @@ public class RepositoryProvider : IRepositoryProvider2
                         var criteria = new GitPullRequestSearchCriteria();
                         criteria.CreatorId = connection.AuthorizedIdentity.Id;
 
-                        Parallel.ForEach(organizationAndProject.Value, options, project =>
+                        Parallel.ForEach(organizationAndProject.Value, project =>
                         {
                             reposToReturn.AddRange(GetRepos(connection, project, criteria, shouldIgnorePRDateOld));
                         });
