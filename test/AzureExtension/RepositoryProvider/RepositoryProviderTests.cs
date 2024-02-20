@@ -132,7 +132,7 @@ public partial class RepositoryProviderTests
         {
             TestContext?.WriteLine($"Testing {invalidUrl}");
             var myAzureUri = new AzureUri(invalidUrl);
-            Assert.IsFalse(myAzureUri.IsValid);
+            Assert.IsFalse(myAzureUri.IsHosted);
             Assert.IsFalse(myAzureUri.IsRepository);
         }
 
