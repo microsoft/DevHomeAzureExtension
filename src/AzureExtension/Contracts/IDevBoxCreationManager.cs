@@ -23,7 +23,7 @@ public interface IDevBoxCreationManager
     public Task StartCreateDevBoxOperation(CreateComputeSystemOperation operation, IDeveloperId developerId, string userOptions);
 
     /// <summary>
-    /// Starts the process of monitoring a the provisioning status of the Dev Box. This is needed for the cases where a Dev Box was created 
+    /// Starts the process of monitoring a the provisioning status of the Dev Box. This is needed for the cases where a Dev Box was created
     /// out side of the extension. But the creation operation is still in progress.
     /// </summary>
     public void StartDevBoxProvisioningStateMonitor(IDeveloperId developerId, DevBoxInstance devBox);
