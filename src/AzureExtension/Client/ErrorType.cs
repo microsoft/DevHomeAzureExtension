@@ -22,4 +22,6 @@ public enum ErrorType
     MsalClientError,
     GenericCredentialFailure,
     InitializeVssConnectionFailure,
+    NullConnection,
+    VssResourceNotFound,
 }

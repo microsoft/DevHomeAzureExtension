@@ -155,6 +155,27 @@ public partial class WidgetTests
             Tuple.Create("https://organization.vssps.visualstudio.com/with/extra/stuff", AzureUriType.SignIn, false),
             Tuple.Create("https://organization.vssps.visualstudio.com:443/", AzureUriType.SignIn, false),
             Tuple.Create("https://organization.vssps.visualstudio.com:443/with/extra/stuff", AzureUriType.SignIn, false),
+
+            // On-Prem test URIs.
+            // Repositories
+            Tuple.Create("https://organization/project/_git/repository", AzureUriType.Repository, false),
+            Tuple.Create("https://organization/project/_git/repository/", AzureUriType.Repository, false),
+            Tuple.Create("https://organization/project/_git/repository/some/other/stuff", AzureUriType.Repository, false),
+            Tuple.Create("https://organization/collection/project/_git/repository", AzureUriType.Repository, false),
+            Tuple.Create("https://organization/collection/project/_git/repository/", AzureUriType.Repository, false),
+            Tuple.Create("https://organization/collection/project/_git/repository/some/other/stuff", AzureUriType.Repository, false),
+
+            // Work item link
+            Tuple.Create("https://organization/project/_workitems/edit/1234567", AzureUriType.WorkItem, false),
+            Tuple.Create("https://organization/project/_workitems/edit/1234567/", AzureUriType.WorkItem, false),
+            Tuple.Create("https://organization/collection/project/_workitems/edit/1234567", AzureUriType.WorkItem, false),
+            Tuple.Create("https://organization/collection/project/_workitems/edit/1234567/", AzureUriType.WorkItem, false),
+
+            // Queries
+            Tuple.Create("https://organization/project/_queries/query/12345678-1234-1234-1234-1234567890ab", AzureUriType.Query, false),
+            Tuple.Create("https://organization/project/_queries/query/12345678-1234-1234-1234-1234567890ab/", AzureUriType.Query, false),
+            Tuple.Create("https://organization/collection/project/_queries/query/12345678-1234-1234-1234-1234567890ab", AzureUriType.Query, false),
+            Tuple.Create("https://organization/collection/project/_queries/query/12345678-1234-1234-1234-1234567890ab/", AzureUriType.Query, false),
         };
 
         var testUrisInvalid = new List<Tuple<string, AzureUriType, bool>>
@@ -187,10 +208,8 @@ public partial class WidgetTests
 
             // All Valid inputs should be valid.
             Assert.IsTrue(azureUri.IsValid);
-
-            // We only support hosted for now.
-            Assert.IsTrue(azureUri.IsHosted);
-            TestContext?.WriteLine($"Org: {azureUri.Organization}  Project: {azureUri.Project}  Repository: {azureUri.Repository}  Query: {azureUri.Query}");
+            Assert.IsTrue(azureUri.HostType != AzureHostType.Unknown);
+            TestContext?.WriteLine($"Org: {azureUri.Organization}  Project: {azureUri.Project}  Repository: {azureUri.Repository}  Query: {azureUri.Query}  HostType: {azureUri.HostType}");
 
             if (uriTuple.Item2 != AzureUriType.SignIn && uriTuple.Item2 != AzureUriType.RepositoryNoProject && uriTuple.Item2 != AzureUriType.NamesWithSpaces)
             {
@@ -316,15 +335,14 @@ public partial class WidgetTests
         }
 
         // Verify bad strings are recognized as bad.
+        // Not-Hosted Uris might have valid organization or project values, but should not be valid
+        // for Repositories or Queries.
         foreach (var uriTuple in testUrisInvalid)
         {
             TestContext?.WriteLine($"Uri: {uriTuple.Item1}   Type: {uriTuple.Item2}  IsLegacy: {uriTuple.Item3}");
             var azureUri = new AzureUri(uriTuple.Item1);
-            Assert.IsFalse(azureUri.IsValid);
             Assert.IsFalse(azureUri.IsHosted);
             Assert.AreEqual(uriTuple.Item1, azureUri.OriginalString);
-            Assert.AreEqual(string.Empty, azureUri.Organization);
-            Assert.AreEqual(string.Empty, azureUri.Project);
             Assert.IsFalse(azureUri.IsRepository);
             Assert.AreEqual(string.Empty, azureUri.Repository);
             Assert.IsFalse(azureUri.IsQuery);
@@ -348,11 +366,8 @@ public partial class WidgetTests
                 Assert.AreEqual(azureUri.Uri, uri);
 
                 // Re-validate all of the properties are the same using this constructor.
-                Assert.IsFalse(azureUri.IsValid);
                 Assert.IsFalse(azureUri.IsHosted);
                 Assert.AreEqual(uriTuple.Item1, azureUri.OriginalString);
-                Assert.AreEqual(string.Empty, azureUri.Organization);
-                Assert.AreEqual(string.Empty, azureUri.Project);
                 Assert.IsFalse(azureUri.IsRepository);
                 Assert.AreEqual(string.Empty, azureUri.Repository);
                 Assert.IsFalse(azureUri.IsQuery);

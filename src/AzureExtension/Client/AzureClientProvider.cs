@@ -132,14 +132,17 @@ public class AzureClientProvider
                 Log.Logger()?.ReportInfo($"Created new connection to {azureUri.Connection} for {developerId.LoginId}");
                 return new ConnectionResult(azureUri.Connection, null, connection);
             }
+            else
+            {
+                Log.Logger()?.ReportError($"Connection to {azureUri.Connection} was null.");
+                return new ConnectionResult(ResultType.Failure, ErrorType.NullConnection, false);
+            }
         }
         catch (Exception ex)
         {
             Log.Logger()?.ReportError($"Unable to establish VssConnection: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.InitializeVssConnectionFailure, true, ex);
         }
-
-        return new ConnectionResult(ResultType.Failure, ErrorType.Unknown, false);
     }
 
     /// <summary>

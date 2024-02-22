@@ -342,4 +342,17 @@
     <value>Loading content...</value>
     <comment>Shown in Widget when first pinned while waiting for data to load.</comment>
   </data>
+  <data name="ErrorMessage.InitializeVssConnectionFailure" xml:space="preserve">
+    <value>Failed creating the Vss Connection</value>
+  </data>
+  <data name="ErrorMessage.NullConnection" xml:space="preserve">
+    <value>The connection result was null.</value>
+  </data>
+  <data name="ErrorMessage.Unknown" xml:space="preserve">
+    <value>An unknown error occurred.</value>
+  </data>
+  <data name="ErrorMessage.VssResourceNotFound" xml:space="preserve">
+    <value>The Azure server does not support this functionality.</value>
+    <comment>Shown in widget on error.</comment>
+  </data>
 </root>
