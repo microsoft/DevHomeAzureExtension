@@ -129,7 +129,7 @@ public class DevBoxInstance : IComputeSystem
     }
 
     public ComputeSystemOperations SupportedOperations =>
-        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
+        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
 
     public string AlternativeDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
@@ -452,5 +452,9 @@ public class DevBoxInstance : IComputeSystem
         }).AsAsyncOperation();
     }
 
-    public IApplyConfigurationOperation ApplyConfiguration(string configuration) => throw new NotImplementedException();
+    public IApplyConfigurationOperation? ApplyConfiguration(string configuration)
+    {
+        // Apply configuration isn't supported yet for Dev Boxes.
+        return null;
+    }
 }
