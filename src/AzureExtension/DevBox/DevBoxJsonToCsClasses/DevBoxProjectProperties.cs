@@ -3,6 +3,10 @@
 
 namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
 
+/// <summary>
+/// Represents a ProjectProperties object within a response from a Dev Box rest API call.
+/// See API documentation <see cref="Constants.APIVersion"/>
+/// </summary>
 public class DevBoxProjectProperties
 {
     public string ProvisioningState { get; set; } = string.Empty;

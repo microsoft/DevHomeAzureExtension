@@ -14,7 +14,6 @@ using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
-using static System.Windows.Forms.AxHost;
 
 namespace AzureExtension.DevBox;
 
@@ -124,7 +123,7 @@ public class DevBoxInstance : IComputeSystem
     private async Task GetRemoteLaunchURIsAsync(Uri boxURI)
     {
         var connectionUri = $"{boxURI}/remoteConnection?{Constants.APIVersion}";
-        var result = await _devBoxManagementService.HttpRequestToDataPlane(new Uri(connectionUri), AssociatedDeveloperId, HttpMethod.Get, null);
+        var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(connectionUri), AssociatedDeveloperId, HttpMethod.Get, null);
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
     }
 
@@ -166,12 +165,16 @@ public class DevBoxInstance : IComputeSystem
                     $"{DevBoxState.Uri}:{operation}?{Constants.APIVersion}" : $"{DevBoxState.Uri}?{Constants.APIVersion}";
                 Log.Logger()?.ReportInfo($"Starting {Name} with {operationUri}");
 
-                var result = await _devBoxManagementService.HttpRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
-                var uri = result.ResponseHeader.OperationLocation;
-                var operationid = result.ResponseHeader.Id;
+                var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
+                var operationLocation = result.ResponseHeader.OperationLocation;
 
-                // Monitor the operations progress every minute.
-                _devBoxOperationWatcher.StartDevCenterOperationMonitor(this, AssociatedDeveloperId, uri!, operationid, action, OperationCallback);
+                // The last segment of the operationLocation is the operationId.
+                // E.g https://8a40af38-3b4c-4672-a6a4-5e964b1870ed-contosodevcenter.centralus.devcenter.azure.com/projects/myProject/operationstatuses/786a823c-8037-48ab-89b8-8599901e67d0
+                // See example Response: https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes/start-dev-box?view=rest-devcenter-developer-2023-04-01&tabs=HTTP
+                var operationId = Guid.Parse(operationLocation!.Segments.Last());
+
+                // Monitor the operations progress
+                _devBoxOperationWatcher.StartDevCenterOperationMonitor(AssociatedDeveloperId, operationLocation!, operationId, action, OperationCallback);
                 return new ComputeSystemOperationResult();
             }
             catch (Exception ex)
@@ -191,6 +194,11 @@ public class DevBoxInstance : IComputeSystem
         }
     }
 
+    /// <summary>
+    /// When a Dev Box is created it the Dev Center started to provision it. We use this method once the provisioning is complete.
+    /// </summary>
+    /// <param name="devBoxMachineState">The new state of the Dev Box from the Dev Center</param>
+    /// <param name="status">The status of the provisioing</param>
     public void ProvisioningMonitorCompleted(DevBoxMachineState? devBoxMachineState, ProvisioningStatus status)
     {
         if (!IsDevBoxBeingCreatedOrProvisioned)
@@ -204,6 +212,8 @@ public class DevBoxInstance : IComputeSystem
         }
         else
         {
+            // If the provisioning failed, we'll set the state to failed and powerstate to unknown.
+            // The PowerState being unknown will make the UI show the Dev Box state as unknown.
             DevBoxState.ProvisioningState = Constants.DevBoxProvisioningFailedState;
             DevBoxState.PowerState = Constants.DevBoxUnknownState;
         }
@@ -212,6 +222,10 @@ public class DevBoxInstance : IComputeSystem
         UpdateStateForUI();
     }
 
+    /// <summary>
+    /// Callback method for when we're performing a long running operation on the Dev Box. E.g. Start, Stop, Restart, Delete.
+    /// </summary>
+    /// <param name="status">The current status of the operation</param>
     public void OperationCallback(DevCenterOperationStatus? status)
     {
         switch (status)
@@ -230,6 +244,10 @@ public class DevBoxInstance : IComputeSystem
         }
     }
 
+    /// <summary>
+    /// When a long running operation is complete, we'll update the state of the Dev Box. To do this we get
+    /// the new state from the Dev Center.
+    /// </summary>
     private void SetStateAfterOperationCompletedSuccessfully()
     {
         Task.Run(async () =>
@@ -238,15 +256,15 @@ public class DevBoxInstance : IComputeSystem
             {
                 if (CurrentActionToPerform == DevBoxActionToPerform.Delete)
                 {
-                    // DevBox no longer exists, so we can't get the state from the DevBox.
+                    // DevBox no longer exists, so we can't get the state from the Dev Center.
                     // so we'll artificially set the power state to deleted.
-                    DevBoxState.PowerState = Constants.DevBoxDeletedState;
+                    DevBoxState.ProvisioningState = Constants.DevBoxDeletedState;
                 }
                 else
                 {
                     // Refresh the state of the DevBox after the operation is complete.
                     var devBoxUri = new Uri($"{DevBoxState.Uri}?{Constants.APIVersion}");
-                    var result = await _devBoxManagementService.HttpRequestToDataPlane(devBoxUri, AssociatedDeveloperId, HttpMethod.Get, null);
+                    var result = await _devBoxManagementService.HttpsRequestToDataPlane(devBoxUri, AssociatedDeveloperId, HttpMethod.Get, null);
                     DevBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
                 }
 
@@ -276,16 +294,18 @@ public class DevBoxInstance : IComputeSystem
             case Constants.DevBoxCreatingProvisioningState:
             case Constants.DevBoxProvisioningState:
                 return ComputeSystemState.Creating;
+            case Constants.DevBoxDeletedState:
+                return ComputeSystemState.Deleted;
 
-            // Fallthrough if we're not creating or provisioning and look at the power state.
+            // Fallthrough if we're not creating/provisioning and the Dev Box exists.
+            // We'll look at the the power state next to figure out what state to send
+            // to Dev Home.
         }
 
         switch (DevBoxState.PowerState)
         {
             case Constants.DevBoxRunningState:
                 return ComputeSystemState.Running;
-            case Constants.DevBoxDeletedState:
-                return ComputeSystemState.Deleted;
 
             // We don't have a direct mapping for the hiberbated state and may need to add one one day.
             case Constants.DevBoxHibernatedState:
@@ -381,7 +401,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error getting thumbnail for {Name}: {ex.ToString}");
+                Log.Logger()?.ReportError($"Error getting thumbnail for {Name}", ex);
                 return new ComputeSystemThumbnailResult(ex, string.Empty);
             }
         }).AsAsyncOperation();

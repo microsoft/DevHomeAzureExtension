@@ -15,15 +15,9 @@ using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;
 
-public enum ProvisioningStatus
-{
-    Succeeded,
-    Failed,
-}
-
 /// <summary>
-/// The DevBoxManagementService is responsible for making calls to the Azure Resource Graph API
-/// to get the list of projects and then to the DevCenter API to get the list of DevBoxes for each project.
+/// The DevBoxManagementService is responsible for making calls to the Azure Resource Graph API.
+/// All calls to the Azure Resource Graph API should be made through this service.
 /// </summary>
 public class DevBoxManagementService : IDevBoxManagementService
 {
@@ -34,20 +28,20 @@ public class DevBoxManagementService : IDevBoxManagementService
     private const string DevBoxManagementServiceName = nameof(DevBoxManagementService);
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToManagementPlane"/>/>
-    public async Task<HttpRequestResult> HttpRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    public async Task<DevBoxHttpsRequestResult> HttpsRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpManagementClient = _authService.GetManagementClient(developerId);
         return await DevBoxHttpRequest(httpManagementClient, webUri, developerId, method, requestContent);
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
-    public async Task<HttpRequestResult> HttpRequestToDataPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    public async Task<DevBoxHttpsRequestResult> HttpsRequestToDataPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpDataClient = _authService.GetDataPlaneClient(developerId);
         return await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
     }
 
-    private async Task<HttpRequestResult> DevBoxHttpRequest(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    private async Task<DevBoxHttpsRequestResult> DevBoxHttpRequest(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         try
         {
@@ -83,7 +77,7 @@ public class DevBoxManagementService : IDevBoxManagementService
                 var projectObj = JsonSerializer.Deserialize<DevBoxProject>(projectJson.ToString(), Constants.JsonOptions)!;
                 var properties = projectObj.Properties;
                 var uriToRetrievePools = $"{properties.DevCenterUri}{Constants.Projects}/{projectObj.Name}/{Constants.Pools}?{Constants.APIVersion}";
-                var result = await HttpRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
+                var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
                 var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
                 var container = new DevBoxProjectAndPoolContainer { Project = projectObj, Pools = pools };
 
@@ -100,14 +94,14 @@ public class DevBoxManagementService : IDevBoxManagementService
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.CreateDevBox"/>
-    public async Task<HttpRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId)
+    public async Task<DevBoxHttpsRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId)
     {
-        if (Regex.IsMatch(parameters.DevBoxName, Constants.NameRegexPattern) == false)
+        if (!Regex.IsMatch(parameters.DevBoxName, Constants.NameRegexPattern))
         {
             throw new DevBoxNameInvalidException($"Unable to create Dev Box due to Invalid Dev Box name: {parameters.DevBoxName}");
         }
 
-        if (Regex.IsMatch(parameters.ProjectName, Constants.NameRegexPattern) == false)
+        if (!Regex.IsMatch(parameters.ProjectName, Constants.NameRegexPattern))
         {
             throw new DevBoxProjectNameInvalidException($"Unable to create Dev Box due to Invalid project name: {parameters.ProjectName}");
         }
@@ -115,6 +109,6 @@ public class DevBoxManagementService : IDevBoxManagementService
         var uriToCreateDevBox = $"{parameters.DevCenterUri}{Constants.Projects}/{parameters.ProjectName}{Constants.DevBoxUserSegmentOfUri}/{parameters.DevBoxName}?{Constants.APIVersion}";
         var contentJson = JsonSerializer.Serialize(new { parameters.PoolName });
         var content = new StringContent(contentJson, Encoding.UTF8, "application/json");
-        return await HttpRequestToDataPlane(new Uri(uriToCreateDevBox), developerId, HttpMethod.Put, content);
+        return await HttpsRequestToDataPlane(new Uri(uriToCreateDevBox), developerId, HttpMethod.Put, content);
     }
 }

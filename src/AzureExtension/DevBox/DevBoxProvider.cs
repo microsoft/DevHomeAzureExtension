@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Helpers;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
@@ -25,8 +24,6 @@ public class DevBoxProvider : IComputeSystemProvider
 
     private readonly DevBoxInstanceFactory _devBoxInstanceFactory;
 
-    private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
-
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,
         CreateComputeSystemOperationFactory createComputeSystemOperationFactory,
@@ -38,7 +35,6 @@ public class DevBoxProvider : IComputeSystemProvider
         _createComputeSystemOperationFactory = createComputeSystemOperationFactory;
         _devBoxInstanceFactory = devBoxInstanceFactory;
         _devBoxCreationManager = devBoxCreationManager;
-        _devBoxOperationWatcher = devBoxOperationWatcher;
     }
 
     public string DisplayName => Constants.DevBoxProviderDisplayName;
@@ -61,7 +57,7 @@ public class DevBoxProvider : IComputeSystemProvider
     {
         var devCenterUri = devBoxProject.Properties.DevCenterUri;
         var baseUriStr = $"{devCenterUri}{Constants.Projects}/{devBoxProject.Name}{Constants.DevBoxAPI}";
-        var devBoxJsonArray = await _devBoxManagementService.HttpRequestToDataPlane(new Uri(baseUriStr), devId, HttpMethod.Get, null);
+        var devBoxJsonArray = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(baseUriStr), devId, HttpMethod.Get, null);
         var devBoxMachines = JsonSerializer.Deserialize<DevBoxMachines>(devBoxJsonArray.JsonResponseRoot.ToString(), Constants.JsonOptions);
 
         if (devBoxMachines?.Value != null && devBoxMachines.Value.Length != 0)
@@ -96,15 +92,15 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <summary>
     /// Gets the list of DevBoxes for all projects that a user has access to.
     /// </summary>
-    /// <param name="developerId">DeveloperID to be used by the authentication token service</param>
+    /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
     public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId developerId)
     {
         var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
-        var result = await _devBoxManagementService.HttpRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
+        var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
         var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
         var computeSystems = new List<IComputeSystem>();
 
-        if (devBoxProjects?.Data != null && devBoxProjects.Data.Length > 0)
+        if (devBoxProjects?.Data != null)
         {
             Log.Logger()?.ReportInfo($"Found {devBoxProjects.Data.Length} projects");
             foreach (var project in devBoxProjects.Data)
@@ -126,7 +122,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <summary>
     /// Wrapper for GetComputeSystemsAsync
     /// </summary>
-    /// <param name="developerId">DeveloperID to be used by the authentication token service</param>
+    /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
     /// <param name="options">Unused parameter</param>
     public IAsyncOperation<ComputeSystemsResult> GetComputeSystemsAsync(IDeveloperId developerId, string options)
     {
@@ -161,11 +157,13 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public ICreateComputeSystemOperation? CreateComputeSystem(IDeveloperId developerId, string options)
     {
-        if (developerId is null)
+        if (developerId is null || string.IsNullOrEmpty(options))
         {
             return null;
         }
 
-        return _createComputeSystemOperationFactory(developerId, options);
+        var parameters = JsonSerializer.Deserialize<DevBoxCreationParameters>(options, Constants.JsonOptions)!;
+
+        return _createComputeSystemOperationFactory(developerId, parameters);
     }
 }

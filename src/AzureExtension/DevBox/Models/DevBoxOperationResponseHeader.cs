@@ -5,6 +5,11 @@ using System.Net.Http.Headers;
 
 namespace AzureExtension.DevBox.Models;
 
+/// <summary>
+/// Represents the header for a Dev Box long running operation. The Dev Box apis run a Location and an Operation-Location
+/// value in the header. These can be used to poll the progress of the operation.
+/// See API documentation <see cref="Constants.APIVersion"/>
+/// </summary>
 public class DevBoxOperationResponseHeader
 {
     private const string OperationLocationStr = "Operation-Location";
@@ -14,14 +19,12 @@ public class DevBoxOperationResponseHeader
     public Uri? OperationLocation { get; set; }
 
     /// <summary>
-    /// gets the Id for the operation. This is used by the management service to check how long the operation has been running.
+    /// gets the Id for the operation. This is used by the<see cref="DevBoxOperationWatcherTimer"/> when checking how long the operation has been running.
     /// </summary>
     public string Id { get; private set; } = Guid.NewGuid().ToString();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DevBoxOperationResponseHeader"/> class.
-    /// Dev Box long running operations contain a single header that contain a Location and Operation-Location uri.
-    /// these can be used to poll the operation. See <see cref="Constants.APIVersion"/> links for more information.
     /// </summary>
     /// <param name="headers">Header returned from a Dev Center rest Api that expect the operation to be long running</param>
     public DevBoxOperationResponseHeader(HttpResponseHeaders headers)

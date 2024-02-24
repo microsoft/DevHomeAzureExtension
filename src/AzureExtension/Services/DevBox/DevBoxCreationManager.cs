@@ -42,10 +42,8 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     }
 
     /// <inheritdoc cref="IDevBoxCreationManager.StartCreateDevBoxOperation"/>
-    public async Task StartCreateDevBoxOperation(CreateComputeSystemOperation operation, IDeveloperId developerId, string userOptions)
+    public async Task StartCreateDevBoxOperation(CreateComputeSystemOperation operation, IDeveloperId developerId, DevBoxCreationParameters parameters)
     {
-        var parameters = JsonSerializer.Deserialize<DevBoxCreationParameters>(userOptions, Constants.JsonOptions)!;
-
         try
         {
             operation.UpdateProgress(Resources.GetResource(SendingCreationRequestProgressKey), Constants.IndefiniteProgress);
@@ -64,10 +62,10 @@ public class DevBoxCreationManager : IDevBoxCreationManager
             var callback = DevCenterLongRunningOperationCallback(devBox);
 
             // Now we can start querying the Dev Center for the creation status of the Dev Box operation. This operation will continue until the Dev Box is ready for use.
-            var uri = result.ResponseHeader.OperationLocation;
-            var operationid = result.ResponseHeader.Id;
+            var operationUri = result.ResponseHeader.OperationLocation;
+            var operationid = Guid.Parse(operationUri!.Segments.Last());
 
-            _devBoxOperationWatcher.StartDevCenterOperationMonitor(this, developerId, uri!, operationid, DevBoxActionToPerform.Create, callback);
+            _devBoxOperationWatcher.StartDevCenterOperationMonitor(developerId, operationUri!, operationid, DevBoxActionToPerform.Create, callback);
 
             // At this point the DevBox is partially created in the cloud. However the DevBox is not ready for use. Querying for all Dev Box will
             // return this DevBox via Json with its provisioningState set to "Provisioning". So, we'll keep track of the operation.
@@ -75,7 +73,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(DevBoxCreationManagerName, $"unable to create the Dev Box with user options: {userOptions}", ex);
+            Log.Logger()?.ReportError(DevBoxCreationManagerName, $"unable to create the Dev Box with user options: {parameters}", ex);
             operation.CompleteWithFailure(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName));
         }
     }

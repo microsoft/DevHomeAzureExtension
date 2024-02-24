@@ -7,8 +7,11 @@ using Windows.Foundation;
 
 namespace AzureExtension.DevBox.Models;
 
-public delegate CreateComputeSystemOperation CreateComputeSystemOperationFactory(IDeveloperId developerId, string userOptions);
+public delegate CreateComputeSystemOperation CreateComputeSystemOperationFactory(IDeveloperId developerId, DevBoxCreationParameters userOptions);
 
+/// <summary>
+/// Responsible for creating a new DevBox. It is the object return back to Dev Home so Dev Home can track the progress of the operation.
+/// </summary>
 public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 {
     private readonly IDevBoxCreationManager _devBoxCreationManager;
@@ -29,12 +32,12 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 
     public bool IsOperationInProgress { get; private set; }
 
-    public string UserOptions { get; private set; }
+    public DevBoxCreationParameters DevBoxCreationParameters { get; private set; }
 
-    public CreateComputeSystemOperation(IDevBoxCreationManager devBoxCreationManager, IDeveloperId developerId, string userOptions)
+    public CreateComputeSystemOperation(IDevBoxCreationManager devBoxCreationManager, IDeveloperId developerId, DevBoxCreationParameters parameters)
     {
         _devBoxCreationManager = devBoxCreationManager;
-        UserOptions = userOptions;
+        DevBoxCreationParameters = parameters;
         _developerId = developerId;
     }
 
@@ -50,7 +53,7 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
             IsOperationInProgress = true;
         }
 
-        Task.Run(async () => await _devBoxCreationManager.StartCreateDevBoxOperation(this, _developerId, UserOptions));
+        Task.Run(async () => await _devBoxCreationManager.StartCreateDevBoxOperation(this, _developerId, DevBoxCreationParameters));
     }
 
     public void UpdateProgress(string operationStatus, uint operationProgress)

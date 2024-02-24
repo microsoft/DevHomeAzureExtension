@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 
@@ -12,17 +10,27 @@ namespace AzureExtension.Contracts;
 public interface IDevBoxManagementService
 {
     /// <summary>
-    /// Makes an Http request to the azure management plane of the Dev Center.
+    /// Makes an Https request to the azure management plane of the Dev Center.
     /// </summary>
-    public Task<HttpRequestResult> HttpRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent);
+    /// <param name="webUri">The Uri of the request.</param>
+    /// <param name="developerId">The DeveloperId associated with the request.</param>
+    /// <param name="method">The type of the the http request. E.g Get, Put, Post etc.</param>
+    /// <param name="requestContent">The content that should be used with the request.</param>
+    /// <returns>The result of the request.</returns>
+    public Task<DevBoxHttpsRequestResult> HttpsRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent);
 
     /// <summary>
-    /// Makes an Http request to the azure data plane of the Dev Center.
+    /// Makes an Https request to the azure data plane of the Dev Center.
     /// </summary>
-    public Task<HttpRequestResult> HttpRequestToDataPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent);
+    /// <param name="webUri">The Uri of the request.</param>
+    /// <param name="developerId">The DeveloperId associated with the request.</param>
+    /// <param name="method">The type of the the http request. E.g Get, Put, Post etc.</param>
+    /// <param name="requestContent">The content that should be used with the request.</param>
+    /// <returns>The result of the request.</returns>
+    public Task<DevBoxHttpsRequestResult> HttpsRequestToDataPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent);
 
     /// <summary>
-    /// Generates a list of object that each contain a Dev Center project and the pools associated with the project.
+    /// Generates a list of objects that each contain a Dev Center project and the Dev Box pools associated with that project.
     /// </summary>
     /// <param name="projectsJson">The Json recieved from a rest api that returns a list of Dev Center projects.</param>
     /// <param name="developerId">The DeveloperId associated with the request.</param>
@@ -30,7 +38,9 @@ public interface IDevBoxManagementService
     public Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(JsonElement projectsJson, IDeveloperId developerId);
 
     /// <summary>
-    /// Method used to create a Dev Box in the Dev Center.
+    /// Initiates a call to create a Dev Box in the Dev Center.
     /// </summary>
-    public Task<HttpRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId);
+    /// <param name="parameters">The parameters used to create the Dev Box.</param>
+    /// <param name="developerId">The DeveloperId associated with the request.</param>
+    public Task<DevBoxHttpsRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId);
 }

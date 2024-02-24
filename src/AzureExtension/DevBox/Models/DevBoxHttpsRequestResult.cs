@@ -5,13 +5,17 @@ using System.Text.Json;
 
 namespace AzureExtension.DevBox.Models;
 
-public class HttpRequestResult
+/// <summary>
+/// Represents the result of an HTTPS request result from the Dev Center. For Dev Box operations
+/// the only things we care about is the JSON response and the response header.
+/// </summary>
+public class DevBoxHttpsRequestResult
 {
     public JsonElement JsonResponseRoot { get; set; }
 
     public DevBoxOperationResponseHeader ResponseHeader { get; set; }
 
-    public HttpRequestResult(JsonElement jsonResponseRoot, DevBoxOperationResponseHeader responseHeader)
+    public DevBoxHttpsRequestResult(JsonElement jsonResponseRoot, DevBoxOperationResponseHeader responseHeader)
     {
         JsonResponseRoot = jsonResponseRoot;
         ResponseHeader = responseHeader;

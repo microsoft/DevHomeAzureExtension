@@ -3,7 +3,10 @@
 
 namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
 
-/// <summary> See API documentation <see cref="Constants.APIVersion"/> </summary>
+/// <summary>
+/// Represents the data returned from a request to retrieve the remote connection information for a Dev Box.
+/// See API documentation <see cref="Constants.APIVersion"/>
+/// </summary>
 public class DevBoxRemoteConnectionData
 {
     public string? WebUrl { get; set; }

@@ -3,7 +3,10 @@
 
 namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
 
-/// <summary> See API documentation <see cref="Constants.APIVersion"/> </summary>
+/// <summary>
+/// Represents a DevBoxProject object within a response from a Dev Box rest API call.
+/// See API documentation <see cref="Constants.APIVersion"/>
+/// </summary>
 public class DevBoxProject
 {
     public string Id { get; set; } = string.Empty;

@@ -3,7 +3,10 @@
 
 namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
 
-/// <summary> See API documentation <see cref="Constants.APIVersion"/> </summary>
+/// <summary>
+/// Represents the ImageReference object within a response from a Dev Box rest API call.
+/// See API documentation <see cref="Constants.APIVersion"/>
+/// </summary>
 public class DevBoxImageReference
 {
     public string Name { get; set; } = string.Empty;

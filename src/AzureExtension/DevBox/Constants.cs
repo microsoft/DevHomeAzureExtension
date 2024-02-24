@@ -11,7 +11,7 @@ public static class Constants
     /// <summary>
     /// Azure Resource Graph (ARG) query API
     /// </summary>
-    /// <seealso href="https://learn.microsoft.com/en-us/rest/api/azureresourcegraph/resourcegraph/resources/resources?view=rest-azureresourcegraph-resourcegraph-2022-10-01&tabs=HTTP"/>
+    /// <seealso href="https://learn.microsoft.com/rest/api/azureresourcegraph/resourcegraph/resources/resources?view=rest-azureresourcegraph-resourcegraph-2022-10-01&tabs=HTTP"/>
     public const string ARGQueryAPI = "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01";
 
     /// <summary>
@@ -23,7 +23,7 @@ public static class Constants
     /// <summary>
     /// DevCenter API to get all devboxes
     /// </summary>
-    /// for stable api's <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
+    /// for stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
     /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
     public const string DevBoxAPI = "/users/me/devboxes?api-version=2023-10-01-preview";
 
@@ -31,8 +31,12 @@ public static class Constants
 
     public const string OperationsParameter = "operations";
 
-    public const string TopParameter = "top=1";
-
+    /// <summary>
+    /// Gets the Regex pattern for the name of a DevBox. This pattern is used to validate the name and the project name of a DevBox before attempting
+    /// to create it.
+    /// See URI section in https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/create-dev-box?view=rest-devcenter-developer-2023-04-01&tabs=HTTP
+    /// For more information on the pattern.
+    /// </summary>
     public const string NameRegexPattern = @"^[a-zA-Z0-9][a-zA-Z0-9-_.]{2,62}$";
 
     /// <summary>
@@ -48,7 +52,7 @@ public static class Constants
     /// <summary>
     /// API version used for start, stop, and restart APIs
     /// </summary>
-    /// For stable api's <seealso href="https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
+    /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
     /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
     public const string APIVersion = "api-version=2023-10-01-preview";
 
@@ -64,6 +68,9 @@ public static class Constants
 
     public const string PoolNameForCreationRequest = "poolName";
 
+    /// <summary>
+    /// We use zero as a signal that the progress is indefinite.
+    /// </summary>
     public const uint IndefiniteProgress = 0;
 
     public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
@@ -106,6 +113,9 @@ public static class Constants
 
     public const string DevBoxOperationFailedState = "Failed";
 
+    /// <summary>
+    /// The JSON options used to deserialize the DevCenter API responses.
+    /// </summary>
     public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,

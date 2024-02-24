@@ -15,5 +15,5 @@ public class TimeSpanServiceMock : ITimeSpanService
 {
     public TimeSpan DevBoxOperationDeadline => TimeSpan.FromSeconds(5);
 
-    public TimeSpan GetTimeSpanBasedOnAction(DevBoxActionToPerform actionToPerform) => TimeSpan.FromSeconds(1);
+    public TimeSpan GetPeriodIntervalBasedOnAction(DevBoxActionToPerform actionToPerform) => TimeSpan.FromSeconds(1);
 }
