@@ -1,18 +1,34 @@
-﻿// Copyright (c) Microsoft Corporation and Contributors
-// Licensed under the MIT license.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
 using AzureExtension.Contracts;
-using Microsoft.Identity.Client.Extensions.Msal;
+using AzureExtension.DevBox.DevBoxJsonToCsClasses;
+using AzureExtension.DevBox.Helpers;
+using AzureExtension.DevBox.Models;
+using AzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
 namespace AzureExtension.DevBox;
+
+public delegate DevBoxInstance DevBoxInstanceFactory(IDeveloperId developerId, DevBoxMachineState devBoxJson);
+
+public enum DevBoxActionToPerform
+{
+    None,
+    Start,
+    Stop,
+    Restart,
+    Delete,
+    Create,
+    Repair,
+}
 
 /// <summary>
 /// As the actual implementation of IComputeSystem, DevBoxInstance is an instance of a DevBox.
@@ -21,213 +37,100 @@ namespace AzureExtension.DevBox;
 /// </summary>
 public class DevBoxInstance : IComputeSystem
 {
-#region IComputeSystem Properties
-    public IDeveloperId? DevId
-    {
-        get; private set;
-    }
+    private readonly IDevBoxAuthService _authService;
 
-    public string? Name
-    {
-        get; private set;
-    }
+    private readonly IDevBoxManagementService _devBoxManagementService;
 
-    public string? Id
-    {
-        get; private set;
-    }
+    private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
 
-    public string? ProjectName
-    {
-        get; private set;
-    }
+    private const string SupplementalDisplayNamePrefix = "DevBox_SupplementalDisplayNamePrefix";
 
-    public string? State
-    {
-        get; private set;
-    }
+    private const string OsPropertyName = "DevBox_OsDisplayText";
 
-    public string? CPU
-    {
-        get; private set;
-    }
+    private const string DevBoxInstanceName = "DevBoxInstance";
 
-    public string? Memory
-    {
-        get; private set;
-    }
+    private readonly object _operationLock = new();
 
-    public Uri? WebURI
-    {
-        get; private set;
-    }
+    public bool IsOperationInProgress { get; private set; }
 
-    public Uri? BoxURI
-    {
-        get; private set;
-    }
+    public IDeveloperId AssociatedDeveloperId { get; private set; }
 
-    public Uri? RdpURI
-    {
-        get; private set;
-    }
+    public string Id { get; private set; }
 
-    public string? OS
-    {
-        get; private set;
-    }
+    public string Name { get; private set; }
+
+    public DevBoxMachineState DevBoxState { get; private set; }
+
+    public DevBoxActionToPerform CurrentActionToPerform { get; private set; }
+
+    public bool IsDevBoxBeingCreatedOrProvisioned => DevBoxState.ProvisioningState == Constants.DevBoxCreatingProvisioningState || DevBoxState.ProvisioningState == Constants.DevBoxProvisioningState;
+
+    public DevBoxRemoteConnectionData? RemoteConnectionData { get; private set; }
 
     public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
-#endregion
-
-    private string? DiskSize
-    {
-        get; set;
-    }
-
-    private readonly IDevBoxAuthService _authService;
 
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
-    public DevBoxInstance(IDevBoxAuthService devBoxAuthService)
+    public DevBoxInstance(
+        IDevBoxAuthService devBoxAuthService,
+        IDevBoxManagementService devBoxManagementService,
+        IDevBoxOperationWatcher devBoxOperationWatcher,
+        IDeveloperId developerId,
+        DevBoxMachineState devBoxMachineState)
     {
         _authService = devBoxAuthService;
+        _devBoxManagementService = devBoxManagementService;
+        _devBoxOperationWatcher = devBoxOperationWatcher;
+
+        DevBoxState = devBoxMachineState;
+        AssociatedDeveloperId = developerId;
+        Name = devBoxMachineState.Name;
+        Id = devBoxMachineState.UniqueId;
+
+        if (IsDevBoxBeingCreatedOrProvisioned)
+        {
+            IsOperationInProgress = true;
+        }
+
+        ProcessProperties();
     }
 
     private void ProcessProperties()
     {
         if (!Properties.Any())
         {
-            var properties = new List<ComputeSystemProperty>();
             try
             {
-                if (CPU is not null)
-                {
-                    var cpu = new ComputeSystemProperty(int.Parse(CPU, CultureInfo.CurrentCulture), ComputeSystemPropertyKind.CpuCount);
-                    properties.Add(cpu);
-                }
-
-                if (Memory is not null)
-                {
-                    int memoryInGB = int.Parse(Memory, CultureInfo.CurrentCulture);
-                    long memoryInBytes = memoryInGB * Constants.BytesInGb;
-                    var memory = new ComputeSystemProperty(memoryInBytes, ComputeSystemPropertyKind.AssignedMemorySizeInBytes);
-                    properties.Add(memory);
-                }
-
-                if (DiskSize is not null)
-                {
-                    int diskSizeInGB = int.Parse(DiskSize, CultureInfo.CurrentCulture);
-                    long diskSizeInBytes = diskSizeInGB * Constants.BytesInGb;
-                    var diskSize = new ComputeSystemProperty(diskSizeInBytes, ComputeSystemPropertyKind.StorageSizeInBytes);
-                    properties.Add(diskSize);
-                }
+                var properties = new List<ComputeSystemProperty>();
+                var cpu = new ComputeSystemProperty(DevBoxState.HardwareProfile.VCPUs, ComputeSystemPropertyKind.CpuCount);
+                var memory = new ComputeSystemProperty((ulong)DevBoxState.HardwareProfile.MemoryGB * Constants.BytesInGb, ComputeSystemPropertyKind.AssignedMemorySizeInBytes);
+                var diskSize = new ComputeSystemProperty((ulong)DevBoxState.StorageProfile.OsDisk.DiskSizeGB * Constants.BytesInGb, ComputeSystemPropertyKind.StorageSizeInBytes);
+                var operatingSystem = new ComputeSystemProperty(Resources.GetResource(OsPropertyName), DevBoxState.ImageReference.OperatingSystem, ComputeSystemPropertyKind.Generic);
+                properties.Add(operatingSystem);
+                properties.Add(cpu);
+                properties.Add(memory);
+                properties.Add(diskSize);
 
                 Properties = properties;
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error processing properties for {Name}: {ex.ToString}");
+                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error processing properties for {Name}", ex);
             }
         }
     }
 
-    /// <summary>
-    /// Fills the DevBoxInstance from the JSON returned from the DevBox API.
-    /// This includes the box name, id, state, CPU, memory, and OS.
-    /// </summary>
-    /// <param name="item">JSON that contains the dev box details</param>
-    /// <param name="project">Project under which the dev box exists</param>
-    /// <param name="devId">Developer ID for the dev box</param>
-    public void FillFromJson(JsonElement item, string project, IDeveloperId? devId)
-    {
-        item.TryGetProperty("uri", out var uri);
-        BoxURI = new Uri(uri.ToString());
-        item.TryGetProperty("name", out var name);
-        Name = name.ToString();
-        item.TryGetProperty("id", out var id);
-        Id = id.ToString();
-        item.TryGetProperty("powerState", out var powerState);
-        State = powerState.ToString();
-
-        if (item.TryGetProperty("hardwareProfile", out var hardwareProfile))
-        {
-            hardwareProfile.TryGetProperty("vCPUs", out var vCPUs);
-            CPU = vCPUs.ToString();
-            hardwareProfile.TryGetProperty("memoryGB", out var memoryGB);
-            Memory = memoryGB.ToString();
-        }
-
-        if (item.TryGetProperty("storageProfile", out var storageProfile))
-        {
-            if (storageProfile.TryGetProperty("osDisk", out var diskSizeGB))
-            {
-                if (diskSizeGB.TryGetProperty("diskSizeGB", out var diskSize))
-                {
-                    DiskSize = diskSize.ToString();
-                }
-            }
-        }
-
-        if (item.TryGetProperty("imageReference", out var imageReference))
-        {
-            if (imageReference.TryGetProperty("operatingSystem", out var operatingSystem))
-            {
-                OS = operatingSystem.ToString();
-            }
-        }
-
-        ProjectName = project;
-        DevId = devId;
-        AssociatedDeveloperId = devId ?? AssociatedDeveloperId;
-
-        try
-        {
-            (WebURI, RdpURI) = GetRemoteLaunchURIsAsync(BoxURI).GetAwaiter().GetResult();
-            Log.Logger()?.ReportInfo($"Created box {Name} with id {Id} with {State}, {CPU}, {Memory}, {BoxURI}, {OS}");
-            IsValid = true;
-        }
-        catch (Exception ex)
-        {
-            Log.Logger()?.ReportError($"Error making DevBox from JSON: {ex.ToString}");
-        }
-    }
-
-    private async Task<(Uri? WebURI, Uri? RdpURI)> GetRemoteLaunchURIsAsync(Uri boxURI)
+    private async Task GetRemoteLaunchURIsAsync(Uri boxURI)
     {
         var connectionUri = $"{boxURI}/remoteConnection?{Constants.APIVersion}";
-        var boxRequest = new HttpRequestMessage(HttpMethod.Get, connectionUri);
-        var httpClient = _authService.GetDataPlaneClient(DevId);
-        if (httpClient == null)
-        {
-            return (null, null);
-        }
-
-        var boxResponse = await httpClient.SendAsync(boxRequest);
-        var content = await boxResponse.Content.ReadAsStringAsync();
-        JsonElement json = JsonDocument.Parse(content).RootElement;
-        var remoteUri = new Uri(json.GetProperty("rdpConnectionUrl").ToString());
-        var webUrl = new Uri(json.GetProperty("webUrl").ToString());
-        return (webUrl, remoteUri);
+        var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(connectionUri), AssociatedDeveloperId, HttpMethod.Get, null);
+        RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
     }
 
     public ComputeSystemOperations SupportedOperations =>
         ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
 
-    public bool IsValid
-    {
-        get;
-        private set;
-    }
-
-    // To Do: Move this to a resource file
-    public string AlternativeDisplayName => new string("Project : " + ProjectName ?? "Unknown");
-
-    public IDeveloperId AssociatedDeveloperId
-    {
-        get => DevId ?? throw new NotImplementedException();
-        set => DevId = value;
-    }
+    public string AlternativeDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
     public string AssociatedProviderId => Constants.DevBoxProviderName;
 
@@ -235,69 +138,207 @@ public class DevBoxInstance : IComputeSystem
     /// Common method to perform REST operations on the DevBox.
     /// This method is used by Start, ShutDown, Restart, and Delete.
     /// </summary>
-    /// <param name="operation">Operation to be performed</param>
+    /// <param name="action">Operation to be performed</param>
     /// <param name="method">HttpMethod to be used</param>
     /// <returns>ComputeSystemOperationResult created from the result of the operation</returns>
-    private IAsyncOperation<ComputeSystemOperationResult> PerformRESTOperation(string operation, HttpMethod method)
+    private IAsyncOperation<ComputeSystemOperationResult> PerformRESTOperation(DevBoxActionToPerform action, HttpMethod method)
     {
         return Task.Run(async () =>
         {
             try
             {
-                var api = operation.Length > 0 ?
-                    $"{BoxURI}:{operation}?{Constants.APIVersion}" : $"{BoxURI}?{Constants.APIVersion}";
-                Log.Logger()?.ReportInfo($"Starting {Name} with {api}");
+                lock (_operationLock)
+                {
+                    if (IsOperationInProgress)
+                    {
+                        return new ComputeSystemOperationResult(new InvalidOperationException(), "Running multiple operations is not supported");
+                    }
 
-                var httpClient = _authService.GetDataPlaneClient(DevId);
-                if (httpClient == null)
-                {
-                    var ex = new ArgumentException("PerformRESTOperation: HTTPClient null");
-                    return new ComputeSystemOperationResult(ex, string.Empty);
+                    IsOperationInProgress = true;
                 }
 
-                var response = await httpClient.SendAsync(new HttpRequestMessage(method, api));
-                if (response.IsSuccessStatusCode)
-                {
-                    var res = new ComputeSystemOperationResult();
-                    return res;
-                }
-                else
-                {
-                    var ex = new HttpRequestException($"PerformRESTOperation: {operation} failed on {Name}: {response.StatusCode} {response.ReasonPhrase}");
-                    return new ComputeSystemOperationResult(ex, string.Empty);
-                }
+                CurrentActionToPerform = action;
+                var operation = DevBoxOperationHelper.ActionToPerformToString(action);
+
+                // The creation and delete operations do not require an operation string, but all the other operations do.
+                var operationUri = operation.Length > 0 ?
+                    $"{DevBoxState.Uri}:{operation}?{Constants.APIVersion}" : $"{DevBoxState.Uri}?{Constants.APIVersion}";
+                Log.Logger()?.ReportInfo($"Starting {Name} with {operationUri}");
+
+                var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
+                var operationLocation = result.ResponseHeader.OperationLocation;
+
+                // The last segment of the operationLocation is the operationId.
+                // E.g https://8a40af38-3b4c-4672-a6a4-5e964b1870ed-contosodevcenter.centralus.devcenter.azure.com/projects/myProject/operationstatuses/786a823c-8037-48ab-89b8-8599901e67d0
+                // See example Response: https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes/start-dev-box?view=rest-devcenter-developer-2023-04-01&tabs=HTTP
+                var operationId = Guid.Parse(operationLocation!.Segments.Last());
+
+                // Monitor the operations progress
+                _devBoxOperationWatcher.StartDevCenterOperationMonitor(AssociatedDeveloperId, operationLocation!, operationId, action, OperationCallback);
+                return new ComputeSystemOperationResult();
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"PerformRESTOperation: Exception: {operation} failed on {Name}: {ex.ToString}");
-                return new ComputeSystemOperationResult(ex, string.Empty);
+                UpdateStateForUI();
+                Log.Logger()?.ReportError(DevBoxInstanceName, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'", ex);
+                return new ComputeSystemOperationResult(ex, ex.Message);
             }
         }).AsAsyncOperation();
     }
 
+    private void RemoveOperationInProgressFlag()
+    {
+        lock (_operationLock)
+        {
+            IsOperationInProgress = false;
+        }
+    }
+
+    /// <summary>
+    /// When a Dev Box is created it the Dev Center started to provision it. We use this method once the provisioning is complete.
+    /// </summary>
+    /// <param name="devBoxMachineState">The new state of the Dev Box from the Dev Center</param>
+    /// <param name="status">The status of the provisioing</param>
+    public void ProvisioningMonitorCompleted(DevBoxMachineState? devBoxMachineState, ProvisioningStatus status)
+    {
+        if (!IsDevBoxBeingCreatedOrProvisioned)
+        {
+            return;
+        }
+
+        if (status == ProvisioningStatus.Succeeded && devBoxMachineState != null)
+        {
+            DevBoxState = devBoxMachineState;
+        }
+        else
+        {
+            // If the provisioning failed, we'll set the state to failed and powerstate to unknown.
+            // The PowerState being unknown will make the UI show the Dev Box state as unknown.
+            DevBoxState.ProvisioningState = Constants.DevBoxProvisioningFailedState;
+            DevBoxState.PowerState = Constants.DevBoxUnknownState;
+        }
+
+        RemoveOperationInProgressFlag();
+        UpdateStateForUI();
+    }
+
+    /// <summary>
+    /// Callback method for when we're performing a long running operation on the Dev Box. E.g. Start, Stop, Restart, Delete.
+    /// </summary>
+    /// <param name="status">The current status of the operation</param>
+    public void OperationCallback(DevCenterOperationStatus? status)
+    {
+        switch (status)
+        {
+            case DevCenterOperationStatus.NotStarted:
+            case DevCenterOperationStatus.Running:
+                break;
+            case DevCenterOperationStatus.Succeeded:
+                SetStateAfterOperationCompletedSuccessfully();
+                break;
+            default:
+                RemoveOperationInProgressFlag();
+                UpdateStateForUI();
+                Log.Logger()?.ReportError($"Dev Box operation stopped unexpectedly with status '{status}'");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// When a long running operation is complete, we'll update the state of the Dev Box. To do this we get
+    /// the new state from the Dev Center.
+    /// </summary>
+    private void SetStateAfterOperationCompletedSuccessfully()
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                if (CurrentActionToPerform == DevBoxActionToPerform.Delete)
+                {
+                    // DevBox no longer exists, so we can't get the state from the Dev Center.
+                    // so we'll artificially set the power state to deleted.
+                    DevBoxState.ProvisioningState = Constants.DevBoxDeletedState;
+                }
+                else
+                {
+                    // Refresh the state of the DevBox after the operation is complete.
+                    var devBoxUri = new Uri($"{DevBoxState.Uri}?{Constants.APIVersion}");
+                    var result = await _devBoxManagementService.HttpsRequestToDataPlane(devBoxUri, AssociatedDeveloperId, HttpMethod.Get, null);
+                    DevBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+                }
+
+                RemoveOperationInProgressFlag();
+                UpdateStateForUI();
+            }
+            catch (Exception ex)
+            {
+                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error setting state after the long running operation completed successfully", ex);
+                DevBoxState.ProvisioningState = Constants.DevBoxProvisioningFailedState;
+                DevBoxState.PowerState = Constants.DevBoxUnknownState;
+                RemoveOperationInProgressFlag();
+                UpdateStateForUI();
+            }
+        });
+    }
+
+    public void UpdateStateForUI()
+    {
+        StateChanged?.Invoke(this, GetState());
+    }
+
+    public ComputeSystemState GetState()
+    {
+        switch (DevBoxState.ProvisioningState)
+        {
+            case Constants.DevBoxCreatingProvisioningState:
+            case Constants.DevBoxProvisioningState:
+                return ComputeSystemState.Creating;
+            case Constants.DevBoxDeletedState:
+                return ComputeSystemState.Deleted;
+
+            // Fallthrough if we're not creating/provisioning and the Dev Box exists.
+            // We'll look at the the power state next to figure out what state to send
+            // to Dev Home.
+        }
+
+        switch (DevBoxState.PowerState)
+        {
+            case Constants.DevBoxRunningState:
+                return ComputeSystemState.Running;
+
+            // We don't have a direct mapping for the hiberbated state and may need to add one one day.
+            case Constants.DevBoxHibernatedState:
+            case Constants.DevBoxDeallocatedState:
+            case Constants.DevBoxPoweredOffState:
+                return ComputeSystemState.Stopped;
+            default:
+                return ComputeSystemState.Unknown;
+        }
+    }
+
     public IAsyncOperation<ComputeSystemOperationResult> StartAsync(string options)
     {
-        // ToDo: Change this event
         StateChanged?.Invoke(this, ComputeSystemState.Starting);
-        return PerformRESTOperation("start", HttpMethod.Post);
+        return PerformRESTOperation(DevBoxActionToPerform.Start, HttpMethod.Post);
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> ShutDownAsync(string options)
     {
         StateChanged?.Invoke(this, ComputeSystemState.Stopping);
-        return PerformRESTOperation("stop", HttpMethod.Post);
+        return PerformRESTOperation(DevBoxActionToPerform.Stop, HttpMethod.Post);
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> RestartAsync(string options)
     {
         StateChanged?.Invoke(this, ComputeSystemState.Restarting);
-        return PerformRESTOperation("restart", HttpMethod.Post);
+        return PerformRESTOperation(DevBoxActionToPerform.Restart, HttpMethod.Post);
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> DeleteAsync(string options)
     {
         StateChanged?.Invoke(this, ComputeSystemState.Deleting);
-        return PerformRESTOperation(string.Empty, HttpMethod.Delete);
+        return PerformRESTOperation(DevBoxActionToPerform.Delete, HttpMethod.Delete);
     }
 
     /// <summary>
@@ -306,19 +347,24 @@ public class DevBoxInstance : IComputeSystem
     /// <param name="options">Unused parameter</param>
     public IAsyncOperation<ComputeSystemOperationResult> ConnectAsync(string options)
     {
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
             try
             {
+                if (RemoteConnectionData is null)
+                {
+                    await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
+                }
+
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
-                psi.FileName = WebURI?.ToString();
+                psi.FileName = RemoteConnectionData?.WebUrl;
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error connecting to {Name}: {ex.ToString}");
+                Log.Logger()?.ReportError($"Error connecting to {Name}", ex);
                 return new ComputeSystemOperationResult(ex, string.Empty);
             }
         }).AsAsyncOperation();
@@ -333,27 +379,7 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            try
-            {
-                if (State == "Running")
-                {
-                    return new ComputeSystemStateResult(ComputeSystemState.Running);
-                }
-                else if (State == "Deallocated")
-                {
-                    return new ComputeSystemStateResult(ComputeSystemState.Stopped);
-                }
-                else
-                {
-                    Log.Logger()?.ReportError($"Unknown state {State}");
-                    return new ComputeSystemStateResult(ComputeSystemState.Unknown);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Logger()?.ReportError($"Error getting state of {Name}: {ex.ToString}");
-                return new ComputeSystemStateResult(ex, string.Empty);
-            }
+            return new ComputeSystemStateResult(GetState());
         }).AsAsyncOperation();
     }
 
@@ -375,7 +401,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error getting thumbnail for {Name}: {ex.ToString}");
+                Log.Logger()?.ReportError($"Error getting thumbnail for {Name}", ex);
                 return new ComputeSystemThumbnailResult(ex, string.Empty);
             }
         }).AsAsyncOperation();
@@ -385,7 +411,6 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            ProcessProperties();
             return Properties;
         }).AsAsyncOperation();
     }
@@ -447,5 +472,9 @@ public class DevBoxInstance : IComputeSystem
         }).AsAsyncOperation();
     }
 
-    public IApplyConfigurationOperation ApplyConfiguration(string configuration) => throw new NotImplementedException();
+    public IApplyConfigurationOperation? ApplyConfiguration(string configuration)
+    {
+        // Apply configuration isn't supported yet for Dev Boxes.
+        return null;
+    }
 }
