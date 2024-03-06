@@ -31,6 +31,10 @@ public class RepositoryProvider : IRepositoryProvider2
 
     private AzureRepositoryHierarchy? _azureHierarchy;
 
+    private string _serverToSearch = string.Empty;
+
+    private string _organizationToSearch = string.Empty;
+
     private const string _defaultSearchServerName = "dev.azure.com";
 
     private const string _server = "server";
@@ -46,12 +50,11 @@ public class RepositoryProvider : IRepositoryProvider2
         get; private set;
     }
 
-    public string[] SearchFieldNames => new string[3] { _server, _organization, _project };
+    public string[] SearchFieldNames => [_server, _organization];
 
-    /// <summary>
-    /// On first query, get repos based on the PR date.  All other requests won't check for PRs.
-    /// </summary>
-    private bool _shouldIgnorePRDate;
+    public string AskToSearchLabel => "Change Path";
+
+    public bool IsSearchingSupported => true;
 
     public RepositoryProvider(IRandomAccessStreamReference icon)
     {
@@ -152,29 +155,38 @@ public class RepositoryProvider : IRepositoryProvider2
     /// <returns>A list of repositories the user has access to.</returns>
     public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IDeveloperId developerId)
     {
-        if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
+        return Task.Run(() =>
         {
-            return Task.Run(() =>
+            try
             {
-                var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
-                return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
-            }).AsAsyncOperation();
-        }
+                if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
+                {
+                    var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
+                    return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
+                }
 
-        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+                _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-        var server = string.Empty;
-        var organizations = _azureHierarchy.GetOrganizations();
+                var server = string.Empty;
+                var organizations = _azureHierarchy.GetOrganizations();
 #pragma warning disable CA1309 // Use ordinal string comparison
-        // Try to find any organizations with the modern URL format.
-        var defaultOrg = organizations.FirstOrDefault(x => x.AccountName.Equals(_defaultSearchServerName));
+                // Try to find any organizations with the modern URL format.
+                var defaultOrg = organizations.FirstOrDefault(x => x.AccountName.Equals(_defaultSearchServerName));
 #pragma warning restore CA1309 // Use ordinal string comparison
-        if (defaultOrg != null)
-        {
-            server = _defaultSearchServerName;
-        }
+                if (defaultOrg != null)
+                {
+                    server = _defaultSearchServerName;
+                }
 
-        return GetRepositoriesAsync(new Dictionary<string, string> { { _server, server } }, developerId);
+                var repos = GetRepos(azureDeveloperId, false);
+
+                return new RepositoriesResult(repos);
+            }
+            catch (Exception e)
+            {
+                return new RepositoriesResult(e, e.Message);
+            }
+        }).AsAsyncOperation();
     }
 
     public IAsyncOperation<RepositoryResult> GetRepositoryFromUriAsync(Uri uri)
@@ -347,96 +359,135 @@ public class RepositoryProvider : IRepositoryProvider2
         GC.SuppressFinalize(this);
     }
 
-#pragma warning disable CA1309 // Use ordinal string comparison. I want to use linguistic comparison.
-    public IAsyncOperation<RepositoriesResult> GetRepositoriesAsync(IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
+    public IAsyncOperation<RepositoriesSearchResult> GetRepositoriesAsync(IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
     {
-        // First query will find repos only if the user made a PR.
-        var shouldIgnorePRDateOld = _shouldIgnorePRDate;
-        _shouldIgnorePRDate = true;
         return Task.Run(() =>
         {
             try
             {
                 var serverToUse = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
+                _serverToSearch = serverToUse;
+
                 var organizationToUse = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
+                _organizationToSearch = organizationToUse;
+
                 var projectToUse = fieldValues.ContainsKey(_project) ? fieldValues[_project] : string.Empty;
 
                 // Get access token for ADO API calls.
                 if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
                 {
                     var exception = new NotSupportedException("The DeveloperId is not valid.");
-                    return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
+                    return new RepositoriesSearchResult(exception, $"{exception.Message} HResult: {exception.HResult}");
                 }
 
-                _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+                var repos = GetRepos(azureDeveloperId, true);
+                var projects = GetValuesForSearchFieldAsync(fieldValues, _project, developerId).AsTask().Result;
 
-                var organizations = _azureHierarchy.GetOrganizations();
-                var orgsInModernUrlFormat = new List<Organization>();
-                if (serverToUse.Equals(_defaultSearchServerName))
-                {
-                    // For a default search, look up all orgs with the modern URL format
-                    orgsInModernUrlFormat = organizations.Where(x => x.AccountUri.Host.Equals(_defaultSearchServerName)).ToList();
-                }
-
-                // If the user is apart of orgs in the modern URL format, use these going forward.
-                if (orgsInModernUrlFormat.Count > 0)
-                {
-                    organizations = orgsInModernUrlFormat;
-                }
-
-                if (!string.IsNullOrEmpty(organizationToUse))
-                {
-                    organizations = organizations.Where(x => x.AccountName.Equals(organizationToUse)).ToList();
-                }
-
-                Dictionary<Organization, List<TeamProjectReference>> organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
-
-                // Establish a connection between organizations and their projects.
-                Parallel.ForEach(organizations, organization =>
-                {
-                    var projects = _azureHierarchy.GetProjectsAsync(organization).Result;
-                    if (!string.IsNullOrEmpty(projectToUse))
-                    {
-                        projects = projects.Where(x => x.Name.Equals(projectToUse)).ToList();
-                    }
-
-                    if (projects.Count != 0)
-                    {
-                        organizationsAndProjects.Add(organization, projects);
-                    }
-                });
-
-                var reposToReturn = new List<IRepository>();
-
-                // organizationAndProjects include all relevant information to get repos.
-                Parallel.ForEach(organizationsAndProjects, organizationAndProject =>
-                {
-                    try
-                    {
-                        // Making a connection can throw.
-                        var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organizationAndProject.Key.AccountUri, azureDeveloperId);
-                        var criteria = new GitPullRequestSearchCriteria();
-                        criteria.CreatorId = connection.AuthorizedIdentity.Id;
-
-                        Parallel.ForEach(organizationAndProject.Value, project =>
-                        {
-                            reposToReturn.AddRange(GetRepos(connection, project, criteria, shouldIgnorePRDateOld));
-                        });
-                    }
-                    catch (Exception e)
-                    {
-                        Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
-                    }
-                });
-
-                return new RepositoriesResult(reposToReturn);
+                return new RepositoriesSearchResult(repos, Path.Join(_serverToSearch, _organizationToSearch), projects.ToArray(), _project);
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", ex);
-                return new RepositoriesResult(new List<IRepository>());
+                return new RepositoriesSearchResult(e, e.Message);
             }
         }).AsAsyncOperation();
+    }
+
+#pragma warning disable CA1309 // Use ordinal string comparison. I want to use linguistic comparison.
+    /// <summary>
+    /// Get repositories.  Uses _serverToUse and _projectToUse
+    /// </summary>
+    /// <param name="azureDeveloperId">The developer Id used to get the repos.</param>
+    /// <param name="shouldIgnorePRDate">The the PR date should not be used when determining what repos to return.</param>
+    /// <returns>A list of repos.  Can be empty.</returns>
+    /// <remarks>
+    /// Methods called here can throw.  Please surround this call with try/catch
+    /// </remarks>
+    private List<IRepository> GetRepos(DeveloperId.DeveloperId azureDeveloperId, bool shouldIgnorePRDate)
+    {
+        _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
+
+        var organizations = _azureHierarchy.GetOrganizations();
+        var orgsInModernUrlFormat = new List<Organization>();
+        if (_serverToSearch.Equals(_defaultSearchServerName))
+        {
+            // For a default search, look up all orgs with the modern URL format
+            orgsInModernUrlFormat = organizations.Where(x => x.AccountUri.Host.Equals(_defaultSearchServerName)).ToList();
+        }
+
+        // If the user is apart of orgs in the modern URL format, use these going forward.
+        if (orgsInModernUrlFormat.Count > 0)
+        {
+            organizations = orgsInModernUrlFormat;
+        }
+
+        if (!string.IsNullOrEmpty(_organizationToSearch))
+        {
+            organizations = organizations.Where(x => x.AccountName.Equals(_organizationToSearch)).ToList();
+        }
+
+        Dictionary<Organization, List<TeamProjectReference>> organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
+
+        // Establish a connection between organizations and their projects.
+        Parallel.ForEach(organizations, organization =>
+        {
+            var projects = _azureHierarchy.GetProjectsAsync(organization).Result;
+
+            if (projects.Count != 0)
+            {
+                organizationsAndProjects.Add(organization, projects);
+            }
+        });
+
+        var reposToReturn = new List<IRepository>();
+
+        // organizationAndProjects include all relevant information to get repos.
+        Parallel.ForEach(organizationsAndProjects, organizationAndProject =>
+        {
+            try
+            {
+                // Making a connection can throw.
+                var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(organizationAndProject.Key.AccountUri, azureDeveloperId);
+                var criteria = new GitPullRequestSearchCriteria();
+                criteria.CreatorId = connection.AuthorizedIdentity.Id;
+
+                Parallel.ForEach(organizationAndProject.Value, project =>
+                {
+                    reposToReturn.AddRange(GetRepos(connection, project, criteria, shouldIgnorePRDate));
+                });
+            }
+            catch (Exception e)
+            {
+                Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
+            }
+        });
+
+        // Figure out what server the organizations are from. if the user did not supply one.
+        if (string.IsNullOrEmpty(_serverToSearch))
+        {
+            HashSet<string> servers = new();
+            foreach (var organization in organizations)
+            {
+                if (organization.AccountUri.OriginalString.Contains("dev.azure.com"))
+                {
+                    servers.Add("dev.azure.com");
+                }
+                else
+                {
+                    servers.Add($"{organization.AccountName}.visualstudio.com");
+                }
+            }
+
+            if (servers.Count == 1)
+            {
+                _serverToSearch = servers.First();
+            }
+            else
+            {
+                _serverToSearch = "*";
+            }
+        }
+
+        return reposToReturn;
     }
 #pragma warning restore CA1309 // Use ordinal string comparison
 
@@ -446,18 +497,18 @@ public class RepositoryProvider : IRepositoryProvider2
     /// <returns>A readonly list of search field names.</returns>
     public IReadOnlyList<string> GetSearchFieldNames()
     {
-        return new List<string> { _server, _organization, _project };
+        return new List<string> { _server, _organization };
     }
 
 #pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
     /// <summary>
     /// Gets a list of values that work with the given input.
     /// </summary>
-    /// <param name="requestedSearchField">Results will be for this search field.</param>
     /// <param name="fieldValues">The inputs used to filter the results.</param>
+    /// <param name="requestedSearchField">Results will be for this search field.</param>
     /// <param name="developerId">Used to access private org and project information.</param>
     /// <returns>A list of all values for fieldName that makes snes given the input.</returns>
-    public IAsyncOperation<IReadOnlyList<string>> GetValuesForSearchFieldAsync(string requestedSearchField, IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
+    public IAsyncOperation<IReadOnlyList<string>> GetValuesForSearchFieldAsync(IReadOnlyDictionary<string, string> fieldValues, string requestedSearchField, IDeveloperId developerId)
     {
         // Get access token for ADO API calls.
         if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
