@@ -19,8 +19,6 @@ public partial class DevBoxTests
 {
     private readonly AutoResetEvent _autoResetEvent = new(false);
 
-    public bool CreationCompletedSuccessfully { get; set; }
-
     public ComputeSystemState ActualState { get; set; }
 
     public void OnStateChange(IComputeSystem sender, ComputeSystemState state)
@@ -28,18 +26,8 @@ public partial class DevBoxTests
         ActualState = state;
     }
 
-    public void OnProgress(ICreateComputeSystemOperation op, ComputeSystemOperationData data)
+    public void OnProgress(ICreateComputeSystemOperation op, CreateComputeSystemProgressEventArgs data)
     {
-    }
-
-    public void OnCompleted(ICreateComputeSystemOperation op, CreateComputeSystemResult result)
-    {
-        if (result.Result.Status == ProviderOperationStatus.Success)
-        {
-            CreationCompletedSuccessfully = true;
-        }
-
-        _autoResetEvent.Set();
     }
 
     [TestMethod]
@@ -56,7 +44,7 @@ public partial class DevBoxTests
 
         // Act
         var provider = TestHost!.Services.GetService<DevBoxProvider>();
-        var systems = provider?.GetComputeSystemsAsync(new EmptyDeveloperId()).Result;
+        var systems = provider?.GetDevBoxesAsync(new EmptyDeveloperId()).Result;
 
         // Assert
         Assert.IsTrue(systems?.Any());
@@ -64,7 +52,7 @@ public partial class DevBoxTests
 
     [TestMethod]
     [TestCategory("Unit")]
-    public void DevBox_CreateDevBox()
+    public async Task DevBox_CreateDevBox()
     {
         // Arrange
         var devBoxList = JsonSerializer.Deserialize<DevBoxMachines>(MockDevBoxListJson, Constants.JsonOptions);
@@ -83,21 +71,14 @@ public partial class DevBoxTests
 
         // Act
         var provider = TestHost!.Services.GetService<DevBoxProvider>();
-
-        if (provider?.CreateComputeSystem(new EmptyDeveloperId(), MockTestCreationParametersJson) is CreateComputeSystemOperation operation)
-        {
-            operation.Completed += OnCompleted;
-            operation.Progress += OnProgress;
-            operation.Start();
-            _autoResetEvent.WaitOne(TimeSpan.FromSeconds(10));
-            operation.Completed -= OnCompleted;
-            operation.Progress -= OnProgress;
-        }
-
-        _autoResetEvent.WaitOne(TimeSpan.FromSeconds(6));
+        var operation = provider!.CreateCreateComputeSystemOperation(new EmptyDeveloperId(), MockTestCreationParametersJson) as CreateComputeSystemOperation;
+        operation!.Progress += OnProgress;
+        var result = await operation.StartAsync();
+        await Task.Delay(TimeSpan.FromSeconds(5)); // wait for the operation to complete
+        operation.Progress -= OnProgress;
 
         // Assert
-        Assert.IsTrue(CreationCompletedSuccessfully);
+        Assert.IsTrue(result.Result.Status == ProviderOperationStatus.Success);
     }
 
     [TestMethod]
@@ -128,20 +109,22 @@ public partial class DevBoxTests
 
         // Act
         var provider = TestHost!.Services.GetService<DevBoxProvider>();
-        var systems = provider?.GetComputeSystemsAsync(new EmptyDeveloperId()).Result;
+        var systems = provider?.GetDevBoxesAsync(new EmptyDeveloperId()).Result;
         var devBox = systems?.FirstOrDefault();
 
         Assert.IsNotNull(devBox);
-        var currentState = await devBox!.GetStateAsync(string.Empty);
+        var currentState = await devBox!.GetStateAsync();
         Assert.IsTrue(currentState.State == ComputeSystemState.Stopped);
 
         devBox!.StateChanged += OnStateChange;
         var result = await devBox.StartAsync(string.Empty);
         Assert.IsTrue(result.Result.Status == ProviderOperationStatus.Success);
+        var retries = 5u;
 
-        while (ActualState != ComputeSystemState.Running)
+        while (retries > 0 && ActualState != ComputeSystemState.Running)
         {
-            await Task.Delay(1);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            retries--;
         }
 
         devBox!.StateChanged -= OnStateChange;

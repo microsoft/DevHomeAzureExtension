@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
 
 namespace AzureExtension.DevBox;
@@ -121,6 +122,7 @@ public static class Constants
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new DevCenterOperationStatusConverter() },
+        TypeInfoResolver = new JsonSourceGenerationContext(),
     };
 
     /// <summary>
@@ -129,14 +131,30 @@ public static class Constants
     public const string ThumbnailURI = "ms-appx:///AzureExtension/Assets/DevBoxThumbnail.png";
 
     /// <summary>
-    /// Location of the provider icon
+    /// Location of the provider icon.
     /// </summary>
-    public const string ProviderURI = "ms-appx:///AzureExtension/Assets/DevBoxProvider.png";
+    /// <remarks>
+    /// We use different icon locations for different builds. Note these are ms-resource URIs, but are used by Dev Home to load the providers icon,
+    /// from the extension package. Extensions that implement the IComputeSystemProvider interface must provide a provider icon in this format.
+    /// Dev Home will use SHLoadIndirectString (https://learn.microsoft.com/windows/win32/api/shlwapi/nf-shlwapi-shloadindirectstring) to load the
+    /// location of the icon from the extensions package.Once it gets this location, it will load the icon from the path and display it in the UI.
+    /// Icons should be located in an extensions resource.pri file which is generated at build time.
+    /// See the MakePri.exe documentation for how you can view what is in the resource.pri file, so you can find the location of your icon.
+    /// https://learn.microsoft.com/en-us/windows/uwp/app-resources/makepri-exe-command-options. (use MakePri.exe in a VS Developer Command Prompt or
+    /// Powershell window)
+    /// </remarks>
+#if CANARY_BUILD
+    public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Canary/Files/AzureExtension/Assets/DevBoxProvider.png";
+#elif STABLE_BUILD
+    public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension/Files/AzureExtension/Assets/DevBoxProvider.png";
+#else
+    public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Dev/Files/AzureExtension/Assets/DevBoxProvider.png";
+#endif
 
     /// <summary>
     /// Name of the DevBox provider
     /// </summary>
-    public const string DevBoxProviderName = "Microsoft.DevBox";
+    public const string DevBoxProviderId = "Microsoft.DevBox";
 
     /// <summary>
     /// Non localized display Name for Microsoft Dev Box.
@@ -147,4 +165,14 @@ public static class Constants
     /// Size of a GB in bytes
     /// </summary>
     public const ulong BytesInGb = 1073741824UL;
+
+    /// <summary>
+    /// Resource key for the error message when a method is not implemented.
+    /// </summary>
+    public const string DevBoxMethodNotImplementedKey = "DevBox_MethodNotImplementedError";
+
+    /// <summary>
+    /// Resource key for the error message the Dev Box extension is unable to perform a requested operation.
+    /// </summary>
+    public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
 }

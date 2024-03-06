@@ -212,9 +212,9 @@ public partial class DevBoxTests : IDisposable
 
                 services.AddSingleton<ITimeSpanService, TimeSpanServiceMock>();
                 services.AddSingleton<IDevBoxOperationWatcher, DevBoxOperationWatcher>();
-                services.AddTransient<IDevBoxCreationManager, DevBoxCreationManager>();
-                services.AddTransient<DevBoxInstanceFactory>(sp => (developerId, dexBoxMachine) => ActivatorUtilities.CreateInstance<DevBoxInstance>(sp, developerId, dexBoxMachine));
-                services.AddTransient<CreateComputeSystemOperationFactory>(sp => (devId, userOptions) => ActivatorUtilities.CreateInstance<CreateComputeSystemOperation>(sp, devId, userOptions));
+                services.AddSingleton<IDevBoxCreationManager, DevBoxCreationManager>();
+                services.AddSingleton<DevBoxInstanceFactory>(sp => (developerId, dexBoxMachine) => ActivatorUtilities.CreateInstance<DevBoxInstance>(sp, developerId, dexBoxMachine));
+                services.AddSingleton<CreateComputeSystemOperationFactory>(sp => (devId, userOptions) => ActivatorUtilities.CreateInstance<CreateComputeSystemOperation>(sp, devId, userOptions));
             })
             .Build();
     }

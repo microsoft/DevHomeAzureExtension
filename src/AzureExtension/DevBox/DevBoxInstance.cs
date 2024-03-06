@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
@@ -49,6 +50,8 @@ public class DevBoxInstance : IComputeSystem
 
     private const string DevBoxInstanceName = "DevBoxInstance";
 
+    private const string DevBoxMultipleConcurrentOperationsNotSupportedKey = "DevBox_MultipleConcurrentOperationsNotSupport";
+
     private readonly object _operationLock = new();
 
     public bool IsOperationInProgress { get; private set; }
@@ -57,7 +60,7 @@ public class DevBoxInstance : IComputeSystem
 
     public string Id { get; private set; }
 
-    public string Name { get; private set; }
+    public string DisplayName { get; private set; }
 
     public DevBoxMachineState DevBoxState { get; private set; }
 
@@ -84,7 +87,7 @@ public class DevBoxInstance : IComputeSystem
 
         DevBoxState = devBoxMachineState;
         AssociatedDeveloperId = developerId;
-        Name = devBoxMachineState.Name;
+        DisplayName = devBoxMachineState.Name;
         Id = devBoxMachineState.UniqueId;
 
         if (IsDevBoxBeingCreatedOrProvisioned)
@@ -102,20 +105,19 @@ public class DevBoxInstance : IComputeSystem
             try
             {
                 var properties = new List<ComputeSystemProperty>();
-                var cpu = new ComputeSystemProperty(DevBoxState.HardwareProfile.VCPUs, ComputeSystemPropertyKind.CpuCount);
-                var memory = new ComputeSystemProperty((ulong)DevBoxState.HardwareProfile.MemoryGB * Constants.BytesInGb, ComputeSystemPropertyKind.AssignedMemorySizeInBytes);
-                var diskSize = new ComputeSystemProperty((ulong)DevBoxState.StorageProfile.OsDisk.DiskSizeGB * Constants.BytesInGb, ComputeSystemPropertyKind.StorageSizeInBytes);
-                var operatingSystem = new ComputeSystemProperty(Resources.GetResource(OsPropertyName), DevBoxState.ImageReference.OperatingSystem, ComputeSystemPropertyKind.Generic);
+                var cpu = ComputeSystemProperty.Create(ComputeSystemPropertyKind.CpuCount, DevBoxState.HardwareProfile.VCPUs);
+                var memory = ComputeSystemProperty.Create(ComputeSystemPropertyKind.AssignedMemorySizeInBytes, (ulong)DevBoxState.HardwareProfile.MemoryGB * Constants.BytesInGb);
+                var diskSize = ComputeSystemProperty.Create(ComputeSystemPropertyKind.StorageSizeInBytes, (ulong)DevBoxState.StorageProfile.OsDisk.DiskSizeGB * Constants.BytesInGb);
+                var operatingSystem = ComputeSystemProperty.CreateCustom(DevBoxState.ImageReference.OperatingSystem, Resources.GetResource(OsPropertyName), null);
                 properties.Add(operatingSystem);
                 properties.Add(cpu);
                 properties.Add(memory);
                 properties.Add(diskSize);
-
                 Properties = properties;
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error processing properties for {Name}", ex);
+                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error processing properties for {DisplayName}", ex);
             }
         }
     }
@@ -130,9 +132,9 @@ public class DevBoxInstance : IComputeSystem
     public ComputeSystemOperations SupportedOperations =>
         ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
 
-    public string AlternativeDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
+    public string SupplementalDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
-    public string AssociatedProviderId => Constants.DevBoxProviderName;
+    public string AssociatedProviderId => Constants.DevBoxProviderId;
 
     /// <summary>
     /// Common method to perform REST operations on the DevBox.
@@ -151,7 +153,7 @@ public class DevBoxInstance : IComputeSystem
                 {
                     if (IsOperationInProgress)
                     {
-                        return new ComputeSystemOperationResult(new InvalidOperationException(), "Running multiple operations is not supported");
+                        return new ComputeSystemOperationResult(new InvalidOperationException(), Resources.GetResource(DevBoxMultipleConcurrentOperationsNotSupportedKey), "Running multiple operations is not supported");
                     }
 
                     IsOperationInProgress = true;
@@ -163,7 +165,7 @@ public class DevBoxInstance : IComputeSystem
                 // The creation and delete operations do not require an operation string, but all the other operations do.
                 var operationUri = operation.Length > 0 ?
                     $"{DevBoxState.Uri}:{operation}?{Constants.APIVersion}" : $"{DevBoxState.Uri}?{Constants.APIVersion}";
-                Log.Logger()?.ReportInfo($"Starting {Name} with {operationUri}");
+                Log.Logger()?.ReportInfo($"Starting {DisplayName} with {operationUri}");
 
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
                 var operationLocation = result.ResponseHeader.OperationLocation;
@@ -181,7 +183,7 @@ public class DevBoxInstance : IComputeSystem
             {
                 UpdateStateForUI();
                 Log.Logger()?.ReportError(DevBoxInstanceName, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'", ex);
-                return new ComputeSystemOperationResult(ex, ex.Message);
+                return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
     }
@@ -364,8 +366,8 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error connecting to {Name}", ex);
-                return new ComputeSystemOperationResult(ex, string.Empty);
+                Log.Logger()?.ReportError($"Error connecting to {DisplayName}", ex);
+                return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), string.Empty);
             }
         }).AsAsyncOperation();
     }
@@ -375,7 +377,7 @@ public class DevBoxInstance : IComputeSystem
         return ShutDownAsync(options);
     }
 
-    public IAsyncOperation<ComputeSystemStateResult> GetStateAsync(string options)
+    public IAsyncOperation<ComputeSystemStateResult> GetStateAsync()
     {
         return Task.Run(() =>
         {
@@ -395,14 +397,18 @@ public class DevBoxInstance : IComputeSystem
 
                 // Convert the stream to a byte array
                 var bytes = new byte[randomAccessStream.Size];
-                await randomAccessStream.ReadAsync(bytes.AsBuffer(), (uint)randomAccessStream.Size, InputStreamOptions.None);
+
+                // safely convert ulong to uint
+                var maxSizeSafeUlongToUint = (uint)Math.Min(randomAccessStream.Size, uint.MaxValue);
+
+                await randomAccessStream.ReadAsync(bytes.AsBuffer(), maxSizeSafeUlongToUint, InputStreamOptions.None);
 
                 return new ComputeSystemThumbnailResult(bytes);
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error getting thumbnail for {Name}", ex);
-                return new ComputeSystemThumbnailResult(ex, string.Empty);
+                Log.Logger()?.ReportError($"Error getting thumbnail for {DisplayName}", ex);
+                return new ComputeSystemThumbnailResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
     }
@@ -420,7 +426,7 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
@@ -428,7 +434,7 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
@@ -436,7 +442,7 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
@@ -444,7 +450,7 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
@@ -452,7 +458,7 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
@@ -460,21 +466,20 @@ public class DevBoxInstance : IComputeSystem
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
-    public IAsyncOperation<ComputeSystemOperationResult> ModifyPropertiesAsync(string options)
+    public IAsyncOperation<ComputeSystemOperationResult> ModifyPropertiesAsync(string inputJson)
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), "Method not implemented");
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
-    public IApplyConfigurationOperation? ApplyConfiguration(string configuration)
-    {
-        // Apply configuration isn't supported yet for Dev Boxes.
-        return null;
-    }
+    // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
+    // Dev Home should not call this method and should use the Supported Operations to determine what operations are available.
+    // Currently, the supported operations are Start, Shutdown, Restart, and Delete.
+    public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration) => throw new NotImplementedException();
 }
