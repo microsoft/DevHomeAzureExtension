@@ -5,7 +5,7 @@ namespace DevHome.Logging;
 
 public partial class Options
 {
-    private const string LogFileNameDefault = "DevHomeAzureExtension.log";
+    private const string LogFileNameDefault = "DevHomeAzureExtension.dhlog";
     private const string LogFileFolderNameDefault = "{now}";
 
     public string LogFileName { get; set; } = LogFileNameDefault;
