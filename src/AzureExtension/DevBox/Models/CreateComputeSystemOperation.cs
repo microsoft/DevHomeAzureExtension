@@ -18,6 +18,10 @@ public delegate CreateComputeSystemOperation CreateComputeSystemOperationFactory
 /// </summary>
 public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 {
+#pragma warning disable IDE0044 // Add readonly modifier
+    private CreateComputeSystemResult _result;
+#pragma warning restore IDE0044 // Add readonly modifier
+
     private const string OperationInProgressMessageKey = "DevBox_CreationOperationAlreadyInProgress";
 
     private const string OperationCompletedMessageKey = "DevBox_CreationOperationAlreadyCompleted";
@@ -40,9 +44,9 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 
     public CancellationTokenSource CancellationTokenSource { get; private set; } = new();
 
-    public CreateComputeSystemResult? Result { get; private set; }
-
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     public CreateComputeSystemOperation(IDevBoxCreationManager devBoxCreationManager, IDeveloperId developerId, DevBoxCreationParameters parameters)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
         _devBoxCreationManager = devBoxCreationManager;
         DevBoxCreationParameters = parameters;
@@ -66,8 +70,7 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
                     }
                     else if (IsCompleted)
                     {
-                        var exception = new DevBoxCreationException("Operation already completed");
-                        return new CreateComputeSystemResult(exception, Resources.GetResource(OperationCompletedMessageKey), exception.Message);
+                        return _result;
                     }
 
                     IsOperationInProgress = true;
@@ -76,14 +79,22 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
                 // In the future we'll need to add a way to cancel the operation if the Async operation is cancelled from Dev Home.
                 // Dev Center in the Dev Portal allows a Dev Box to be deleted while its still in the creation phase. You can think
                 // of this as cancelling the operation.
-                await _devBoxCreationManager.StartCreateDevBoxOperation(this, _developerId, DevBoxCreationParameters);
+                _result = await _devBoxCreationManager.StartCreateDevBoxOperation(this, _developerId, DevBoxCreationParameters);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                CompleteWithFailure(e, e.Message);
+                _result = new CreateComputeSystemResult(ex, Resources.GetResource(OperationCompletedMessageKey), ex.Message);
             }
 
-            return Result!;
+            // Now that the operation is complete, we can reset the operation state.
+            lock (_lock)
+            {
+                IsOperationInProgress = false;
+                IsCompleted = true;
+                OperationProgress = null;
+            }
+
+            return _result;
         }).AsAsyncOperation();
     }
 
@@ -95,34 +106,5 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
         }
 
         OperationProgress?.Invoke(this, new(operationStatus, operationProgress));
-    }
-
-    public void CompleteWithFailure(Exception exception, string displayText)
-    {
-        if (IsCompleted)
-        {
-            return;
-        }
-
-        IsCompleted = true;
-        Result ??= new CreateComputeSystemResult(exception, displayText, exception.Message);
-        ResetAllSubscriptions();
-    }
-
-    public void CompleteWithSuccess(DevBoxInstance devBox)
-    {
-        if (IsCompleted)
-        {
-            return;
-        }
-
-        IsCompleted = true;
-        Result ??= new CreateComputeSystemResult(devBox);
-        ResetAllSubscriptions();
-    }
-
-    private void ResetAllSubscriptions()
-    {
-        OperationProgress = null;
     }
 }

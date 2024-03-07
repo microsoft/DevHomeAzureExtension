@@ -42,7 +42,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     }
 
     /// <inheritdoc cref="IDevBoxCreationManager.StartCreateDevBoxOperation"/>
-    public async Task StartCreateDevBoxOperation(CreateComputeSystemOperation operation, IDeveloperId developerId, DevBoxCreationParameters parameters)
+    public async Task<CreateComputeSystemResult> StartCreateDevBoxOperation(CreateComputeSystemOperation operation, IDeveloperId developerId, DevBoxCreationParameters parameters)
     {
         try
         {
@@ -56,9 +56,6 @@ public class DevBoxCreationManager : IDevBoxCreationManager
 
             operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.DevBoxName, parameters.ProjectName), Constants.IndefiniteProgress);
 
-            // We can now send the Dev Box instance to Dev Home. The state will be "Creating", as the operation is still ongoing in the Dev Center.
-            operation.CompleteWithSuccess(devBox);
-
             var callback = DevCenterLongRunningOperationCallback(devBox);
 
             // Now we can start querying the Dev Center for the creation status of the Dev Box operation. This operation will continue until the Dev Box is ready for use.
@@ -69,12 +66,15 @@ public class DevBoxCreationManager : IDevBoxCreationManager
 
             // At this point the DevBox is partially created in the cloud. However the DevBox is not ready for use. Querying for all Dev Box will
             // return this DevBox via Json with its provisioningState set to "Provisioning". So, we'll keep track of the operation.
-            AddDevBoxFromMap(devBox);
+            AddDevBoxToMap(devBox);
+
+            // We can now send the Dev Box instance to Dev Home. The state will be "Creating", as the operation is still ongoing in the Dev Center.
+            return new CreateComputeSystemResult(devBox);
         }
         catch (Exception ex)
         {
             Log.Logger()?.ReportError(DevBoxCreationManagerName, $"unable to create the Dev Box with user options: {parameters}", ex);
-            operation.CompleteWithFailure(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName));
+            return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName), ex.Message);
         }
     }
 
@@ -111,7 +111,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
             return;
         }
 
-        AddDevBoxFromMap(devBox);
+        AddDevBoxToMap(devBox);
         _devBoxOperationWatcher.StartDevBoxProvisioningStatusMonitor(developerId, DevBoxActionToPerform.Create, devBox, RemoveDevBoxFromMap);
     }
 
@@ -123,7 +123,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         }
     }
 
-    private void AddDevBoxFromMap(DevBoxInstance devBox)
+    private void AddDevBoxToMap(DevBoxInstance devBox)
     {
         lock (_creationLock)
         {
