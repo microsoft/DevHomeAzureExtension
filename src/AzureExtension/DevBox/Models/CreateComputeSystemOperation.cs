@@ -4,8 +4,6 @@
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.Helpers;
-using Microsoft.VisualStudio.Services.Commerce;
-using Microsoft.VisualStudio.Services.TestManagement.TestPlanning.WebApi;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 

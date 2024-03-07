@@ -10,7 +10,6 @@ using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
-using Windows.System.Threading;
 using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;

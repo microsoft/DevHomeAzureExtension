@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 using AzureExtension.DevBox.Models;
 
 namespace AzureExtension.DevBox.Helpers;

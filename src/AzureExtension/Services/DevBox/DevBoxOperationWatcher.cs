@@ -7,7 +7,6 @@ using AzureExtension.DevBox;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
 using AzureExtension.DevBox.Models;
-using Microsoft.VisualStudio.Services.Commerce;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.System.Threading;
 

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 
