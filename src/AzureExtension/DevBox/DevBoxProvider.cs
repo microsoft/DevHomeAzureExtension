@@ -6,6 +6,7 @@ using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
@@ -39,13 +40,11 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public string DisplayName => Constants.DevBoxProviderDisplayName;
 
-    public string Id => Constants.DevBoxProviderName;
-
-    public ICreateComputeSystemOperation? ComputeSystemOp { get; set; }
+    public string Id => Constants.DevBoxProviderId;
 
     public ComputeSystemProviderOperations SupportedOperations => ComputeSystemProviderOperations.CreateComputeSystem;
 
-    public Uri Icon => new(Constants.ProviderURI);
+    public Uri Icon => new(Constants.ProviderIcon);
 
     /// <summary>
     /// Adds all DevBoxes for a given project to the list of systems.
@@ -93,7 +92,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// Gets the list of DevBoxes for all projects that a user has access to.
     /// </summary>
     /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
-    public async Task<IEnumerable<IComputeSystem>> GetComputeSystemsAsync(IDeveloperId developerId)
+    public async Task<IEnumerable<IComputeSystem>> GetDevBoxesAsync(IDeveloperId developerId)
     {
         var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
         var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
@@ -123,8 +122,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// Wrapper for GetComputeSystemsAsync
     /// </summary>
     /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
-    /// <param name="options">Unused parameter</param>
-    public IAsyncOperation<ComputeSystemsResult> GetComputeSystemsAsync(IDeveloperId developerId, string options)
+    public IAsyncOperation<ComputeSystemsResult> GetComputeSystemsAsync(IDeveloperId developerId)
     {
         return Task.Run(async () =>
         {
@@ -132,38 +130,39 @@ public class DevBoxProvider : IComputeSystemProvider
             {
                 ArgumentNullException.ThrowIfNull(developerId);
 
-                var computeSystems = await GetComputeSystemsAsync(developerId);
+                var computeSystems = await GetDevBoxesAsync(developerId);
                 return new ComputeSystemsResult(computeSystems);
             }
             catch (Exception ex)
             {
                 Log.Logger()?.ReportError($"Unable to get all Dev Boxes", ex);
-                return new ComputeSystemsResult(ex, ex.Message);
+                return new ComputeSystemsResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
     }
 
-    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind)
+    public ICreateComputeSystemOperation? CreateCreateComputeSystemOperation(IDeveloperId developerId, string inputJson)
     {
-        var exception = new NotImplementedException();
-        return new ComputeSystemAdaptiveCardResult(exception, exception.Message);
-    }
-
-    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSession(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind)
-    {
-        var exception = new NotImplementedException();
-        return new ComputeSystemAdaptiveCardResult(exception, exception.Message);
-    }
-
-    public ICreateComputeSystemOperation? CreateComputeSystem(IDeveloperId developerId, string options)
-    {
-        if (developerId is null || string.IsNullOrEmpty(options))
+        if (developerId is null || string.IsNullOrEmpty(inputJson))
         {
             return null;
         }
 
-        var parameters = JsonSerializer.Deserialize<DevBoxCreationParameters>(options, Constants.JsonOptions)!;
+        var parameters = JsonSerializer.Deserialize<DevBoxCreationParameters>(inputJson, Constants.JsonOptions)!;
 
         return _createComputeSystemOperationFactory(developerId, parameters);
+    }
+
+    // These methods are not implemented but will be implemented as part of the work to support DevBox creation before the feature is released before build.
+    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForDeveloperId(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind)
+    {
+        var exception = new NotImplementedException();
+        return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
+    }
+
+    public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForComputeSystem(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind)
+    {
+        var exception = new NotImplementedException();
+        return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
     }
 }

@@ -107,7 +107,7 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
 
         var uriToCreateDevBox = $"{parameters.DevCenterUri}{Constants.Projects}/{parameters.ProjectName}{Constants.DevBoxUserSegmentOfUri}/{parameters.DevBoxName}?{Constants.APIVersion}";
-        var contentJson = JsonSerializer.Serialize(new { parameters.PoolName });
+        var contentJson = JsonSerializer.Serialize(new DevBoxCreationPoolName(parameters.PoolName));
         var content = new StringContent(contentJson, Encoding.UTF8, "application/json");
         return await HttpsRequestToDataPlane(new Uri(uriToCreateDevBox), developerId, HttpMethod.Put, content);
     }

@@ -13,7 +13,7 @@ namespace AzureExtension.Test.DevBox;
 
 public class TimeSpanServiceMock : ITimeSpanService
 {
-    public TimeSpan DevBoxOperationDeadline => TimeSpan.FromSeconds(5);
+    public TimeSpan DevBoxOperationDeadline => TimeSpan.FromSeconds(3);
 
     public TimeSpan GetPeriodIntervalBasedOnAction(DevBoxActionToPerform actionToPerform) => TimeSpan.FromSeconds(1);
 }
