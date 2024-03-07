@@ -3,6 +3,7 @@
 
 using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
+using Microsoft.VisualStudio.Services.WebApi;
 
 namespace DevHomeAzureExtension.Client;
 
@@ -52,8 +53,16 @@ public class AzureClientHelpers
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"Failed getting query info for: {azureUri}", ex);
-            return new InfoResult(azureUri, InfoType.Query, ResultType.Failure, ErrorType.Unknown, ex);
+            if (ex.InnerException is VssResourceNotFoundException)
+            {
+                Log.Logger()?.ReportError($"Vss Resource Not Found for {azureUri}", ex);
+                return new InfoResult(azureUri, InfoType.Query, ResultType.Failure, ErrorType.VssResourceNotFound, ex);
+            }
+            else
+            {
+                Log.Logger()?.ReportError($"Failed getting query info for: {azureUri}", ex);
+                return new InfoResult(azureUri, InfoType.Query, ResultType.Failure, ErrorType.Unknown, ex);
+            }
         }
     }
 
@@ -111,8 +120,16 @@ public class AzureClientHelpers
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"Failed getting repository info for: {azureUri}", ex);
-            return new InfoResult(azureUri, InfoType.Repository, ResultType.Failure, ErrorType.Unknown, ex);
+            if (ex.InnerException is VssResourceNotFoundException)
+            {
+                Log.Logger()?.ReportError($"Vss Resource Not Found for {azureUri}", ex);
+                return new InfoResult(azureUri, InfoType.Repository, ResultType.Failure, ErrorType.VssResourceNotFound, ex);
+            }
+            else
+            {
+                Log.Logger()?.ReportError($"Failed getting repository info for: {azureUri}", ex);
+                return new InfoResult(azureUri, InfoType.Repository, ResultType.Failure, ErrorType.Unknown, ex);
+            }
         }
     }
 

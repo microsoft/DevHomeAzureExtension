@@ -10,7 +10,7 @@ namespace DevHomeAzureExtension.Test;
 public partial class TestHelpers
 {
     private const string DataBaseFileName = "AzureExtension-Test.db";
-    private const string LogFileName = "AzureExtension-{now}.log";
+    private const string LogFileName = "AzureExtension-{now}.dhlog";
     private static readonly TimeSpan CleanupRetryWaitTime = TimeSpan.FromSeconds(10);
 
     public static void CleanupTempTestOptions(TestOptions options, TestContext context)
