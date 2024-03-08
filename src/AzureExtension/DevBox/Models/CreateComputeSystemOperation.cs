@@ -16,7 +16,7 @@ public delegate CreateComputeSystemOperation CreateComputeSystemOperationFactory
 /// </summary>
 public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 {
-    private CreateComputeSystemResult _result;
+    private CreateComputeSystemResult? _result;
 
     private const string OperationInProgressMessageKey = "DevBox_CreationOperationAlreadyInProgress";
 
@@ -40,9 +40,7 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 
     public CancellationTokenSource CancellationTokenSource { get; private set; } = new();
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     public CreateComputeSystemOperation(IDevBoxCreationManager devBoxCreationManager, IDeveloperId developerId, DevBoxCreationParameters parameters)
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
     {
         _devBoxCreationManager = devBoxCreationManager;
         DevBoxCreationParameters = parameters;
@@ -51,7 +49,7 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 
     public event TypedEventHandler<ICreateComputeSystemOperation, CreateComputeSystemProgressEventArgs> Progress = (s, e) => { };
 
-    public IAsyncOperation<CreateComputeSystemResult> StartAsync()
+    public IAsyncOperation<CreateComputeSystemResult?> StartAsync()
     {
         return Task.Run(async () =>
         {

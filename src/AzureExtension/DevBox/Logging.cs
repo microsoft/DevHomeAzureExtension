@@ -39,7 +39,7 @@ public class Log
         return new Options
         {
             LogFileFolderRoot = ApplicationData.Current.TemporaryFolder.Path,
-            LogFileName = "DevBox_{now}.log",
+            LogFileName = "DevBox_{now}.dhlog",
             LogFileFolderName = "DevBox",
             DebugListenerEnabled = true,
 #if DEBUG
