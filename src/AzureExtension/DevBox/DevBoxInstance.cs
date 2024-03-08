@@ -65,7 +65,7 @@ public class DevBoxInstance : IComputeSystem
 
     public DevBoxActionToPerform CurrentActionToPerform { get; private set; }
 
-    public bool IsDevBoxBeingCreatedOrProvisioned => DevBoxState.ProvisioningState == Constants.DevBoxCreatingProvisioningState || DevBoxState.ProvisioningState == Constants.DevBoxProvisioningState;
+    public bool IsDevBoxBeingCreatedOrProvisioned => DevBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Creating || DevBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Provisioning;
 
     public DevBoxRemoteConnectionData? RemoteConnectionData { get; private set; }
 
@@ -215,8 +215,8 @@ public class DevBoxInstance : IComputeSystem
         {
             // If the provisioning failed, we'll set the state to failed and powerstate to unknown.
             // The PowerState being unknown will make the UI show the Dev Box state as unknown.
-            DevBoxState.ProvisioningState = Constants.DevBoxProvisioningFailedState;
-            DevBoxState.PowerState = Constants.DevBoxUnknownState;
+            DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
+            DevBoxState.PowerState = Constants.DevBoxPowerStates.Unknown;
         }
 
         RemoveOperationInProgressFlag();
@@ -275,8 +275,8 @@ public class DevBoxInstance : IComputeSystem
             catch (Exception ex)
             {
                 Log.Logger()?.ReportError(DevBoxInstanceName, $"Error setting state after the long running operation completed successfully", ex);
-                DevBoxState.ProvisioningState = Constants.DevBoxProvisioningFailedState;
-                DevBoxState.PowerState = Constants.DevBoxUnknownState;
+                DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
+                DevBoxState.PowerState = Constants.DevBoxPowerStates.Unknown;
                 RemoveOperationInProgressFlag();
                 UpdateStateForUI();
             }
@@ -288,34 +288,91 @@ public class DevBoxInstance : IComputeSystem
         StateChanged?.Invoke(this, GetState());
     }
 
+    private bool IsTerminalProvisioningState(string provisioningState)
+    {
+        return provisioningState == Constants.DevBoxProvisioningStates.Succeeded
+            || provisioningState == Constants.DevBoxProvisioningStates.ProvisionedWithWarning
+            || provisioningState == Constants.DevBoxProvisioningStates.Canceled
+            || provisioningState == Constants.DevBoxProvisioningStates.Failed;
+    }
+
+    private bool IsTerminalActionState(string actionState)
+    {
+        return actionState == Constants.DevBoxActionStates.Started
+            || actionState == Constants.DevBoxActionStates.Stopped
+            || actionState == Constants.DevBoxActionStates.Repaired
+            || actionState == Constants.DevBoxActionStates.Unknown
+            || actionState == Constants.DevBoxActionStates.Failed;
+    }
+
     public ComputeSystemState GetState()
     {
-        switch (DevBoxState.ProvisioningState)
-        {
-            case Constants.DevBoxCreatingProvisioningState:
-            case Constants.DevBoxProvisioningState:
-                return ComputeSystemState.Creating;
-            case Constants.DevBoxDeletedState:
-                return ComputeSystemState.Deleted;
+        var provisioningState = DevBoxState.ProvisioningState;
+        var actionState = DevBoxState.ActionState;
+        var powerState = DevBoxState.PowerState;
 
-            // Fallthrough if we're not creating/provisioning and the Dev Box exists.
-            // We'll look at the the power state next to figure out what state to send
-            // to Dev Home.
+        // This state is actually failed, but since ComputeSystemState doesn't have a failed state, we'll return unknown.
+        if (provisioningState == Constants.DevBoxProvisioningStates.Failed
+            || provisioningState == Constants.DevBoxProvisioningStates.ProvisionedWithWarning)
+        {
+            return ComputeSystemState.Unknown;
         }
 
-        switch (DevBoxState.PowerState)
+        if (!IsTerminalProvisioningState(provisioningState))
         {
-            case Constants.DevBoxRunningState:
-                return ComputeSystemState.Running;
+            switch (provisioningState)
+            {
+                case Constants.DevBoxProvisioningStates.Provisioning:
+                case Constants.DevBoxProvisioningStates.Creating:
+                    return ComputeSystemState.Creating;
+                case Constants.DevBoxProvisioningStates.Deleting:
+                    return ComputeSystemState.Deleting;
+            }
+        }
 
-            // We don't have a direct mapping for the hiberbated state and may need to add one one day.
-            case Constants.DevBoxHibernatedState:
-            case Constants.DevBoxDeallocatedState:
-            case Constants.DevBoxPoweredOffState:
+        if (!IsTerminalActionState(actionState))
+        {
+            switch (actionState)
+            {
+                case Constants.DevBoxActionStates.Starting:
+                    return ComputeSystemState.Starting;
+                case Constants.DevBoxActionStates.Stopping:
+                    return ComputeSystemState.Stopping;
+                case Constants.DevBoxActionStates.Restarting:
+                    return ComputeSystemState.Restarting;
+
+                // This state is actually repairing, but since ComputeSystemState doesn't have a repairing state, we'll return starting.
+                case Constants.DevBoxActionStates.Repairing:
+                    return ComputeSystemState.Starting;
+            }
+        }
+
+        switch (powerState)
+        {
+            case Constants.DevBoxPowerStates.Running:
+                return ComputeSystemState.Running;
+            case Constants.DevBoxPowerStates.Hibernated:
+                return ComputeSystemState.Paused;
+            case Constants.DevBoxPowerStates.Stopped:
+            case Constants.DevBoxPowerStates.Deallocated:
+            case Constants.DevBoxPowerStates.PoweredOff:
                 return ComputeSystemState.Stopped;
-            default:
+        }
+
+        // This is a workaround from the web app for not getting power state for new VMs.
+        switch (actionState)
+        {
+            case Constants.DevBoxActionStates.Unknown:
+            case Constants.DevBoxActionStates.Stopped:
+                return ComputeSystemState.Stopped;
+            case Constants.DevBoxActionStates.Started:
+                return ComputeSystemState.Running;
+            case Constants.DevBoxActionStates.Failed:
                 return ComputeSystemState.Unknown;
         }
+
+        // If we reach this point, we are not sure of the state of the dev box so return unknown instead.
+        return ComputeSystemState.Unknown;
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> StartAsync(string options)
