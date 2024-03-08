@@ -16,9 +16,7 @@ public delegate CreateComputeSystemOperation CreateComputeSystemOperationFactory
 /// </summary>
 public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 {
-#pragma warning disable IDE0044 // Add readonly modifier
     private CreateComputeSystemResult _result;
-#pragma warning restore IDE0044 // Add readonly modifier
 
     private const string OperationInProgressMessageKey = "DevBox_CreationOperationAlreadyInProgress";
 
