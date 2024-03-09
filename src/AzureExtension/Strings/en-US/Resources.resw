@@ -355,4 +355,64 @@
     <value>The Azure server does not support this functionality.</value>
     <comment>Shown in widget on error.</comment>
   </data>
+  <data name="DevBox_CreationResponseReceived" xml:space="preserve">
+    <value>Received creation response from Dev Center for creating a Dev Box with name: {0} in project {1}</value>
+    <comment>{Locked="{0}", "{1}"} Progress text to be shown to the user when creating a Microsoft Dev Box. {0} is the name of the Dev Box and {1} is the name of the project the user has selected the Dev Box to be created in.</comment>
+  </data>
+  <data name="DevBox_NameTextbox" xml:space="preserve">
+    <value>Name your Microsoft DevBox environment</value>
+    <comment>label for textbox where the user can enter in the name of their Microsoft DevBox cloud machine</comment>
+  </data>
+  <data name="DevBox_PoolComboBox" xml:space="preserve">
+    <value>DevBox Pool</value>
+    <comment>Label for combo box where the user can select a pool name that their Microsoft DevBox will be associated with.</comment>
+  </data>
+  <data name="DevBox_ProjectComboBox" xml:space="preserve">
+    <value>Project</value>
+    <comment>Label for combo box where the user can select a project name that their Microsoft DevBox will be created in.</comment>
+  </data>
+  <data name="DevBox_SeeAllPoolsButton" xml:space="preserve">
+    <value>See all pools</value>
+    <comment>Text for a button that will allow the user to see all the pool names that they can select.</comment>
+  </data>
+  <data name="DevBox_SendingCreationRequest" xml:space="preserve">
+    <value>Sending request to the Dev Center to create the Dev Box</value>
+    <comment>Text shown the the user as a step in creating the Microsoft Dev Box.</comment>
+  </data>
+  <data name="DevBox_CreationError" xml:space="preserve">
+    <value>There was an error creating Dev Box with name: {0} in project {1}. Error: {2}</value>
+    <comment>{Locked="{0}", "{1}", "{2}"} Progress text to be shown to the user when creating a Microsoft Dev Box. {0} is the name of the Dev Box and {1} is the name of the project the user has selected the Dev Box to be created in. {2} is the error message.</comment>
+  </data>
+  <data name="DevBox_DevCenterCreationStartedDevBox" xml:space="preserve">
+    <value>Dev Center is creating {0} in project {1}</value>
+    <comment>{Locked="{0}", "{1}"} Progress text to be shown to the user when creating a Microsoft Dev Box. {0} is the name of the Dev Box and {1} is the name of the project the user has selected the Dev Box to be created in.</comment>
+  </data>
+  <data name="DevBox_OsDisplayText" xml:space="preserve">
+    <value>OS</value>
+    <comment>label Text shown for the Operation System property of a Microsoft Dev Box</comment>
+  </data>
+  <data name="DevBox_SupplementalDisplayNamePrefix" xml:space="preserve">
+    <value>Project</value>
+    <comment>Text shown the the beginning of the supplemental information provided to the user about their Microsoft Dev Box</comment>
+  </data>
+  <data name="DevBox_CreationOperationAlreadyCompleted" xml:space="preserve">
+    <value>The Dev Box provider has already completed creating the Dev Box</value>
+    <comment>Error text to show the user when they attempt to start a new creation operation when the Dev Box that is already created</comment>
+  </data>
+  <data name="DevBox_CreationOperationAlreadyInProgress" xml:space="preserve">
+    <value>The Dev Box provider has already started creating this Dev Box</value>
+    <comment>Error text to show the user when they attempt to start a new creation operation but initiate the request multiple times from Dev Home</comment>
+  </data>
+  <data name="DevBox_MethodNotImplementedError" xml:space="preserve">
+    <value>The Dev Box provider does not support this compute system functionality</value>
+    <comment>Error text shown as a display message when the Dev Box compute system provider does not implement a requested functionality.</comment>
+  </data>
+  <data name="DevBox_MultipleConcurrentOperationsNotSupport" xml:space="preserve">
+    <value>The Dev Box provider does not support running multiple concurrent operations. Each operation must be requested after the previous one succeeds or fails.</value>
+    <comment>Error text to show the user when multiple operations are requested of the Dev Box provider without letting previous operations complete first.</comment>
+  </data>
+  <data name="DevBox_UnableToPerformRequestedOperation" xml:space="preserve">
+    <value>There was an error performing the requested operation. Error {0}</value>
+    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to performa user requested action. {0} is the error information received after attempting the call.</comment>
+  </data>
 </root>
