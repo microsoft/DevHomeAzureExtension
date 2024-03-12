@@ -461,15 +461,18 @@ public class RepositoryProvider : IRepositoryProvider2
             }
         });
 
-        // Figure out what server the organizations are from. if the user did not supply one.
+        // A server is a search field the user can search on.
+        // If a user did not specify a server the code should figure out what server is used.
         if (string.IsNullOrEmpty(_serverToSearch))
         {
+            // In this case _defaultSearchServerName is used for new organizations and
+            // [organization].visualstudio.com is used for old organizations.
             HashSet<string> servers = new();
             foreach (var organization in organizations)
             {
-                if (organization.AccountUri.OriginalString.Contains("dev.azure.com"))
+                if (organization.AccountUri.OriginalString.Contains(_defaultSearchServerName))
                 {
-                    servers.Add("dev.azure.com");
+                    servers.Add(_defaultSearchServerName);
                 }
                 else
                 {
