@@ -78,11 +78,15 @@ public class AzureRepositoryHierarchy
         {
             lock (_getProjectsLock)
             {
-                _organizationsAndProjects[organization] = QueryForProjects(organization);
+                // Double check against race conditions.
+                if (projects == null || projects.Count == 0)
+                {
+                    _organizationsAndProjects[organization] = QueryForProjects(organization);
+                }
             }
-
-            return _organizationsAndProjects[organization];
         }
+
+        return _organizationsAndProjects[organization];
     }
 
     /// <summary>
