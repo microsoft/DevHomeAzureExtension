@@ -357,6 +357,6 @@
   </data>
   <data name="SelectionOptionsPrompt" xml:space="preserve">
     <value>Change Path</value>
-    <comment>The string to send to DevHome that prompts users to change their path search path.</comment>
+<comment>The string to send to Dev Home that prompts users to change their search path.</comment>
   </data>
 </root>
