@@ -91,7 +91,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
                         RemoveDevBoxFromMap(devBox);
 
                         // The Dev Box is now ready for use. No need to request a new Dev Box from the Dev Center. We can update the state for Dev Homes UI.
-                        devBox.DevBoxState.ProvisioningState = Constants.DevBoxOperationSucceededState;
+                        devBox.DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Succeeded;
                         devBox.UpdateStateForUI();
                         break;
                     default:

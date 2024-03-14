@@ -88,31 +88,64 @@ public static class Constants
 
     public const string DevBoxRepairOperation = "repair";
 
-    public const string DevBoxCreatingProvisioningState = "Creating";
-
-    public const string DevBoxProvisioningState = "Provisioning";
-
-    public const string DevBoxProvisioningFailedState = "ProvisioningFailed";
-
-    public const string DevBoxUnknownState = "Unknown";
-
-    public const string DevBoxRunningState = "Running";
-
-    public const string DevBoxDeallocatedState = "Deallocated";
-
-    public const string DevBoxPoweredOffState = "PoweredOff";
-
-    public const string DevBoxHibernatedState = "Hibernated";
-
     public const string DevBoxDeletedState = "Deleted";
 
     public const string DevBoxOperationNotStartedState = "NotStarted";
 
-    public const string DevBoxOperationSucceededState = "Succeeded";
+    public static class DevBoxProvisioningStates
+    {
+        public const string Succeeded = "Succeeded";
 
-    public const string DevBoxOperationCanceledState = "Canceled";
+        public const string Failed = "Failed";
 
-    public const string DevBoxOperationFailedState = "Failed";
+        public const string Canceled = "Canceled";
+
+        public const string ProvisionedWithWarning = "ProvisionedWithWarning";
+
+        public const string Provisioning = "Provisioning";
+
+        public const string Creating = "Creating";
+
+        public const string Deleting = "Deleting";
+
+        public const string Updating = "Updating";
+    }
+
+    public static class DevBoxActionStates
+    {
+        public const string Unknown = "Unknown";
+
+        public const string Failed = "Failed";
+
+        public const string Starting = "Starting";
+
+        public const string Started = "Started";
+
+        public const string Stopping = "Stopping";
+
+        public const string Stopped = "Stopped";
+
+        public const string Restarting = "Restarting";
+
+        public const string Repairing = "Repairing";
+
+        public const string Repaired = "Repaired";
+    }
+
+    public static class DevBoxPowerStates
+    {
+        public const string Unknown = "Unknown";
+
+        public const string Stopped = "Stopped";
+
+        public const string Running = "Running";
+
+        public const string Hibernated = "Hibernated";
+
+        public const string Deallocated = "Deallocated";
+
+        public const string PoweredOff = "PoweredOff";
+    }
 
     /// <summary>
     /// The JSON options used to deserialize the DevCenter API responses.

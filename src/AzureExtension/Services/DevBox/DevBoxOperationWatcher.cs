@@ -135,7 +135,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
 
                     // If the Dev Box is no longer being created, update the state for Dev Homes UI and end the timer.
-                    if (!(devBoxState.ProvisioningState == Constants.DevBoxCreatingProvisioningState || devBoxState.ProvisioningState == Constants.DevBoxProvisioningState))
+                    if (!(devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Creating || devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Provisioning))
                     {
                         Log.Logger()?.ReportInfo(DevBoxOperationWatcherName, $"Dev Box provisioning now completed.");
                         devBoxInstance.ProvisioningMonitorCompleted(devBoxState, ProvisioningStatus.Succeeded);
