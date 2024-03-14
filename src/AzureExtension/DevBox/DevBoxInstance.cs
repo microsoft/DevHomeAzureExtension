@@ -354,7 +354,7 @@ public class DevBoxInstance : IComputeSystem
             case Constants.DevBoxPowerStates.Running:
                 return ComputeSystemState.Running;
             case Constants.DevBoxPowerStates.Hibernated:
-                return ComputeSystemState.Paused;
+                return ComputeSystemState.Saved;
             case Constants.DevBoxPowerStates.Stopped:
             case Constants.DevBoxPowerStates.Deallocated:
             case Constants.DevBoxPowerStates.PoweredOff:
