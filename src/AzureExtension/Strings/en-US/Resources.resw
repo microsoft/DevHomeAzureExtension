@@ -355,4 +355,8 @@
     <value>The Azure server does not support this functionality.</value>
     <comment>Shown in widget on error.</comment>
   </data>
+  <data name="SelectionOptionsPrompt" xml:space="preserve">
+    <value>Change Path</value>
+    <comment>The string to send to DevHome that prompts users to change their path search path.</comment>
+  </data>
 </root>

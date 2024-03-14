@@ -52,7 +52,7 @@ public class RepositoryProvider : IRepositoryProvider2
 
     public string[] SearchFieldNames => [_server, _organization];
 
-    public string AskToSearchLabel => "Change Path";
+    public string AskToSearchLabel => Resources.GetResource(@"SelectionOptionsPrompt");
 
     public bool IsSearchingSupported => true;
 
@@ -361,17 +361,12 @@ public class RepositoryProvider : IRepositoryProvider2
 
     public IAsyncOperation<RepositoriesSearchResult> GetRepositoriesAsync(IReadOnlyDictionary<string, string> fieldValues, IDeveloperId developerId)
     {
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
             try
             {
-                var serverToUse = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
-                _serverToSearch = serverToUse;
-
-                var organizationToUse = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
-                _organizationToSearch = organizationToUse;
-
-                var projectToUse = fieldValues.ContainsKey(_project) ? fieldValues[_project] : string.Empty;
+                _serverToSearch = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
+                _organizationToSearch = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
 
                 // Get access token for ADO API calls.
                 if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
@@ -381,7 +376,7 @@ public class RepositoryProvider : IRepositoryProvider2
                 }
 
                 var repos = GetRepos(azureDeveloperId, true);
-                var projects = GetValuesForSearchFieldAsync(fieldValues, _project, developerId).AsTask().Result;
+                var projects = await GetValuesForSearchFieldAsync(fieldValues, _project, developerId);
 
                 return new RepositoriesSearchResult(repos, Path.Join(_serverToSearch, _organizationToSearch), projects.ToArray(), _project);
             }
