@@ -288,6 +288,7 @@ public class DevBoxInstance : IComputeSystem
         StateChanged?.Invoke(this, GetState());
     }
 
+    // Check if it is a final provisioning state
     private bool IsTerminalProvisioningState(string provisioningState)
     {
         return provisioningState == Constants.DevBoxProvisioningStates.Succeeded
@@ -296,6 +297,7 @@ public class DevBoxInstance : IComputeSystem
             || provisioningState == Constants.DevBoxProvisioningStates.Failed;
     }
 
+    // Check if it is a final action state
     private bool IsTerminalActionState(string actionState)
     {
         return actionState == Constants.DevBoxActionStates.Started
