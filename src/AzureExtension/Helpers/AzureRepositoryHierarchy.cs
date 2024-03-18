@@ -72,17 +72,21 @@ public class AzureRepositoryHierarchy
         // Makes sure _organizationsAndProjects has all organizations.
         await Task.Run(() => GetOrganizations());
 
-        lock (_getProjectsLock)
+        _organizationsAndProjects.TryGetValue(organization, out var projects);
+
+        if (projects == null || projects.Count == 0)
         {
-            _organizationsAndProjects.TryGetValue(organization, out var projects);
-
-            if (projects == null || projects.Count == 0)
+            lock (_getProjectsLock)
             {
-                _organizationsAndProjects[organization] = QueryForProjects(organization);
+                // Double check against race conditions.
+                if (projects == null || projects.Count == 0)
+                {
+                    _organizationsAndProjects[organization] = QueryForProjects(organization);
+                }
             }
-
-            return _organizationsAndProjects[organization];
         }
+
+        return _organizationsAndProjects[organization];
     }
 
     /// <summary>
