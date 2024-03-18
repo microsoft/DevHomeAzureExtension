@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <RootNamespace>AzureExtension.Test</RootNamespace>
     <RuntimeIdentifiers>win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
-    <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
     <PublishReadyToRunEmitSymbols>true</PublishReadyToRunEmitSymbols>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -16,6 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="Moq" Version="4.20.69" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.0.2" />
     <PackageReference Include="MSTest.TestFramework" Version="3.0.2" />
   </ItemGroup>

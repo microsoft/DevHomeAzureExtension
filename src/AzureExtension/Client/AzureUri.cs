@@ -177,7 +177,8 @@ public class AzureUri
             return false;
         }
 
-        if (Uri.Scheme != Uri.UriSchemeHttps)
+        // Hosted supports https, but on-prem can support http.
+        if (Uri.Scheme != Uri.UriSchemeHttps && Uri.Scheme != Uri.UriSchemeHttp)
         {
             return false;
         }
@@ -204,6 +205,9 @@ public class AzureUri
                 }
 
                 return false;
+
+            case AzureHostType.NotHosted:
+                return true;
 
             default:
                 return false;
@@ -235,6 +239,10 @@ public class AzureUri
                     {
                         return Uri.Host.Replace(".visualstudio.com", string.Empty, StringComparison.OrdinalIgnoreCase);
                     }
+
+                case AzureHostType.NotHosted:
+                    // Not hosted (i.e. On-prem server) can be anything, we assume it is the hostname.
+                    return Uri.Host;
 
                 default:
                     return string.Empty;
@@ -283,7 +291,7 @@ public class AzureUri
         // If one does not exist, it will be the last segment.
         var targetSegment = APISegmentIndex > 1 ? APISegmentIndex - 1 : 1;
         var hostTypeOffset = 0;
-        if (HostType == AzureHostType.Legacy)
+        if (HostType == AzureHostType.Legacy || HostType == AzureHostType.NotHosted)
         {
             hostTypeOffset = -1;
         }
@@ -476,6 +484,17 @@ public class AzureUri
 
                 break;
 
+            case AzureHostType.NotHosted:
+                // Onprem includes the collection.
+                var onpremUriString = Uri.Scheme + "://" + Uri.Authority;
+                onpremUriString = onpremUriString.TrimEnd('/') + '/';
+                if (!Uri.TryCreate(onpremUriString, UriKind.Absolute, out newUri))
+                {
+                    Log.Logger()?.ReportError($"Failed creating On-Prem Uri: {Uri}   UriString: {onpremUriString}");
+                }
+
+                break;
+
             default:
                 break;
         }
@@ -508,6 +527,7 @@ public class AzureUri
                 }
 
                 break;
+
             case AzureHostType.Modern:
                 // https://organization@dev.azure.com/organization/project/_git/repository from clone window
                 // https://dev.azure.com/organization/project/_git/repository from repo url window
@@ -519,6 +539,16 @@ public class AzureUri
                 }
 
                 break;
+
+            case AzureHostType.NotHosted:
+                var onpremOrgUri = Uri.Scheme + "://" + Uri.Host;
+                if (!Uri.TryCreate(onpremOrgUri, UriKind.Absolute, out orgUri))
+                {
+                    Log.Logger()?.ReportError("Could not make Org Uri");
+                }
+
+                break;
+
             default:
                 break;
         }

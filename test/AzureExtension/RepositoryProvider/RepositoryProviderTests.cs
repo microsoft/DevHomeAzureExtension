@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.Client;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;
@@ -18,7 +19,7 @@ public partial class RepositoryProviderTests
 
     private List<Tuple<string, bool>> GetValidUrls()
     {
-        if (_validUrls.Any())
+        if (_validUrls.Count != 0)
         {
             return _validUrls;
         }
@@ -52,11 +53,11 @@ public partial class RepositoryProviderTests
         return _validUrls;
     }
 
-    private List<string> _invalidUrls = new();
+    private readonly List<string> _invalidUrls = new();
 
     private List<string> GetInvalidUrls()
     {
-        if (_invalidUrls.Any())
+        if (_invalidUrls.Count != 0)
         {
             return _invalidUrls;
         }
@@ -66,11 +67,11 @@ public partial class RepositoryProviderTests
         return _invalidUrls;
     }
 
-    private List<string> _validNotRepoUrls = new();
+    private readonly List<string> _validNotRepoUrls = new();
 
     private List<string> GetValidNotRepoUrls()
     {
-        if (_validNotRepoUrls.Any())
+        if (_validNotRepoUrls.Count != 0)
         {
             return _validNotRepoUrls;
         }
@@ -84,7 +85,8 @@ public partial class RepositoryProviderTests
     public void ValidateCanGetProvider()
     {
         var manualResetEvent = new ManualResetEvent(false);
-        var azureExtension = new AzureExtension(manualResetEvent);
+        var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().Build();
+        var azureExtension = new AzureExtension(manualResetEvent, host);
         var repositoryProvider = azureExtension.GetProvider(ProviderType.Repository);
         Assert.IsNotNull(repositoryProvider);
         Assert.IsNotNull(repositoryProvider as IRepositoryProvider);
@@ -132,7 +134,7 @@ public partial class RepositoryProviderTests
         {
             TestContext?.WriteLine($"Testing {invalidUrl}");
             var myAzureUri = new AzureUri(invalidUrl);
-            Assert.IsFalse(myAzureUri.IsValid);
+            Assert.IsFalse(myAzureUri.IsHosted);
             Assert.IsFalse(myAzureUri.IsRepository);
         }
 
@@ -150,7 +152,8 @@ public partial class RepositoryProviderTests
     public void TestIsUriSupported()
     {
         var manualResetEvent = new ManualResetEvent(false);
-        var azureExtension = new AzureExtension(manualResetEvent);
+        var host = Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder().Build();
+        var azureExtension = new AzureExtension(manualResetEvent, host);
         var repositoryObject = azureExtension.GetProvider(ProviderType.Repository);
         Assert.IsNotNull(repositoryObject);
 

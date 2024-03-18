@@ -7,9 +7,11 @@ using Microsoft.UI;
 
 namespace DevHomeAzureExtension.Test.DeveloperId.Mocks;
 
-internal class MockAuthenticationHelper : IAuthenticationHelper
+internal sealed class MockAuthenticationHelper : IAuthenticationHelper
 {
     private readonly List<string> loginIds = new();
+
+    private static readonly string[] _scopes = new[] { "scope1", "scope2" };
 
     public AuthenticationSettings MicrosoftEntraIdSettings
     {
@@ -62,7 +64,7 @@ internal class MockAuthenticationHelper : IAuthenticationHelper
                 tenantId: string.Empty,
                 account: null,
                 idToken: "id token",
-                scopes: new[] { "scope1", "scope2" },
+                scopes: _scopes,
                 correlationId: Guid.Empty,
                 authenticationResultMetadata: null,
                 tokenType: string.Empty);
