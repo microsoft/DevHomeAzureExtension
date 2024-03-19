@@ -30,7 +30,7 @@ public class Log
         return new Options
         {
             LogFileFolderRoot = ApplicationData.Current.TemporaryFolder.Path,
-            LogFileName = "AzureExtension_{now}.log",
+            LogFileName = "AzureExtension_{now}.dhlog",
             LogFileFolderName = "AzureExtension",
             DebugListenerEnabled = true,
 #if DEBUG
