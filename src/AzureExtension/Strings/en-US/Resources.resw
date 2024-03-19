@@ -415,4 +415,8 @@
     <value>There was an error performing the requested operation. Error {0}</value>
     <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to performa user requested action. {0} is the error information received after attempting the call.</comment>
   </data>
+  <data name="SelectionOptionsPrompt" xml:space="preserve">
+    <value>Change Path</value>
+    <comment>The string to send to Dev Home that prompts users to change their search path.</comment>
+  </data>
 </root>
