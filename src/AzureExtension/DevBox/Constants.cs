@@ -208,4 +208,9 @@ public static class Constants
     /// Resource key for the error message the Dev Box extension is unable to perform a requested operation.
     /// </summary>
     public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
+
+    /// <summary>
+    /// Windows App, used for remote connections, Package Family Name
+    /// </summary>
+    public const string WindowsAppPackageFamilyName = "MicrosoftCorporationII.Windows365_8wekyb3d8bbwe";
 }

@@ -43,6 +43,8 @@ public class DevBoxInstance : IComputeSystem
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
 
+    private readonly PackagesService _packagesService;
+
     private const string SupplementalDisplayNamePrefix = "DevBox_SupplementalDisplayNamePrefix";
 
     private const string OsPropertyName = "DevBox_OsDisplayText";
@@ -78,11 +80,13 @@ public class DevBoxInstance : IComputeSystem
         IDevBoxManagementService devBoxManagementService,
         IDevBoxOperationWatcher devBoxOperationWatcher,
         IDeveloperId developerId,
-        DevBoxMachineState devBoxMachineState)
+        DevBoxMachineState devBoxMachineState,
+        PackagesService packagesService)
     {
         _authService = devBoxAuthService;
         _devBoxManagementService = devBoxManagementService;
         _devBoxOperationWatcher = devBoxOperationWatcher;
+        _packagesService = packagesService;
 
         DevBoxState = devBoxMachineState;
         AssociatedDeveloperId = developerId;
@@ -421,6 +425,10 @@ public class DevBoxInstance : IComputeSystem
                 psi.FileName = RemoteConnectionData?.WebUrl;
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
+
+                // To Do: Uncomment once the REST API has been updated.
+                // var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
+                // psi.FileName = isWindowsAppInstalled ? RemoteConnectionData?.CloudPcConnectionUrl : RemoteConnectionData?.WebUrl;
             }
             catch (Exception ex)
             {
