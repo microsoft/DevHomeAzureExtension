@@ -38,12 +38,12 @@ public class AuthenticationHelper : IAuthenticationHelper
 
     private static readonly string[] _capabilities = ["cp1"];
 
-    private readonly ILogger _log;
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AuthenticationHelper)));
+
+    private static readonly ILogger Log = _log.Value;
 
     public AuthenticationHelper()
     {
-        _log = Log.ForContext("SourceContext", nameof(AuthenticationHelper));
-
         MicrosoftEntraIdSettings = new AuthenticationSettings();
 
         InitializePublicClientApplicationBuilder();
@@ -54,14 +54,14 @@ public class AuthenticationHelper : IAuthenticationHelper
     public void InitializePublicClientApplicationBuilder()
     {
         MicrosoftEntraIdSettings.InitializeSettings();
-        _log.Debug($"Initialized MicrosoftEntraIdSettings");
+        Log.Debug($"Initialized MicrosoftEntraIdSettings");
 
         PublicClientApplicationBuilder = PublicClientApplicationBuilder.Create(MicrosoftEntraIdSettings.ClientId)
            .WithAuthority(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.Authority, MicrosoftEntraIdSettings.TenantId))
            .WithRedirectUri(string.Format(CultureInfo.InvariantCulture, MicrosoftEntraIdSettings.RedirectURI, MicrosoftEntraIdSettings.ClientId))
            .WithLogging(new MSALLogger(EventLogLevel.Warning), enablePiiLogging: false)
            .WithClientCapabilities(_capabilities);
-        _log.Debug($"Created PublicClientApplicationBuilder");
+        Log.Debug($"Created PublicClientApplicationBuilder");
     }
 
     public async void InitializePublicClientAppForWAMBrokerAsync()
@@ -75,11 +75,11 @@ public class AuthenticationHelper : IAuthenticationHelper
             });
 
             PublicClientApplication = PublicClientApplicationBuilder.Build();
-            _log.Debug($"PublicClientApplication is instantiated");
+            Log.Debug($"PublicClientApplication is instantiated");
         }
         else
         {
-            _log.Error($"PublicClientApplicationBuilder is not initialized");
+            Log.Error($"PublicClientApplicationBuilder is not initialized");
             throw new ArgumentNullException(null);
         }
 
@@ -101,11 +101,11 @@ public class AuthenticationHelper : IAuthenticationHelper
             });
 
             PublicClientApplication = PublicClientApplicationBuilder.Build();
-            _log.Debug($"PublicClientApplication is instantiated for interactive UI capability");
+            Log.Debug($"PublicClientApplication is instantiated for interactive UI capability");
         }
         else
         {
-            _log.Error($"Incorrect parameters to instantiate PublicClientApplication with interactive UI capability");
+            Log.Error($"Incorrect parameters to instantiate PublicClientApplication with interactive UI capability");
             throw new ArgumentNullException(null);
         }
 
@@ -119,14 +119,14 @@ public class AuthenticationHelper : IAuthenticationHelper
         if (PublicClientApplication != null)
         {
             msalCacheHelper.RegisterCache(PublicClientApplication.UserTokenCache);
-            _log.Debug($"Token cache is successfully registered with PublicClientApplication");
+            Log.Debug($"Token cache is successfully registered with PublicClientApplication");
 
             // In the case the cache file is being reused there will be preexisting logged in accounts
             return await PublicClientApplication.GetAccountsAsync().ConfigureAwait(false);
         }
         else
         {
-            _log.Error($"Error encountered while registering token cache");
+            Log.Error($"Error encountered while registering token cache");
         }
 
         return Enumerable.Empty<IAccount>();
@@ -177,7 +177,7 @@ public class AuthenticationHelper : IAuthenticationHelper
         // in the application.
         // If a user has explicitly signed out of the connected Windows account, WAM will
         // remember and not acquire a token on behalf of a user.
-        _log.Debug($"Enable SSO for Azure Extension by connecting the Windows's default account");
+        Log.Debug($"Enable SSO for Azure Extension by connecting the Windows's default account");
         AuthenticationResult = null;
         try
         {
@@ -193,7 +193,7 @@ public class AuthenticationHelper : IAuthenticationHelper
                     }
 
                     AuthenticationResult = await silentTokenAcquisitionBuilder.ExecuteAsync();
-                    _log.Information($"Azure SSO enabled");
+                    Log.Information($"Azure SSO enabled");
                     return AuthenticationResult.Account;
                 }
             }
@@ -201,7 +201,7 @@ public class AuthenticationHelper : IAuthenticationHelper
         catch (Exception ex)
         {
             // This is best effort
-            _log.Information($"Azure SSO failed with exception:{ex}");
+            Log.Information($"Azure SSO failed with exception:{ex}");
         }
 
         return null;
@@ -209,7 +209,7 @@ public class AuthenticationHelper : IAuthenticationHelper
 
     public async Task<IEnumerable<string>> AcquireAllDeveloperAccountTokens(string[] scopes)
     {
-        _log.Debug($"AcquireAllDeveloperAccountTokens");
+        Log.Debug($"AcquireAllDeveloperAccountTokens");
         var remediationAccountIdentifiers = new List<string>();
         if (PublicClientApplication != null)
         {
@@ -229,7 +229,7 @@ public class AuthenticationHelper : IAuthenticationHelper
                 }
                 catch (Exception ex)
                 {
-                    _log.Information($"AcquireAllDeveloperAccountTokens failed {ex}");
+                    Log.Information($"AcquireAllDeveloperAccountTokens failed {ex}");
                     remediationAccountIdentifiers.Add(account.Username);
                 }
             }
@@ -251,23 +251,23 @@ public class AuthenticationHelper : IAuthenticationHelper
             {
                 if (msalClientEx.ErrorCode == MsalError.AuthenticationCanceledError)
                 {
-                    _log.Information($"MSALClient: User canceled authentication:{msalClientEx}");
+                    Log.Information($"MSALClient: User canceled authentication:{msalClientEx}");
                 }
                 else
                 {
-                    _log.Error($"MSALClient: Error Acquiring Token:{msalClientEx}");
+                    Log.Error($"MSALClient: Error Acquiring Token:{msalClientEx}");
                 }
             }
             catch (MsalException msalEx)
             {
-                _log.Error($"MSAL: Error Acquiring Token:{msalEx}");
+                Log.Error($"MSAL: Error Acquiring Token:{msalEx}");
             }
             catch (Exception authenticationException)
             {
-                _log.Error($"Authentication: Error Acquiring Token:{authenticationException}");
+                Log.Error($"Authentication: Error Acquiring Token:{authenticationException}");
             }
 
-            _log.Information($"MSAL: Signed in user by acquiring token interactively.");
+            Log.Information($"MSAL: Signed in user by acquiring token interactively.");
         }
 
         return AuthenticationResult;
@@ -286,7 +286,7 @@ public class AuthenticationHelper : IAuthenticationHelper
 
     public async Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId)
     {
-        _log.Information($"ObtainTokenForLoggedInDeveloperAccount");
+        Log.Information($"ObtainTokenForLoggedInDeveloperAccount");
         AuthenticationResult = null;
 
         var existingAccount = await GetDeveloperAccountFromCache(loginId);
@@ -305,22 +305,22 @@ public class AuthenticationHelper : IAuthenticationHelper
             }
             catch (MsalUiRequiredException ex)
             {
-                _log.Error($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
+                Log.Error($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
                 throw;
             }
             catch (MsalServiceException ex)
             {
-                _log.Error($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
+                Log.Error($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
                 throw;
             }
             catch (MsalClientException ex)
             {
-                _log.Error($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
+                Log.Error($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
                 throw;
             }
             catch (Exception ex)
             {
-                _log.Error($"AcquireDeveloperAccountToken failed with error: {ex}");
+                Log.Error($"AcquireDeveloperAccountToken failed with error: {ex}");
                 throw;
             }
         }
@@ -345,17 +345,17 @@ public class AuthenticationHelper : IAuthenticationHelper
                 if (account.Username == username)
                 {
                     await PublicClientApplication.RemoveAsync(account).ConfigureAwait(false);
-                    _log.Information($"MSAL: Signed out user.");
+                    Log.Information($"MSAL: Signed out user.");
                 }
                 else
                 {
-                    _log.Warning($"MSAL: User is already absent from cache .");
+                    Log.Warning($"MSAL: User is already absent from cache .");
                 }
             }
         }
         else
         {
-            _log.Error($"Cannot login developer id as PublicClientApplication is null");
+            Log.Error($"Cannot login developer id as PublicClientApplication is null");
             throw new ArgumentNullException(null);
         }
     }
