@@ -31,7 +31,8 @@ public class MSALLogger(EventLogLevel minLogLevel = EventLogLevel.LogAlways) : I
                 _log.Error($"{entry.Message}");
                 break;
             case EventLogLevel.Warning:
-                _log.Warning($"{entry.Message}");
+                // MSAL logging is even spammy with warnings.
+                _log.Debug($"{entry.Message}");
                 break;
             case EventLogLevel.Informational:
                 // The MSAL Logging is very spammy, information is very common.
