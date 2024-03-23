@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Serilog;
+
 namespace DevHomeAzureExtension.Client;
 
 // This class is using lazy initialization to extract data from the Uri exactly once and only
@@ -44,6 +46,10 @@ public class AzureUri
     /// ADO APIs need a specific URI for getting information about an organization.
     /// </summary>
     private readonly Lazy<Uri> _organizationLink;
+
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureUri)));
+
+    private static readonly ILogger Log = _log.Value;
 
     // Original input string, similar to Uri, but in cases of an invalid Uri they will be different.
     public string OriginalString { get; } = string.Empty;
@@ -250,7 +256,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"InitializeOrganization failed for Uri: {Uri}", e);
+            Log.Error($"InitializeOrganization failed for Uri: {Uri}", e);
             return string.Empty;
         }
     }
@@ -334,7 +340,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"InitializeProject failed for Uri: {Uri}", e);
+            Log.Error($"InitializeProject failed for Uri: {Uri}", e);
             return string.Empty;
         }
     }
@@ -381,7 +387,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"InitializeRepository failed for Uri: {Uri}", e);
+            Log.Error($"InitializeRepository failed for Uri: {Uri}", e);
             return string.Empty;
         }
     }
@@ -447,7 +453,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"InitializeQuery failed for Uri: {Uri}", e);
+            Log.Error($"InitializeQuery failed for Uri: {Uri}", e);
             return string.Empty;
         }
     }
@@ -467,7 +473,7 @@ public class AzureUri
                 legacyUriString = legacyUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(legacyUriString, UriKind.Absolute, out newUri))
                 {
-                    Log.Logger()?.ReportError($"Failed creating legacy Uri: {Uri}   UriString: {legacyUriString}");
+                    Log.Error($"Failed creating legacy Uri: {Uri}   UriString: {legacyUriString}");
                 }
 
                 break;
@@ -479,7 +485,7 @@ public class AzureUri
                 modernUriString = modernUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(modernUriString, UriKind.Absolute, out newUri))
                 {
-                    Log.Logger()?.ReportError($"Failed creating modern Uri: {Uri}   UriString: {modernUriString}");
+                    Log.Error($"Failed creating modern Uri: {Uri}   UriString: {modernUriString}");
                 }
 
                 break;
@@ -490,7 +496,7 @@ public class AzureUri
                 onpremUriString = onpremUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(onpremUriString, UriKind.Absolute, out newUri))
                 {
-                    Log.Logger()?.ReportError($"Failed creating On-Prem Uri: {Uri}   UriString: {onpremUriString}");
+                    Log.Error($"Failed creating On-Prem Uri: {Uri}   UriString: {onpremUriString}");
                 }
 
                 break;
@@ -523,7 +529,7 @@ public class AzureUri
                 var legacyOrgUri = Uri.Scheme + "://" + Uri.Host;
                 if (!Uri.TryCreate(legacyOrgUri, UriKind.Absolute, out orgUri))
                 {
-                    Log.Logger()?.ReportError("Could not make Org Uri");
+                    Log.Error("Could not make Org Uri");
                 }
 
                 break;
@@ -535,7 +541,7 @@ public class AzureUri
                 var modernOrgUri = Uri.Scheme + "://" + Uri.Host + "/" + Organization;
                 if (!Uri.TryCreate(modernOrgUri, UriKind.Absolute, out orgUri))
                 {
-                    Log.Logger()?.ReportError("Could not make Org Uri");
+                    Log.Error("Could not make Org Uri");
                 }
 
                 break;
@@ -544,7 +550,7 @@ public class AzureUri
                 var onpremOrgUri = Uri.Scheme + "://" + Uri.Host;
                 if (!Uri.TryCreate(onpremOrgUri, UriKind.Absolute, out orgUri))
                 {
-                    Log.Logger()?.ReportError("Could not make Org Uri");
+                    Log.Error("Could not make Org Uri");
                 }
 
                 break;

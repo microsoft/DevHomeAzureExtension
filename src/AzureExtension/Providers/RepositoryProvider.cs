@@ -13,6 +13,7 @@ using Microsoft.VisualStudio.Services.Account.Client;
 using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 using Windows.Storage.Streams;
 
@@ -20,6 +21,8 @@ namespace DevHomeAzureExtension.Providers;
 
 public class RepositoryProvider : IRepositoryProvider
 {
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(RepositoryProvider));
+
     public string DisplayName => Resources.GetResource(@"RepositoryProviderDisplayName");
 
     public IRandomAccessStreamReference Icon
@@ -33,8 +36,8 @@ public class RepositoryProvider : IRepositoryProvider
     }
 
     public RepositoryProvider()
+        : this(RandomAccessStreamReference.CreateFromUri(new Uri("ms-appx:///AzureExtension/Assets/AzureExtensionDark.png")))
     {
-        Icon = RandomAccessStreamReference.CreateFromUri(new Uri("ms-appx:///AzureExtension/Assets/AzureExtensionDark.png"));
     }
 
     public IAsyncOperation<RepositoryUriSupportResult> IsUriSupportedAsync(Uri uri)
@@ -82,7 +85,7 @@ public class RepositoryProvider : IRepositoryProvider
         }
         catch (Exception e)
         {
-            Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
+            _log.Error("DevHomeRepository", e);
         }
 
         return new List<TeamProjectReference>();
@@ -215,7 +218,7 @@ public class RepositoryProvider : IRepositoryProvider
             }
             catch (Exception e)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
+                _log.Error(e.Message, e);
             }
         }
 
@@ -362,27 +365,27 @@ public class RepositoryProvider : IRepositoryProvider
             }
             catch (LibGit2Sharp.RecurseSubmodulesException recurseException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", "Could not clone all sub modules", recurseException);
+                _log.Error("Could not clone all sub modules", recurseException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, recurseException, "Could not clone all modules", recurseException.Message);
             }
             catch (LibGit2Sharp.UserCancelledException userCancelledException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", "The user stopped the clone operation", userCancelledException);
+                _log.Error("The user stopped the clone operation", userCancelledException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, userCancelledException, "User cancelled the operation", userCancelledException.Message);
             }
             catch (LibGit2Sharp.NameConflictException nameConflictException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", nameConflictException);
+                _log.Error(nameConflictException.Message, nameConflictException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, nameConflictException, "The location exists and is non-empty", nameConflictException.Message);
             }
             catch (LibGit2Sharp.LibGit2SharpException libGitTwoException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", $"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
+                _log.Error($"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, libGitTwoException, "LigGit2 threw an exception", "LibGit2 Threw an exception");
             }
             catch (Exception e)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", "Could not clone the repository", e);
+                _log.Error("Could not clone the repository", e);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, e, "Something happened when cloning the repo", "something happened when cloning the repo");
             }
 

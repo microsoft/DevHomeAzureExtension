@@ -16,8 +16,6 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
 {
     private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
-    private static readonly new string Name = nameof(AzurePullRequestsWidget);
-
     private static readonly string DefaultSelectedView = "Mine";
 
     // Widget Data
@@ -57,7 +55,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         }
         catch (Exception)
         {
-            Log.Logger()?.ReportError(Name, ShortId, $"Unknown Pull Request view for string: {viewStr}");
+            Log.Error($"Unknown Pull Request view for string: {viewStr}");
             return PullRequestView.Unknown;
         }
     }
@@ -157,7 +155,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
     {
         if (e.Requestor.ToString() == Id)
         {
-            Log.Logger()?.ReportDebug(Name, ShortId, $"Received matching query update");
+            Log.Debug($"Received matching query update");
 
             if (e.Kind == DataManagerUpdateKind.Error)
             {
@@ -165,7 +163,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                 DataErrorMessage = e.Context.ErrorMessage;
 
                 // The DataManager log will have detailed exception info, use the short message.
-                Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
+                Log.Error($"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
                 return;
             }
 
@@ -181,7 +179,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         if (developerId == null)
         {
             // Should not happen
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get DeveloperId");
+            Log.Error("Failed to get DeveloperId");
             return;
         }
 
@@ -193,7 +191,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Failed requesting data update.", ex);
+            Log.Error("Failed requesting data update.", ex);
         }
     }
 
@@ -260,14 +258,14 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
             if (developerId == null)
             {
                 // Should not happen
-                Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
+                Log.Error("Failed to get Dev ID");
                 return;
             }
 
             var azureUri = new AzureUri(selectedRepositoryUrl);
             if (!azureUri.IsRepository)
             {
-                Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedRepositoryUrl}");
+                Log.Error($"Invalid Uri: {selectedRepositoryUrl}");
                 return;
             }
 
@@ -298,7 +296,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                         { "url", workItem["HtmlUrl"]?.GetValue<string>() ?? string.Empty },
                         { "status_icon", GetIconForPullRequestStatus(workItem["Status"]?.GetValue<string>()) },
                         { "number", element.Key },
-                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
+                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log) },
                         { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
                         { "branch", workItem["TargetBranch"]?.GetValue<string>().Replace("refs/heads/", string.Empty) },
                         { "avatar", workItem["CreatedBy"]?["Avatar"]?.GetValue<string>() },
@@ -318,7 +316,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Error retrieving data.", e);
+            Log.Error("Error retrieving data.", e);
             DataState = WidgetDataState.Failed;
             return;
         }

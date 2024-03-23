@@ -170,6 +170,7 @@ public partial class DevBoxTests : IDisposable
     public void TestInitialize()
     {
         TestOptions = TestHelpers.SetupTempTestOptions(TestContext!);
+        TestHelpers.ConfigureTestLog(TestOptions, TestContext!);
 
         // Create an HttpClient using the mocked handler
         mockHttpClient = new HttpClient(HttpHandler.Object);
@@ -183,6 +184,7 @@ public partial class DevBoxTests : IDisposable
     [TestCleanup]
     public void Cleanup()
     {
+        TestHelpers.CloseTestLog();
         TestHelpers.CleanupTempTestOptions(TestOptions, TestContext!);
     }
 
