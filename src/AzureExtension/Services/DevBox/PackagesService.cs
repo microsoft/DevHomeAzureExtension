@@ -7,7 +7,7 @@ using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;
 
-public class PackagesService
+public class PackagesService : IPackagesService
 {
     private Windows.Management.Deployment.PackageManager _packageManager = new();
 

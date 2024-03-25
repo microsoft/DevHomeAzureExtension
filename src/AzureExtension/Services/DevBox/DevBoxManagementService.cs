@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -53,6 +54,11 @@ public class DevBoxManagementService : IDevBoxManagementService
             if (response.IsSuccessStatusCode && content.Length > 0)
             {
                 return new(JsonDocument.Parse(content).RootElement, new DevBoxOperationResponseHeader(response.Headers));
+            }
+
+            if (response.ReasonPhrase == HttpStatusCode.Unauthorized.ToString())
+            {
+                throw new HttpRequestException($"DevBoxHttpRequest failed: Unauthorized.");
             }
 
             throw new HttpRequestException($"DevBoxHttpRequest failed: {response.StatusCode} {content}");

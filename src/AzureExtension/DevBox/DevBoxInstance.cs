@@ -37,13 +37,11 @@ public enum DevBoxActionToPerform
 /// </summary>
 public class DevBoxInstance : IComputeSystem
 {
-    private readonly IDevBoxAuthService _authService;
-
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
 
-    private readonly PackagesService _packagesService;
+    private readonly IPackagesService _packagesService;
 
     private const string SupplementalDisplayNamePrefix = "DevBox_SupplementalDisplayNamePrefix";
 
@@ -71,19 +69,19 @@ public class DevBoxInstance : IComputeSystem
 
     public DevBoxRemoteConnectionData? RemoteConnectionData { get; private set; }
 
+    private string _windowsAppConnectionUrl = string.Empty;
+
     public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
 
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
     public DevBoxInstance(
-        IDevBoxAuthService devBoxAuthService,
         IDevBoxManagementService devBoxManagementService,
         IDevBoxOperationWatcher devBoxOperationWatcher,
         IDeveloperId developerId,
         DevBoxMachineState devBoxMachineState,
-        PackagesService packagesService)
+        IPackagesService packagesService)
     {
-        _authService = devBoxAuthService;
         _devBoxManagementService = devBoxManagementService;
         _devBoxOperationWatcher = devBoxOperationWatcher;
         _packagesService = packagesService;
@@ -125,11 +123,25 @@ public class DevBoxInstance : IComputeSystem
         }
     }
 
+    // Temporary method to generate the Windows App connection URL untill the REST API is updated.
+    private string GenerateWindowsAppConnectionURL(string url)
+    {
+        // Example: ms-cloudpc:connect?cpcid=87512822-3902-4af4-ba3e-39e6875396ce&username=modanish@microsoft.com&environment=PROD&version=0.0
+        // https://deschutes-ppe.microsoft.com/webclient/87512822-3902-4af4-ba3e-39e6875396ce
+        var cpcid = url.Split("/").Last();
+        url = $"ms-cloudpc:connect?cpcid={cpcid}&username={AssociatedDeveloperId.LoginId}&environment=PROD&version=0.0";
+        return url;
+    }
+
     private async Task GetRemoteLaunchURIsAsync(Uri boxURI)
     {
         var connectionUri = $"{boxURI}/remoteConnection?{Constants.APIVersion}";
         var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(connectionUri), AssociatedDeveloperId, HttpMethod.Get, null);
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
+        if (RemoteConnectionData?.WebUrl != null)
+        {
+            _windowsAppConnectionUrl = GenerateWindowsAppConnectionURL(RemoteConnectionData.WebUrl);
+        }
     }
 
     public ComputeSystemOperations SupportedOperations =>
@@ -423,12 +435,10 @@ public class DevBoxInstance : IComputeSystem
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
                 psi.FileName = RemoteConnectionData?.WebUrl;
+                var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
+                psi.FileName = isWindowsAppInstalled ? _windowsAppConnectionUrl : RemoteConnectionData?.WebUrl;
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
-
-                // To Do: Uncomment once the REST API has been updated.
-                // var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
-                // psi.FileName = isWindowsAppInstalled ? RemoteConnectionData?.CloudPcConnectionUrl : RemoteConnectionData?.WebUrl;
             }
             catch (Exception ex)
             {

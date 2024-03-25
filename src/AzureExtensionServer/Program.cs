@@ -229,7 +229,7 @@ public sealed class Program
                 services.AddSingleton<IArmTokenService, ARMTokenService>();
                 services.AddSingleton<IDataTokenService, DataTokenService>();
                 services.AddSingleton<DevBoxProvider>();
-                services.AddSingleton<PackagesService>();
+                services.AddSingleton<IPackagesService, PackagesService>();
                 services.AddSingleton<ITimeSpanService, TimeSpanService>();
                 services.AddSingleton<IDevBoxOperationWatcher, DevBoxOperationWatcher>();
                 services.AddSingleton<IDevBoxCreationManager, DevBoxCreationManager>();
