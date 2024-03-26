@@ -135,8 +135,15 @@ public class DevBoxProvider : IComputeSystemProvider
             }
             catch (Exception ex)
             {
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
+                {
+                    var msg = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpired);
+                    Log.Logger()?.ReportError($"Unable to get all Dev Boxes", msg);
+                    return new ComputeSystemsResult(ex, msg, string.Empty);
+                }
+
                 Log.Logger()?.ReportError($"Unable to get all Dev Boxes", ex);
-                return new ComputeSystemsResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
+                return new ComputeSystemsResult(ex, Resources.GetResource(Constants.RetrivalFailKey), ex.Message);
             }
         }).AsAsyncOperation();
     }

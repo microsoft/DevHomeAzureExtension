@@ -210,6 +210,16 @@ public static class Constants
     public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
 
     /// <summary>
+    /// Resource key for the error message when Dev Boxes retrival failed.
+    /// </summary>
+    public const string RetrivalFailKey = "DevBox_RetrivalFailKey";
+
+    /// <summary>
+    /// Resource key for the error message when Dev Boxes retrival failed.
+    /// </summary>
+    public const string SessionExpired = "DevBox_SessionExpired";
+
+    /// <summary>
     /// Windows App, used for remote connections, Package Family Name
     /// </summary>
     public const string WindowsAppPackageFamilyName = "MicrosoftCorporationII.Windows365_8wekyb3d8bbwe";
