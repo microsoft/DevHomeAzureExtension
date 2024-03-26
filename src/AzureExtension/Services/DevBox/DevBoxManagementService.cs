@@ -56,11 +56,6 @@ public class DevBoxManagementService : IDevBoxManagementService
                 return new(JsonDocument.Parse(content).RootElement, new DevBoxOperationResponseHeader(response.Headers));
             }
 
-            if (response.ReasonPhrase == HttpStatusCode.Unauthorized.ToString())
-            {
-                throw new HttpRequestException($"DevBoxHttpRequest failed: Unauthorized.");
-            }
-
             throw new HttpRequestException($"DevBoxHttpRequest failed: {response.StatusCode} {content}");
         }
         catch (Exception ex)

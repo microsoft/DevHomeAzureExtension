@@ -135,15 +135,23 @@ public class DevBoxProvider : IComputeSystemProvider
             }
             catch (Exception ex)
             {
+                var errorMessage = string.Empty;
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
                 {
-                    var msg = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpired);
-                    Log.Logger()?.ReportError($"Unable to get all Dev Boxes", msg);
-                    return new ComputeSystemsResult(ex, msg, string.Empty);
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpiredKey);
+                }
+                else if (ex.Message.Contains("A passthrough token was detected without proper resource provider context"))
+                {
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.UnconfiguredKey);
+                }
+                else
+                {
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + ex.Message;
+                    return new ComputeSystemsResult(ex, Resources.GetResource(Constants.RetrivalFailKey), ex.Message);
                 }
 
-                Log.Logger()?.ReportError($"Unable to get all Dev Boxes", ex);
-                return new ComputeSystemsResult(ex, Resources.GetResource(Constants.RetrivalFailKey), ex.Message);
+                Log.Logger()?.ReportError(errorMessage);
+                return new ComputeSystemsResult(ex, errorMessage, string.Empty);
             }
         }).AsAsyncOperation();
     }

@@ -126,8 +126,6 @@ public class DevBoxInstance : IComputeSystem
     // Temporary method to generate the Windows App connection URL untill the REST API is updated.
     private string GenerateWindowsAppConnectionURL(string url)
     {
-        // Example: ms-cloudpc:connect?cpcid=87512822-3902-4af4-ba3e-39e6875396ce&username=modanish@microsoft.com&environment=PROD&version=0.0
-        // https://deschutes-ppe.microsoft.com/webclient/87512822-3902-4af4-ba3e-39e6875396ce
         var cpcid = url.Split("/").Last();
         url = $"ms-cloudpc:connect?cpcid={cpcid}&username={AssociatedDeveloperId.LoginId}&environment=PROD&version=0.0";
         return url;

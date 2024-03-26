@@ -217,7 +217,12 @@ public static class Constants
     /// <summary>
     /// Resource key for the error message when Dev Boxes retrival failed.
     /// </summary>
-    public const string SessionExpired = "DevBox_SessionExpired";
+    public const string SessionExpiredKey = "DevBox_SessionExpired";
+
+    /// <summary>
+    /// Resource key for the error message when Dev Boxes aren't configured.
+    /// </summary>
+    public const string UnconfiguredKey = "DevBox_Unconfigured";
 
     /// <summary>
     /// Windows App, used for remote connections, Package Family Name
