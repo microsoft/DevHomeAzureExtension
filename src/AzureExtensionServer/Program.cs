@@ -49,6 +49,7 @@ public sealed class Program
             Log.Information($"Not main instance, redirecting.");
             mainInstance.RedirectActivationToAsync(activationArgs).AsTask().Wait();
             notificationManager.Unregister();
+            Log.CloseAndFlush();
             return;
         }
 
