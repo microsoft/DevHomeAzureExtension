@@ -15,8 +15,6 @@ internal sealed class AzureQueryListWidget : AzureWidget
 {
     private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
-    private static readonly new string Name = nameof(AzureQueryListWidget);
-
     // Widget Data
     private string widgetTitle = string.Empty;
     private string selectedQueryUrl = string.Empty;
@@ -163,7 +161,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
     {
         if (e.Requestor.ToString() == Id)
         {
-            Log.Logger()?.ReportDebug(Name, ShortId, $"Received matching query update");
+            Log.Debug($"Received matching query update");
 
             if (e.Kind == DataManagerUpdateKind.Error)
             {
@@ -171,7 +169,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
                 DataErrorMessage = e.Context.ErrorMessage;
 
                 // The DataManager log will have detailed exception info, use the short message.
-                Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
+                Log.Error($"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
                 return;
             }
 
@@ -187,7 +185,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
         if (developerId == null)
         {
             // Should not happen
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get DeveloperId");
+            Log.Error("Failed to get DeveloperId");
             return;
         }
 
@@ -200,7 +198,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Failed requesting data update.", ex);
+            Log.Error("Failed requesting data update.", ex);
         }
     }
 
@@ -228,7 +226,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
         selectedQueryId = azureUri.Query;
         if (!azureUri.IsQuery)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Selected Query Url from ResetDataFromState is not a valid query.");
+            Log.Error("Selected Query Url from ResetDataFromState is not a valid query.");
         }
     }
 
@@ -271,7 +269,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
                 // Should not happen, but may be possible in situations where the app is removed and
                 // the signed in account is not silently restorable.
                 // This is also checked before on UpdateActivityState() method on base class.
-                Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
+                Log.Error("Failed to get Dev ID");
                 return;
             }
 
@@ -280,7 +278,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
             if (!azureUri.IsQuery)
             {
                 // This should never happen. Already was validated on configuration.
-                Log.Logger()?.ReportError(Name, ShortId, $"Invalid Uri: {selectedQueryUrl}");
+                Log.Error($"Invalid Uri: {selectedQueryUrl}");
                 return;
             }
 
@@ -310,7 +308,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
                         { "icon", GetIconForType(workItem["System.WorkItemType"]?["Name"]?.GetValue<string>()) },
                         { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
                         { "number", element.Key },
-                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log.Logger()) },
+                        { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log) },
                         { "user", workItem["System.CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
                         { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
                         { "avatar", workItem["System.CreatedBy"]?["Avatar"]?.GetValue<string>() ?? string.Empty },
@@ -331,7 +329,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Error retrieving data.", e);
+            Log.Error("Error retrieving data.", e);
             DataState = WidgetDataState.Failed;
             return;
         }

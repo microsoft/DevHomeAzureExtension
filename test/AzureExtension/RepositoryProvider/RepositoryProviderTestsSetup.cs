@@ -53,11 +53,13 @@ public partial class RepositoryProviderTests
     {
         SetUpRepoTests();
         TestOptions = TestHelpers.SetupTempTestOptions(TestContext!);
+        TestHelpers.ConfigureTestLog(TestOptions, TestContext!);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
+        TestHelpers.CloseTestLog();
         RemoveCloneLocation();
         TestHelpers.CleanupTempTestOptions(TestOptions, TestContext!);
     }

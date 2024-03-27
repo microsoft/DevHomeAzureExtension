@@ -10,7 +10,7 @@ using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
-using Log = AzureExtension.DevBox.Log;
+using Serilog;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -21,6 +21,8 @@ namespace AzureExtension.Services.DevBox;
 public class DevBoxManagementService : IDevBoxManagementService
 {
     private readonly IDevBoxAuthService _authService;
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxManagementService));
 
     public DevBoxManagementService(IDevBoxAuthService authService) => _authService = authService;
 
@@ -59,7 +61,7 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(DevBoxManagementServiceName, $"DevBoxHttpRequest failed: Exception", ex);
+            _log.Error($"DevBoxHttpRequest failed: Exception", ex);
             throw;
         }
     }
@@ -85,7 +87,7 @@ public class DevBoxManagementService : IDevBoxManagementService
             catch (Exception ex)
             {
                 projectJson.TryGetProperty("name", out var projectWithErrorName);
-                Log.Logger()?.ReportError(DevBoxManagementServiceName, $"unable to get pools for {projectWithErrorName}", ex);
+                _log.Error($"unable to get pools for {projectWithErrorName}", ex);
             }
         }
 

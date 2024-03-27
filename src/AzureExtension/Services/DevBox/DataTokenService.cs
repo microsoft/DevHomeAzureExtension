@@ -5,7 +5,7 @@ using AzureExtension.Contracts;
 using AzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Windows.DevHome.SDK;
-using Log = AzureExtension.DevBox.Log;
+using Serilog;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -22,7 +22,7 @@ public class DataTokenService : IDataTokenService
     {
         if (devId == null)
         {
-            Log.Logger()?.ReportError($"DataTokenService::GetTokenAsync: No dev id provided");
+            Log.Error($"DataTokenService::GetTokenAsync: No dev id provided");
             return string.Empty;
         }
 
@@ -33,7 +33,7 @@ public class DataTokenService : IDataTokenService
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError($"DataTokenService::GetTokenAsync: {e.ToString}");
+            Log.Error($"DataTokenService::GetTokenAsync: {e.ToString}");
             return string.Empty;
         }
     }

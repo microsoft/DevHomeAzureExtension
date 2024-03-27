@@ -19,8 +19,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     private readonly int maxNumColumns = 2;
 
     // Widget data
-    private static readonly new string Name = nameof(AzureQueryTilesWidget);
-    private readonly List<QueryTile> tiles = new();
+    private readonly List<QueryTile> tiles = [];
 
     // Creation and destruction methods
     public AzureQueryTilesWidget()
@@ -101,7 +100,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     public override void OnActionInvoked(WidgetActionInvokedArgs actionInvokedArgs)
     {
         var verb = GetWidgetActionForVerb(actionInvokedArgs.Verb);
-        Log.Logger()?.ReportDebug(Name, ShortId, $"ActionInvoked: {verb}");
+        Log.Debug($"ActionInvoked: {verb}");
 
         switch (verb)
         {
@@ -141,7 +140,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                 break;
 
             case WidgetAction.Unknown:
-                Log.Logger()?.ReportError(Name, ShortId, $"Unknown verb: {actionInvokedArgs.Verb}");
+                Log.Error($"Unknown verb: {actionInvokedArgs.Verb}");
                 break;
         }
     }
@@ -180,7 +179,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     {
         if (e.Requestor.ToString() == Id)
         {
-            Log.Logger()?.ReportDebug(Name, ShortId, $"Received matching query update");
+            Log.Debug($"Received matching query update");
 
             if (e.Kind == DataManagerUpdateKind.Error)
             {
@@ -188,7 +187,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                 DataErrorMessage = e.Context.ErrorMessage;
 
                 // The DataManager log will have detailed exception info, use the short message.
-                Log.Logger()?.ReportError(Name, ShortId, $"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
+                Log.Error($"Data update failed. {e.Context.QueryId} {e.Context.ErrorMessage}");
                 return;
             }
 
@@ -204,7 +203,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         if (developerId == null)
         {
             // Should not happen
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get DeveloperId");
+            Log.Error("Failed to get DeveloperId");
             return;
         }
 
@@ -221,10 +220,10 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Failed requesting data update.", ex);
+            Log.Error("Failed requesting data update.", ex);
         }
 
-        Log.Logger()?.ReportInfo(Name, ShortId, $"Requested data update for this widget.");
+        Log.Debug($"Requested data update for this widget.");
         DataState = WidgetDataState.Requested;
     }
 
@@ -244,7 +243,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         if (developerId == null)
         {
             // Should not happen
-            Log.Logger()?.ReportError(Name, ShortId, "Failed to get Dev ID");
+            Log.Error("Failed to get Dev ID");
             return;
         }
 
@@ -264,7 +263,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                         if (queryInfo == null)
                         {
                             // Failing this query doesn't mean the other queries won't fail.
-                            Log.Logger()?.ReportInfo(Name, ShortId, $"No query information found for query: {tiles[pos].AzureUri.Query}");
+                            Log.Information($"No query information found for query: {tiles[pos].AzureUri.Query}");
                         }
                         else
                         {
@@ -283,7 +282,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                     }
                     catch (Exception ex)
                     {
-                        Log.Logger()?.ReportError(Name, ShortId, $"Failed getting query info or creating the tile object.", ex);
+                        Log.Error($"Failed getting query info or creating the tile object.", ex);
                         return;
                     }
                 }
@@ -294,7 +293,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
         data.Add("lines", linesArray);
 
-        Log.Logger()?.ReportDebug(Name, ShortId, data.ToJsonString());
+        Log.Debug(data.ToJsonString());
 
         ContentData = data.ToJsonString();
 

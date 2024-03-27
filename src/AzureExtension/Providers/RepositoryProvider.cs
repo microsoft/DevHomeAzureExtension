@@ -12,6 +12,7 @@ using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 using Windows.Storage.Streams;
 
@@ -22,6 +23,8 @@ namespace DevHomeAzureExtension.Providers;
 
 public class RepositoryProvider : IRepositoryProvider2
 {
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(RepositoryProvider));
+
     /// <summary>
     /// Used for singleton instance.
     /// </summary>
@@ -109,7 +112,7 @@ public class RepositoryProvider : IRepositoryProvider2
     /// <returns>A list of IRepository's.</returns>
     private List<IRepository> GetRepos(VssConnection organizationConnection, TeamProjectReference project, GitPullRequestSearchCriteria criteria, bool shouldIgnorePRDate)
     {
-        Log.Logger()?.ReportInfo("DevHomeRepository", $"Getting all repos for {project.Name}");
+        _log.Debug($"Getting all repos for {project.Name}");
         try
         {
             var gitClient = organizationConnection.GetClient<GitHttpClient>();
@@ -184,6 +187,7 @@ public class RepositoryProvider : IRepositoryProvider2
             }
             catch (Exception e)
             {
+                _log.Error(e.Message, e);
                 return new RepositoriesResult(e, e.Message);
             }
         }).AsAsyncOperation();
@@ -321,35 +325,38 @@ public class RepositoryProvider : IRepositoryProvider2
 
             try
             {
+                _log.Information($"Cloning repository {repository.RepoUri} to {cloneDestination}");
+
                 // Exceptions happen.
                 LibGit2Sharp.Repository.Clone(repository.RepoUri.OriginalString, cloneDestination, cloneOptions);
             }
             catch (LibGit2Sharp.RecurseSubmodulesException recurseException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", "Could not clone all sub modules", recurseException);
+                _log.Error("Could not clone all sub modules", recurseException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, recurseException, "Could not clone all modules", recurseException.Message);
             }
             catch (LibGit2Sharp.UserCancelledException userCancelledException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", "The user stopped the clone operation", userCancelledException);
+                _log.Error("The user stopped the clone operation", userCancelledException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, userCancelledException, "User cancelled the operation", userCancelledException.Message);
             }
             catch (LibGit2Sharp.NameConflictException nameConflictException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", nameConflictException);
+                _log.Error(nameConflictException.Message, nameConflictException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, nameConflictException, "The location exists and is non-empty", nameConflictException.Message);
             }
             catch (LibGit2Sharp.LibGit2SharpException libGitTwoException)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", $"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
+                _log.Error($"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, libGitTwoException, "LigGit2 threw an exception", "LibGit2 Threw an exception");
             }
             catch (Exception e)
             {
-                Log.Logger()?.ReportError("DevHomeRepository", "Could not clone the repository", e);
+                _log.Error("Could not clone the repository", e);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, e, "Something happened when cloning the repo", "something happened when cloning the repo");
             }
 
+            _log.Information($"Repository {repository.RepoUri} successfully cloned to {cloneDestination}");
             return new ProviderOperationResult(ProviderOperationStatus.Success, new ArgumentException("Nothing wrong"), "Nothing wrong", "Nothing wrong");
         }).AsAsyncOperation();
     }
@@ -452,7 +459,7 @@ public class RepositoryProvider : IRepositoryProvider2
             }
             catch (Exception e)
             {
-                Providers.Log.Logger()?.ReportError("DevHomeRepository", e);
+                _log.Error(e.Message, e);
             }
         });
 
@@ -648,7 +655,7 @@ public class RepositoryProvider : IRepositoryProvider2
     {
         if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
         {
-            Providers.Log.Logger()?.ReportError("DevHomeRepository", "Authenticated user is not an azure developer id");
+            _log.Error("Authenticated user is not an azure developer id");
             return string.Empty;
         }
 

@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Microsoft.Windows.Widgets.Providers;
+using Serilog;
 
 namespace DevHomeAzureExtension.Widgets;
 
@@ -11,7 +12,8 @@ internal sealed class WidgetImplFactory<T> : IWidgetImplFactory
 {
     public WidgetImpl Create(WidgetContext widgetContext, string state)
     {
-        Log.Logger()?.ReportDebug($"In WidgetImpl Create for Id {widgetContext.Id} Definition: {widgetContext.DefinitionId} and state: '{state}'");
+        var log = Log.ForContext("SourceContext", nameof(WidgetImpl));
+        log.Debug($"In WidgetImpl Create for Id {widgetContext.Id} Definition: {widgetContext.DefinitionId} and state: '{state}'");
         WidgetImpl widgetImpl = new T();
         widgetImpl.CreateWidget(widgetContext, state);
         return widgetImpl;

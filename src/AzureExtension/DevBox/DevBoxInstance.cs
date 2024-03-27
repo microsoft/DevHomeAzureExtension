@@ -11,6 +11,7 @@ using AzureExtension.DevBox.Models;
 using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -42,6 +43,8 @@ public class DevBoxInstance : IComputeSystem
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
+
+    private readonly ILogger _log;
 
     private const string SupplementalDisplayNamePrefix = "DevBox_SupplementalDisplayNamePrefix";
 
@@ -88,6 +91,7 @@ public class DevBoxInstance : IComputeSystem
         AssociatedDeveloperId = developerId;
         DisplayName = devBoxMachineState.Name;
         Id = devBoxMachineState.UniqueId;
+        _log = Log.ForContext("SourceContext", $"DevBox/{Id}");
 
         if (IsDevBoxBeingCreatedOrProvisioned)
         {
@@ -116,7 +120,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error processing properties for {DisplayName}", ex);
+                _log.Error($"Error processing properties for {DisplayName}", ex);
             }
         }
     }
@@ -164,7 +168,7 @@ public class DevBoxInstance : IComputeSystem
                 // The creation and delete operations do not require an operation string, but all the other operations do.
                 var operationUri = operation.Length > 0 ?
                     $"{DevBoxState.Uri}:{operation}?{Constants.APIVersion}" : $"{DevBoxState.Uri}?{Constants.APIVersion}";
-                Log.Logger()?.ReportInfo($"Starting {DisplayName} with {operationUri}");
+                _log.Information($"Starting {DisplayName} with {operationUri}");
 
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
                 var operationLocation = result.ResponseHeader.OperationLocation;
@@ -181,7 +185,7 @@ public class DevBoxInstance : IComputeSystem
             catch (Exception ex)
             {
                 UpdateStateForUI();
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'", ex);
+                _log.Error($"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'", ex);
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
@@ -240,7 +244,7 @@ public class DevBoxInstance : IComputeSystem
             default:
                 RemoveOperationInProgressFlag();
                 UpdateStateForUI();
-                Log.Logger()?.ReportError($"Dev Box operation stopped unexpectedly with status '{status}'");
+                _log.Error($"Dev Box operation stopped unexpectedly with status '{status}'");
                 break;
         }
     }
@@ -274,7 +278,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error setting state after the long running operation completed successfully", ex);
+                _log.Error($"Error setting state after the long running operation completed successfully", ex);
                 DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
                 DevBoxState.PowerState = Constants.DevBoxPowerStates.Unknown;
                 RemoveOperationInProgressFlag();
@@ -424,7 +428,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error connecting to {DisplayName}", ex);
+                _log.Error($"Error connecting to {DisplayName}", ex);
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), string.Empty);
             }
         }).AsAsyncOperation();
@@ -465,7 +469,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error getting thumbnail for {DisplayName}", ex);
+                _log.Error($"Error getting thumbnail for {DisplayName}", ex);
                 return new ComputeSystemThumbnailResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
