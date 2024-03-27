@@ -26,7 +26,7 @@ public static class Constants
     /// </summary>
     /// for stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
     /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
-    public const string DevBoxAPI = "/users/me/devboxes?api-version=2023-10-01-preview";
+    public const string DevBoxAPI = "/users/me/devboxes?" + APIVersion;
 
     public const string DevBoxUserSegmentOfUri = "/users/me/devboxes";
 
@@ -51,11 +51,11 @@ public static class Constants
     public const string ManagementPlaneScope = "https://management.azure.com/user_impersonation";
 
     /// <summary>
-    /// API version used for start, stop, and restart APIs
+    /// API version used for enumeration and start, stop, and restart APIs
     /// </summary>
     /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
     /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
-    public const string APIVersion = "api-version=2023-10-01-preview";
+    public const string APIVersion = "api-version=2024-05-01-preview";
 
     public const string Pools = "pools";
 
@@ -208,4 +208,24 @@ public static class Constants
     /// Resource key for the error message the Dev Box extension is unable to perform a requested operation.
     /// </summary>
     public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
+
+    /// <summary>
+    /// Resource key for the error message when Dev Boxes retrival failed.
+    /// </summary>
+    public const string RetrivalFailKey = "DevBox_RetrivalFailKey";
+
+    /// <summary>
+    /// Resource key for the error message when Dev Boxes retrival failed.
+    /// </summary>
+    public const string SessionExpiredKey = "DevBox_SessionExpired";
+
+    /// <summary>
+    /// Resource key for the error message when Dev Boxes aren't configured.
+    /// </summary>
+    public const string UnconfiguredKey = "DevBox_Unconfigured";
+
+    /// <summary>
+    /// Windows App, used for remote connections, Package Family Name
+    /// </summary>
+    public const string WindowsAppPackageFamilyName = "MicrosoftCorporationII.Windows365_8wekyb3d8bbwe";
 }

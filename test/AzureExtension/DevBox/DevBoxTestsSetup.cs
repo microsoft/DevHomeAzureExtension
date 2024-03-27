@@ -210,6 +210,7 @@ public partial class DevBoxTests : IDisposable
                 services.AddSingleton<IDevBoxAuthService, AuthService>();
                 services.AddSingleton<IArmTokenService, ArmTestTokenService>();
                 services.AddSingleton<IDataTokenService, DataTestTokenService>();
+                services.AddSingleton<IPackagesService, PackagesService>();
                 services.AddSingleton<DevBoxProvider>();
 
                 services.AddSingleton<ITimeSpanService, TimeSpanServiceMock>();

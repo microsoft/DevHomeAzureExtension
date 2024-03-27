@@ -38,11 +38,11 @@ public enum DevBoxActionToPerform
 /// </summary>
 public class DevBoxInstance : IComputeSystem
 {
-    private readonly IDevBoxAuthService _authService;
-
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
+
+    private readonly IPackagesService _packagesService;
 
     private readonly ILogger _log;
 
@@ -77,15 +77,15 @@ public class DevBoxInstance : IComputeSystem
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
     public DevBoxInstance(
-        IDevBoxAuthService devBoxAuthService,
         IDevBoxManagementService devBoxManagementService,
         IDevBoxOperationWatcher devBoxOperationWatcher,
         IDeveloperId developerId,
-        DevBoxMachineState devBoxMachineState)
+        DevBoxMachineState devBoxMachineState,
+        IPackagesService packagesService)
     {
-        _authService = devBoxAuthService;
         _devBoxManagementService = devBoxManagementService;
         _devBoxOperationWatcher = devBoxOperationWatcher;
+        _packagesService = packagesService;
 
         DevBoxState = devBoxMachineState;
         AssociatedDeveloperId = developerId;
@@ -422,7 +422,8 @@ public class DevBoxInstance : IComputeSystem
 
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
-                psi.FileName = RemoteConnectionData?.WebUrl;
+                var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
+                psi.FileName = isWindowsAppInstalled ? RemoteConnectionData?.CloudPcConnectionUrl : RemoteConnectionData?.WebUrl;
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
             }

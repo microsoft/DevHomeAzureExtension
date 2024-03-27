@@ -26,15 +26,7 @@ public class ARMTokenService : IArmTokenService
             return string.Empty;
         }
 
-        try
-        {
-            var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { Constants.ManagementPlaneScope }, devId.LoginId);
-            return result?.AccessToken ?? string.Empty;
-        }
-        catch (Exception e)
-        {
-            Log.Error($"ARMTokenService::GetTokenAsync: {e.ToString}");
-            return string.Empty;
-        }
+        var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { Constants.ManagementPlaneScope }, devId.LoginId);
+        return result?.AccessToken ?? string.Empty;
     }
 }
