@@ -3,7 +3,6 @@
 
 using AzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
-using Log = AzureExtension.DevBox.Log;
 
 namespace AzureExtension.Services.DevBox;
 
