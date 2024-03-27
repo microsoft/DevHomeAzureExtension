@@ -13,7 +13,6 @@ public class DevBoxRemoteConnectionData
 
     public string? RdpConnectionUrl { get; set; }
 
-    // To Do: Uncomment once the REST API has been updated.
     // Example - ms-cloudpc:connect?cpcid={cloud-pc-id}&username={username}&environment={environment}&version={version}&rdlaunchurl={optional-rd-launch-url}
-    // public string? CloudPcConnectionUrl { get; set; }
+    public string? CloudPcConnectionUrl { get; set; }
 }

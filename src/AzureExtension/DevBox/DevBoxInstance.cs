@@ -72,8 +72,6 @@ public class DevBoxInstance : IComputeSystem
 
     public DevBoxRemoteConnectionData? RemoteConnectionData { get; private set; }
 
-    private string _windowsAppConnectionUrl = string.Empty;
-
     public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
 
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
@@ -127,23 +125,11 @@ public class DevBoxInstance : IComputeSystem
         }
     }
 
-    // Temporary method to generate the Windows App connection URL untill the REST API is updated.
-    private string GenerateWindowsAppConnectionURL(string url)
-    {
-        var cpcid = url.Split("/").Last();
-        url = $"ms-cloudpc:connect?cpcid={cpcid}&username={AssociatedDeveloperId.LoginId}&environment=PROD&version=0.0";
-        return url;
-    }
-
     private async Task GetRemoteLaunchURIsAsync(Uri boxURI)
     {
         var connectionUri = $"{boxURI}/remoteConnection?{Constants.APIVersion}";
         var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(connectionUri), AssociatedDeveloperId, HttpMethod.Get, null);
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
-        if (RemoteConnectionData?.WebUrl != null)
-        {
-            _windowsAppConnectionUrl = GenerateWindowsAppConnectionURL(RemoteConnectionData.WebUrl);
-        }
     }
 
     public ComputeSystemOperations SupportedOperations =>
@@ -436,9 +422,8 @@ public class DevBoxInstance : IComputeSystem
 
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
-                psi.FileName = RemoteConnectionData?.WebUrl;
                 var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
-                psi.FileName = isWindowsAppInstalled ? _windowsAppConnectionUrl : RemoteConnectionData?.WebUrl;
+                psi.FileName = isWindowsAppInstalled ? RemoteConnectionData?.CloudPcConnectionUrl : RemoteConnectionData?.WebUrl;
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
             }
