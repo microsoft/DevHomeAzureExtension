@@ -8,6 +8,7 @@ using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.System.Threading;
 
 namespace AzureExtension.Services.DevBox;
@@ -33,6 +34,8 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
     private readonly ITimeSpanService _timeSpanService;
 
     private const string DevBoxOperationWatcherName = nameof(DevBoxManagementService);
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxOperationWatcher));
 
     private readonly Dictionary<Guid, DevBoxOperationWatcherTimer> _operationWatcherTimers = new();
 
@@ -83,7 +86,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                         case DevCenterOperationStatus.Running:
                             break;
                         default:
-                            Log.Logger()?.ReportInfo(DevBoxOperationWatcherName, $"Dev Box operation monitoring stopped. {operation}, Uri: {operationUri}, Id: {operationId}");
+                            _log.Information($"Dev Box operation monitoring stopped. {operation}, Uri: {operationUri}, Id: {operationId}");
                             RemoveTimer(operationId);
                             break;
                     }
@@ -92,7 +95,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                 }
                 catch (Exception ex)
                 {
-                    Log.Logger()?.ReportError(DevBoxOperationWatcherName, $"Dev Box operation monitoring stopped unexpectedly. Uri: {operationUri}, Id: {operationId}", ex);
+                    _log.Error($"Dev Box operation monitoring stopped unexpectedly. Uri: {operationUri}, Id: {operationId}", ex);
 
                     completionCallback(DevCenterOperationStatus.Failed);
                     RemoveTimer(operationId);
@@ -137,7 +140,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     // If the Dev Box is no longer being created, update the state for Dev Homes UI and end the timer.
                     if (!(devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Creating || devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Provisioning))
                     {
-                        Log.Logger()?.ReportInfo(DevBoxOperationWatcherName, $"Dev Box provisioning now completed.");
+                        _log.Information($"Dev Box provisioning now completed.");
                         devBoxInstance.ProvisioningMonitorCompleted(devBoxState, ProvisioningStatus.Succeeded);
                         completionCallback(devBoxInstance);
                         RemoveTimer(devBoxId);
@@ -147,7 +150,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                 }
                 catch (Exception ex)
                 {
-                    Log.Logger()?.ReportError(DevBoxOperationWatcherName, $"Dev Box provisioning monitoring stopped unexpectedly.", ex);
+                    _log.Error($"Dev Box provisioning monitoring stopped unexpectedly.", ex);
                     devBoxInstance.ProvisioningMonitorCompleted(null, ProvisioningStatus.Failed);
                     completionCallback(devBoxInstance);
                     RemoveTimer(devBoxId);

@@ -5,7 +5,7 @@ using AzureExtension.Contracts;
 using AzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Windows.DevHome.SDK;
-using Log = AzureExtension.DevBox.Log;
+using Serilog;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -22,7 +22,7 @@ public class ARMTokenService : IArmTokenService
     {
         if (devId == null)
         {
-            Log.Logger()?.ReportError($"ARMTokenService::GetTokenAsync: No dev id provided");
+            Log.Error($"ARMTokenService::GetTokenAsync: No dev id provided");
             return string.Empty;
         }
 

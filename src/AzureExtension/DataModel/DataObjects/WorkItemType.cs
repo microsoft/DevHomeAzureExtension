@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Helpers;
+using Serilog;
 
 // This is to resolve ambiguity between DataModel WorkItemType and
 // TeamFoundation WorkItemType. We'll Rename the TeamFoundation one.
@@ -16,6 +17,10 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("WorkItemType")]
 public class WorkItemType
 {
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(WorkItemType)}"));
+
+    private static readonly ILogger Log = _log.Value;
+
     // This is the time between seeing a potential updated WorkItemType record and updating it.
     // This value / 2 is the average time between WorkItemType updating their WorkItemType data
     // and having it reflected in the datastore.
@@ -77,7 +82,7 @@ public class WorkItemType
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"Failed to deserialize Json object into WorkItemType: {json}", ex);
+            Log.Error($"Failed to deserialize Json object into WorkItemType: {json}", ex);
             return null;
         }
     }
@@ -179,8 +184,8 @@ public class WorkItemType
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Logger()?.ReportDebug(DataStore.GetCommandLogMessage(sql, command));
+        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Logger()?.ReportDebug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

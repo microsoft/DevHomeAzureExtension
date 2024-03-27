@@ -2,11 +2,14 @@
 // Licensed under the MIT License.
 
 using Microsoft.Windows.AppNotifications;
+using Serilog;
 
 namespace DevHomeAzureExtension.Notifications;
 
 public class NotificationManager
 {
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(NotificationManager));
+
     private bool isRegistered;
 
     public NotificationManager(Windows.Foundation.TypedEventHandler<AppNotificationManager, AppNotificationActivatedEventArgs> handler)
@@ -14,7 +17,7 @@ public class NotificationManager
         AppNotificationManager.Default.NotificationInvoked += handler;
         AppNotificationManager.Default.Register();
         isRegistered = true;
-        Log.Logger()?.ReportInfo($"NotificationManager created and registered.");
+        _log.Debug($"NotificationManager created and registered.");
     }
 
     ~NotificationManager()
@@ -28,7 +31,7 @@ public class NotificationManager
         {
             AppNotificationManager.Default.Unregister();
             isRegistered = false;
-            Log.Logger()?.ReportInfo($"NotificationManager unregistered.");
+            _log.Debug($"NotificationManager unregistered.");
         }
     }
 }

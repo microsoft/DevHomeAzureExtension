@@ -4,6 +4,7 @@
 using Microsoft.Identity.Client;
 using Microsoft.UI;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 
 namespace DevHomeAzureExtension.DeveloperId;
@@ -29,6 +30,8 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     // DeveloperIdProvider uses singleton pattern.
     private static DeveloperIdProvider? singletonDeveloperIdProvider;
 
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DeveloperIdProvider));
+
     public event TypedEventHandler<IDeveloperIdProvider, IDeveloperId>? Changed;
 
     private readonly AuthenticationExperienceKind authenticationExperienceForAzureExtension = AuthenticationExperienceKind.CustomProvider;
@@ -38,7 +41,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     // Private constructor for Singleton class.
     private DeveloperIdProvider(IAuthenticationHelper authenticationHelper)
     {
-        Log.Logger()?.ReportInfo($"Creating DeveloperIdProvider singleton instance");
+        _log.Debug($"Creating DeveloperIdProvider singleton instance");
 
         lock (DeveloperIdsLock)
         {
@@ -57,7 +60,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         if (account.Result != null)
         {
             _ = CreateOrUpdateDeveloperId(account.Result);
-            Log.Logger()?.ReportInfo($"SSO For Azure Extension");
+            _log.Debug($"SSO For Azure Extension");
         }
     }
 
@@ -79,7 +82,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
                 }
                 else
                 {
-                    Log.Logger()?.ReportWarn($"DeveloperId not found to remediate");
+                    _log.Warning($"DeveloperId not found to remediate");
                 }
             }
 
@@ -123,13 +126,13 @@ public class DeveloperIdProvider : IDeveloperIdProvider
 
             if (account.Result == null)
             {
-                Log.Logger()?.ReportError($"Invalid AuthRequest");
+                _log.Error($"Invalid AuthRequest");
                 var exception = new InvalidOperationException();
                 return new DeveloperIdResult(exception, "An issue has occurred with the authentication request");
             }
 
             var devId = CreateOrUpdateDeveloperId(account.Result);
-            Log.Logger()?.ReportInfo($"New DeveloperId logged in");
+            _log.Information($"New DeveloperId logged in");
             return new DeveloperIdResult(devId);
         }).AsAsyncOperation();
     }
@@ -142,7 +145,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
             developerIdToLogout = DeveloperIds?.Find(e => e.LoginId == developerId.LoginId);
             if (developerIdToLogout == null)
             {
-                Log.Logger()?.ReportError($"Unable to find DeveloperId to logout");
+                _log.Error($"Unable to find DeveloperId to logout");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, new ArgumentNullException(nameof(developerId)), "The developer account to log out does not exist", "Unable to find DeveloperId to logout");
             }
 
@@ -156,7 +159,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
         catch (Exception error)
         {
-            Log.Logger()?.ReportError($"LoggedOut event signaling failed: {error}");
+            _log.Error($"LoggedOut event signaling failed: {error}");
         }
 
         return new ProviderOperationResult(ProviderOperationStatus.Success, null, "The developer account has been logged out successfully", "LogoutDeveloperId succeeded");
@@ -200,7 +203,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
 
         if (duplicateDeveloperIds.Any())
         {
-            Log.Logger()?.ReportInfo($"DeveloperID already exists! Updating accessToken");
+            _log.Information($"DeveloperID already exists! Updating accessToken");
             try
             {
                 try
@@ -209,12 +212,12 @@ public class DeveloperIdProvider : IDeveloperIdProvider
                 }
                 catch (Exception error)
                 {
-                    Log.Logger()?.ReportError($"Updated event signaling failed: {error}");
+                    _log.Error($"Updated event signaling failed: {error}");
                 }
             }
             catch (InvalidOperationException)
             {
-                Log.Logger()?.ReportWarn($"Multiple copies of same DeveloperID already exists");
+                _log.Warning($"Multiple copies of same DeveloperID already exists");
                 throw new InvalidOperationException("Multiple copies of same DeveloperID already exists");
             }
         }
@@ -231,7 +234,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
             }
             catch (Exception error)
             {
-                Log.Logger()?.ReportError($"LoggedIn event signaling failed: {error}");
+                _log.Error($"LoggedIn event signaling failed: {error}");
             }
         }
 
@@ -250,7 +253,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
                 DeveloperIds.Add(developerId);
             }
 
-            Log.Logger()?.ReportInfo($"Restored DeveloperId");
+            _log.Information($"Restored DeveloperId");
         }
 
         return;
@@ -300,22 +303,22 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
         catch (MsalUiRequiredException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
             throw;
         }
         catch (MsalServiceException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
             throw;
         }
         catch (MsalClientException ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
             throw;
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"AcquireDeveloperAccountToken failed with error: {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed with error: {ex}");
             throw;
         }
 

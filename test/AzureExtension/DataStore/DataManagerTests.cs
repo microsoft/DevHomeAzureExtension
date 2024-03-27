@@ -9,27 +9,14 @@ public partial class DataStoreTests
     [TestCategory("Unit")]
     public void DataManagerCreate()
     {
-        using var log = new DevHome.Logging.Logger("TestStore", TestOptions.LogOptions);
-        var testListener = new TestListener("TestListener", TestContext!);
-        log.AddListener(testListener);
-        DataModel.Log.Attach(log);
-
         using var dataManager = AzureDataManager.CreateInstance("Test", TestOptions.DataStoreOptions);
         Assert.IsNotNull(dataManager);
-
-        testListener.PrintEventCounts();
-        Assert.AreEqual(false, testListener.FoundErrors());
     }
 
     [TestMethod]
     [TestCategory("Unit")]
     public void DataUpdater()
     {
-        using var log = new DevHome.Logging.Logger("TestStore", TestOptions.LogOptions);
-        var testListener = new TestListener("TestListener", TestContext!);
-        log.AddListener(testListener);
-        DataModel.Log.Attach(log);
-
         var countingDoneEvent = new ManualResetEvent(false);
         var count = 0;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -68,8 +55,6 @@ public partial class DataStoreTests
         // This test can randomly fail based on timings in builds, so disabling this check to avoid
         // 1-off errors from tanking a build.
         // Assert.AreEqual(1, count);
-        testListener.PrintEventCounts();
-        Assert.AreEqual(false, testListener.FoundErrors());
     }
 
     [TestMethod]
@@ -78,11 +63,6 @@ public partial class DataStoreTests
     {
         // In absence of public data and a private DevOps server, this test will just verify
         // accessibility of the methods.
-        using var log = new DevHome.Logging.Logger("TestStore", TestOptions.LogOptions);
-        var testListener = new TestListener("TestListener", TestContext!);
-        log.AddListener(testListener);
-        DataModel.Log.Attach(log);
-
         using var dataManager = AzureDataManager.CreateInstance("Test", TestOptions.DataStoreOptions);
         Assert.IsNotNull(dataManager);
 
@@ -91,8 +71,5 @@ public partial class DataStoreTests
         // cache location.
         var query = dataManager.GetQuery("NotARealQuery", "SomeDevId");
         Assert.IsNull(query);
-
-        testListener.PrintEventCounts();
-        Assert.AreEqual(false, testListener.FoundErrors());
     }
 }
