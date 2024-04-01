@@ -16,6 +16,7 @@ using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.UI.Shell;
 
 namespace AzureExtension.DevBox;
 
@@ -557,14 +558,16 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
-            var boolString = isPinnned.ToString().ToLower(CultureInfo.InvariantCulture);
-            var fullLaunchString = $"{ProtocolLaunchPrefix}{boolString}{ProtocolLaunchStartMenuSuffix}";
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = fullLaunchString;
-            Process.Start(psi);
+            // TODO: enable this code once WindowsApp supports Start Menu pinning: task 48741013
+            // var boolString = isPinnned.ToString().ToLower(CultureInfo.InvariantCulture);
+            // var fullLaunchString = $"{ProtocolLaunchPrefix}{boolString}{ProtocolLaunchStartMenuSuffix}";
+            // var psi = new ProcessStartInfo();
+            // psi.UseShellExecute = true;
+            // psi.FileName = fullLaunchString;
+            // Process.Start(psi);
 
-            return new ComputeSystemOperationResult();
+            // return new ComputeSystemOperationResult();
+            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
 
@@ -593,9 +596,10 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToTaskbarAsync()
     {
-        return Task.Run(() =>
+        return Task.Run(async () =>
         {
-            return new ComputeSystemPinnedResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
+            var isTaskbarPinned = await TaskbarManager.GetDefault().IsSecondaryTilePinnedAsync(WorkspaceId);
+            return new ComputeSystemPinnedResult(isTaskbarPinned);
         }).AsAsyncOperation();
     }
 
@@ -613,15 +617,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         }
 
         var launchUri = new Uri(uriString);
-        var workspaceId = HttpUtility.ParseQueryString(launchUri.Query)["workspaceId"];
+        WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["workspaceId"];
         var username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
-
-        // var environment = HttpUtility.ParseQueryString(launchUri.Query)["env"];
         var environment = "PROD";
 
         ProtocolLaunchPrefix = $"ms-cloudpc:pin?pin=";
-        ProtocolLaunchTaskbarSuffix = $"&cpcid={workspaceId}&workspaceName={DisplayName}&environment={environment}&username={username}&version=0.0&source=DevHome&location=taskbar";
-        ProtocolLaunchStartMenuSuffix = $"&cpcid={workspaceId}&workspaceName={DisplayName}&environment={environment}&username={username}&version=0.0&source=DevHome&location=startmenu";
+        ProtocolLaunchTaskbarSuffix = $"&cpcid={WorkspaceId}&workspaceName={DisplayName}&environment={environment}&username={username}&version=0.0&source=DevHome&location=taskbar";
+        ProtocolLaunchStartMenuSuffix = $"&cpcid={WorkspaceId}&workspaceName={DisplayName}&environment={environment}&username={username}&version=0.0&source=DevHome&location=startmenu";
     }
 
     // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
