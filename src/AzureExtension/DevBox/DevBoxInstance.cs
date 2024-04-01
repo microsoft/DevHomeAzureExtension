@@ -2,8 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
+using System.Web;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
@@ -35,7 +37,7 @@ public enum DevBoxActionToPerform
 /// It contains the DevBox details such as name, id, state, CPU, memory, and OS. And all the
 /// operations that can be performed on the DevBox.
 /// </summary>
-public class DevBoxInstance : IComputeSystem
+public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
     private readonly IDevBoxAuthService _authService;
 
@@ -60,6 +62,20 @@ public class DevBoxInstance : IComputeSystem
     public string Id { get; private set; }
 
     public string DisplayName { get; private set; }
+
+    public string? WorkspaceId { get; private set; }
+
+    public string? Username { get; private set; }
+
+    public string? Environment { get; private set; }
+
+    public string? ProtocolAssociationLaunch { get; private set; }
+
+    public string? ProtocolLaunchPrefix { get; private set; }
+
+    public string? ProtocolLaunchTaskbarSuffix { get; private set; }
+
+    public string? ProtocolLaunchStartMenuSuffix { get; private set; }
 
     public DevBoxMachineState DevBoxState { get; private set; }
 
@@ -129,7 +145,8 @@ public class DevBoxInstance : IComputeSystem
     }
 
     public ComputeSystemOperations SupportedOperations =>
-        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
+        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart |
+        ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
 
     public string SupplementalDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
@@ -534,6 +551,77 @@ public class DevBoxInstance : IComputeSystem
         {
             return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> SetIsPinnedToStartMenuAsync(bool isPinnned)
+    {
+        return Task.Run(() =>
+        {
+            var boolString = isPinnned.ToString().ToLower(CultureInfo.InvariantCulture);
+            var fullLaunchString = $"{ProtocolLaunchPrefix}{boolString}{ProtocolLaunchStartMenuSuffix}";
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = true;
+            psi.FileName = fullLaunchString;
+            Process.Start(psi);
+
+            return new ComputeSystemOperationResult();
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> SetIsPinnedToTaskbarAsync(bool isPinnned)
+    {
+        return Task.Run(() =>
+        {
+            var boolString = isPinnned.ToString().ToLower(CultureInfo.InvariantCulture);
+            var fullLaunchString = $"{ProtocolLaunchPrefix}{boolString}{ProtocolLaunchTaskbarSuffix}";
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = true;
+            psi.FileName = fullLaunchString;
+            Process.Start(psi);
+
+            return new ComputeSystemOperationResult();
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToStartMenuAsync()
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemPinnedResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToTaskbarAsync()
+    {
+        return Task.Run(() =>
+        {
+            return new ComputeSystemPinnedResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
+        }).AsAsyncOperation();
+    }
+
+    public async void LoadWindowsAppParameters()
+    {
+        if (RemoteConnectionData is null)
+        {
+            await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
+        }
+
+        var uriString = RemoteConnectionData?.RdpConnectionUrl;
+        if (uriString == null)
+        {
+            return;
+        }
+
+        var launchUri = new Uri(uriString);
+        var workspaceId = HttpUtility.ParseQueryString(launchUri.Query)["workspaceId"];
+        var username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
+
+        // var environment = HttpUtility.ParseQueryString(launchUri.Query)["env"];
+        var environment = "PROD";
+
+        ProtocolLaunchPrefix = $"ms-cloudpc:pin?pin=";
+        ProtocolLaunchTaskbarSuffix = $"&cpcid={workspaceId}&workspaceName={DisplayName}&environment={environment}&username={username}&version=0.0&source=DevHome&location=taskbar";
+        ProtocolLaunchStartMenuSuffix = $"&cpcid={workspaceId}&workspaceName={DisplayName}&environment={environment}&username={username}&version=0.0&source=DevHome&location=startmenu";
     }
 
     // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
