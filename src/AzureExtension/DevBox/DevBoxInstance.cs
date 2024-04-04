@@ -510,6 +510,8 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
                 var taskUri = new Uri(DevBoxState.Uri + Constants.WingetTaskAPI);
                 _log.Information($"Applying config on {DisplayName} - {_taskJson}");
 
+                // To Do: Remove this once the API is ready
+                _taskJson = "{\"tasks\":[{\"name\":\"powershell\",\"parameters\":{\"command\":\"New-Item -Path C:\\\\ -Name 'Test' -ItemType 'directory'\"},\"runAs\":\"User\"}]}";
                 HttpContent httpContent = new StringContent(_taskJson, Encoding.UTF8, "application/json");
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(taskUri, AssociatedDeveloperId, HttpMethod.Put, httpContent);
 
