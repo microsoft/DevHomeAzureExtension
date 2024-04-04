@@ -424,7 +424,7 @@
     <comment>Error shown when user session has expired and re-login is needed.</comment>
   </data>
   <data name="DevBox_RetrivalFailKey" xml:space="preserve">
-    <value>Unable to retrieve Dev Boxes. </value>
+    <value>Unable to retrieve all Dev Boxes for {0}. </value>
     <comment>Error shown when Dev Boxes retrival failed.</comment>
   </data>
   <data name="DevBox_Unconfigured" xml:space="preserve">
