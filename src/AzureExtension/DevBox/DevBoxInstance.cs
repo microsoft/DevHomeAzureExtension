@@ -507,13 +507,23 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
         {
             try
             {
-                var taskUri = new Uri(DevBoxState.Uri + Constants.WingetTaskAPI);
+                var taskAPI = DevBoxState.Uri + Constants.WingetTaskAPI;
                 _log.Information($"Applying config on {DisplayName} - {_taskJson}");
 
                 // To Do: Remove this once the API is ready
                 _taskJson = "{\"tasks\":[{\"name\":\"powershell\",\"parameters\":{\"command\":\"New-Item -Path C:\\\\ -Name 'Test' -ItemType 'directory'\"},\"runAs\":\"User\"}]}";
                 HttpContent httpContent = new StringContent(_taskJson, Encoding.UTF8, "application/json");
-                var result = await _devBoxManagementService.HttpsRequestToDataPlane(taskUri, AssociatedDeveloperId, HttpMethod.Put, httpContent);
+                var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(taskAPI), AssociatedDeveloperId, HttpMethod.Put, httpContent);
+
+                // Poll for status
+                var status = string.Empty;
+                while (status != "Succeeded")
+                {
+                    var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
+                    status = poll.JsonResponseRoot.GetProperty("status").ToString();
+                    await Task.Delay(5000);
+                    _log.Information($"Status: {status}");
+                }
 
                 return new ApplyConfigurationResult(null, null);
             }
