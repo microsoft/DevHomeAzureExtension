@@ -420,7 +420,7 @@
     <comment>The string to send to Dev Home that prompts users to change their search path.</comment>
   </data>
   <data name="DevBox_SessionExpired" xml:space="preserve">
-    <value>User session expired for {0}. Please login again from the settings page.</value>
+    <value>User session expired. Please login again from the settings page.</value>
     <comment>Error shown when user session has expired and re-login is needed.</comment>
   </data>
   <data name="DevBox_RetrivalFailKey" xml:space="preserve">
@@ -428,7 +428,7 @@
     <comment>Error shown when Dev Boxes retrival failed.</comment>
   </data>
   <data name="DevBox_Unconfigured" xml:space="preserve">
-    <value>Dev Boxes aren't configured for {0}.</value>
+    <value>Dev Boxes aren't configured for the current account.</value>
     <comment>Error shown when Dev Boxes aren't configured for the current account.</comment>
   </data>
 </root>

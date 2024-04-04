@@ -141,11 +141,11 @@ public class DevBoxProvider : IComputeSystemProvider
                 var errorMessage = string.Empty;
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpiredKey, developerId.LoginId);
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpiredKey);
                 }
                 else if (ex.Message.Contains("A passthrough token was detected without proper resource provider context"))
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.UnconfiguredKey, developerId.LoginId);
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.UnconfiguredKey);
                 }
                 else
                 {
