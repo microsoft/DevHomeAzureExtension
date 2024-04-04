@@ -1,8 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
@@ -36,7 +38,7 @@ public enum DevBoxActionToPerform
 /// It contains the DevBox details such as name, id, state, CPU, memory, and OS. And all the
 /// operations that can be performed on the DevBox.
 /// </summary>
-public class DevBoxInstance : IComputeSystem
+public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
 {
     private readonly IDevBoxManagementService _devBoxManagementService;
 
@@ -75,6 +77,13 @@ public class DevBoxInstance : IComputeSystem
     public IEnumerable<ComputeSystemProperty> Properties { get; set; } = new List<ComputeSystemProperty>();
 
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
+
+    // IApplyConfigurationOperation events
+    public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
+
+    public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
+
+    private string _taskJson = string.Empty;
 
     public DevBoxInstance(
         IDevBoxManagementService devBoxManagementService,
@@ -487,15 +496,32 @@ public class DevBoxInstance : IComputeSystem
 
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
-        try
+        var encodedConfiguration = DevBoxOperationHelper.Base64Encode(configuration);
+        _taskJson = Constants.WingetTaskJsonFirstPart + encodedConfiguration + Constants.WingetTaskJsonLastPart;
+        return this;
+    }
+
+    IAsyncOperation<ApplyConfigurationResult> IApplyConfigurationOperation.StartAsync()
+    {
+        return Task.Run(async () =>
         {
-            return new DevBoxApplyConfig(configuration);
-        }
-        catch (Exception ex)
-        {
-            _log.Error($"Error creating ApplyConfigurationOperation for {DisplayName}", ex);
-            return new DevBoxApplyConfig(ex);
-        }
+            try
+            {
+                var taskUri = new Uri(DevBoxState.Uri + Constants.WingetTaskAPI);
+                _log.Information($"Applying config on {DisplayName} - {_taskJson}");
+
+                HttpContent httpContent = new StringContent(_taskJson, Encoding.UTF8, "application/json");
+                var result = await _devBoxManagementService.HttpsRequestToDataPlane(taskUri, AssociatedDeveloperId, HttpMethod.Put, httpContent);
+
+                return new ApplyConfigurationResult(null, null);
+            }
+            catch (Exception ex)
+            {
+                UpdateStateForUI();
+                _log.Error($"Unable to apply configuration {_taskJson}", ex);
+                return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
+            }
+        }).AsAsyncOperation();
     }
 
     // Unsupported operations
