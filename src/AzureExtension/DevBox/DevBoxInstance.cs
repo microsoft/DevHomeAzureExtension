@@ -534,22 +534,18 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
         ConfigurationSetStateChanged?.Invoke(this, args);
     }
 
-    private void PollForCustomizationTask()
+    private async Task PollForCustomizationTask()
     {
-        Task.Run(async () =>
+        var status = string.Empty;
+        while (status != "Succeeded" && status != "Failed")
         {
-            // Poll for status
-            var status = string.Empty;
-            while (status != "Succeeded" && status != "Failed")
-            {
-                var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
-                var fullStatus = poll.JsonResponseRoot.ToString();
-                status = poll.JsonResponseRoot.GetProperty("status").ToString();
-                SetStateForCustomizationTask(status);
-                await Task.Delay(5000);
-                _log.Information($"---------------------------------------------------------------------------------------------------------------------------------------------------> Status: {status}");
-            }
-        });
+            var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
+            var fullStatus = poll.JsonResponseRoot.ToString();
+            status = poll.JsonResponseRoot.GetProperty("status").ToString();
+            SetStateForCustomizationTask(status);
+            await Task.Delay(5000);
+            _log.Information($"---------------------------------------------------------------------------------------------------------------------------------------------------> Status: {status}");
+        }
     }
 
     IAsyncOperation<ApplyConfigurationResult> IApplyConfigurationOperation.StartAsync()
@@ -564,7 +560,7 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
                 // _taskJson = "{\"tasks\":[{\"name\":\"powershell\",\"parameters\":{\"command\":\"New-Item -Path C:\\\\ -Name 'Test' -ItemType 'directory'\"},\"runAs\":\"User\"}]}";
                 HttpContent httpContent = new StringContent(_taskJson, Encoding.UTF8, "application/json");
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Put, httpContent);
-                PollForCustomizationTask();
+                await PollForCustomizationTask();
 
                 return new ApplyConfigurationResult(null, null);
             }
