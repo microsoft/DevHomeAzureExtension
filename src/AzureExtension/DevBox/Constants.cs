@@ -42,11 +42,11 @@ public static class Constants
     /// <summary>
     /// Dev Box API to run the winget customization task
     /// </summary>
-    public const string WingetTaskAPI = "/customizationgroups/devhomecustomizations?" + APIVersion;
+    public const string CustomizationAPI = "/customizationgroups/AzureExt";
 
-    public const string WingetTaskJsonFirstPart = "{\"tasks\":[{\"name\": \"winget\",\"parameters\": {\"inlineConfigurationBase64\":";
+    public const string WingetTaskJsonFirstPart = "{\"tasks\":[{\"name\": \"winget\",\"parameters\": {\"inlineConfigurationBase64\": \"";
 
-    public const string WingetTaskJsonLastPart = "},\"runAs\": \"User\"}]}";
+    public const string WingetTaskJsonLastPart = "\"},\"runAs\": \"User\"}]}";
 
     /// <summary>
     /// Gets the Regex pattern for the name of a DevBox. This pattern is used to validate the name and the project name of a DevBox before attempting

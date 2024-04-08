@@ -78,10 +78,12 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
 
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
-    // IApplyConfigurationOperation events
+    // IApplyConfigurationOperation implementations
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
+
+    private string _taskAPI = string.Empty;
 
     private string _taskJson = string.Empty;
 
@@ -498,7 +500,27 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
     {
         var encodedConfiguration = DevBoxOperationHelper.Base64Encode(configuration);
         _taskJson = Constants.WingetTaskJsonFirstPart + encodedConfiguration + Constants.WingetTaskJsonLastPart;
+        _taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
         return this;
+    }
+
+    private void PollForCustomizationTask()
+    {
+        Task.Run(async () =>
+        {
+            // Poll for status
+            var status = string.Empty;
+            while (status != "Succeeded" && status != "Failed")
+            {
+                var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
+                var fullStatus = poll.JsonResponseRoot.ToString();
+                status = poll.JsonResponseRoot.GetProperty("status").ToString();
+                await Task.Delay(5000);
+                _log.Information($"Status: {status}");
+            }
+
+            // ConfigurationSetStateChanged?.Invoke(this, new ConfigurationSetStateChangedEventArgs(ConfigurationSetState.Completed));
+        });
     }
 
     IAsyncOperation<ApplyConfigurationResult> IApplyConfigurationOperation.StartAsync()
@@ -507,23 +529,13 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
         {
             try
             {
-                var taskAPI = DevBoxState.Uri + Constants.WingetTaskAPI;
                 _log.Information($"Applying config on {DisplayName} - {_taskJson}");
 
                 // To Do: Remove this once the API is ready
-                _taskJson = "{\"tasks\":[{\"name\":\"powershell\",\"parameters\":{\"command\":\"New-Item -Path C:\\\\ -Name 'Test' -ItemType 'directory'\"},\"runAs\":\"User\"}]}";
+                // _taskJson = "{\"tasks\":[{\"name\":\"powershell\",\"parameters\":{\"command\":\"New-Item -Path C:\\\\ -Name 'Test' -ItemType 'directory'\"},\"runAs\":\"User\"}]}";
                 HttpContent httpContent = new StringContent(_taskJson, Encoding.UTF8, "application/json");
-                var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(taskAPI), AssociatedDeveloperId, HttpMethod.Put, httpContent);
-
-                // Poll for status
-                var status = string.Empty;
-                while (status != "Succeeded")
-                {
-                    var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
-                    status = poll.JsonResponseRoot.GetProperty("status").ToString();
-                    await Task.Delay(5000);
-                    _log.Information($"Status: {status}");
-                }
+                var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Put, httpContent);
+                PollForCustomizationTask();
 
                 return new ApplyConfigurationResult(null, null);
             }
