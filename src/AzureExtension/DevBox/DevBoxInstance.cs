@@ -504,6 +504,36 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
         return this;
     }
 
+    private void SetStateForCustomizationTask(string status)
+    {
+        var setState = ConfigurationSetState.Unknown;
+        var unitState = ConfigurationUnitState.Unknown;
+        var changeType = ConfigurationSetChangeEventType.SetStateChanged;
+
+        switch (status)
+        {
+            case "NotStarted":
+                setState = ConfigurationSetState.Pending;
+                unitState = ConfigurationUnitState.Pending;
+                break;
+            case "Running":
+                setState = ConfigurationSetState.InProgress;
+                unitState = ConfigurationUnitState.InProgress;
+                break;
+            case "Succeeded":
+                setState = ConfigurationSetState.Completed;
+                unitState = ConfigurationUnitState.Completed;
+                break;
+            case "Failed":
+                setState = ConfigurationSetState.Unknown;
+                unitState = ConfigurationUnitState.Unknown;
+                break;
+        }
+
+        ConfigurationSetStateChangedEventArgs args = new(new(changeType, setState, unitState, null, null));
+        ConfigurationSetStateChanged?.Invoke(this, args);
+    }
+
     private void PollForCustomizationTask()
     {
         Task.Run(async () =>
@@ -515,11 +545,10 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
                 var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
                 var fullStatus = poll.JsonResponseRoot.ToString();
                 status = poll.JsonResponseRoot.GetProperty("status").ToString();
+                SetStateForCustomizationTask(status);
                 await Task.Delay(5000);
-                _log.Information($"Status: {status}");
+                _log.Information($"---------------------------------------------------------------------------------------------------------------------------------------------------> Status: {status}");
             }
-
-            // ConfigurationSetStateChanged?.Invoke(this, new ConfigurationSetStateChangedEventArgs(ConfigurationSetState.Completed));
         });
     }
 
