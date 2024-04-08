@@ -57,6 +57,11 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <param name="systems">List of valid dev box objects</param>
     private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId, List<IComputeSystem> systems)
     {
+        if (devBoxProject.Name != "dadbrainproject")
+        {
+            return;
+        }
+
         var devCenterUri = devBoxProject.Properties.DevCenterUri;
         var baseUriStr = $"{devCenterUri}{Constants.Projects}/{devBoxProject.Name}{Constants.DevBoxAPI}";
         var devBoxJsonArray = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(baseUriStr), devId, HttpMethod.Get, null);
