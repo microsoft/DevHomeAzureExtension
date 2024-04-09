@@ -132,8 +132,24 @@ public class DevBoxInstance : IComputeSystem
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
     }
 
-    public ComputeSystemOperations SupportedOperations =>
-        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
+    public ComputeSystemOperations SupportedOperations
+    {
+        get
+        {
+            var state = GetState();
+            if (state == ComputeSystemState.Creating)
+            {
+                return ComputeSystemOperations.Delete;
+            }
+
+            if ((state == ComputeSystemState.Deleting) || (state == ComputeSystemState.Deleted))
+            {
+                return ComputeSystemOperations.None;
+            }
+
+            return ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
+        }
+    }
 
     public string SupplementalDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
@@ -298,7 +314,8 @@ public class DevBoxInstance : IComputeSystem
         return provisioningState == Constants.DevBoxProvisioningStates.Succeeded
             || provisioningState == Constants.DevBoxProvisioningStates.ProvisionedWithWarning
             || provisioningState == Constants.DevBoxProvisioningStates.Canceled
-            || provisioningState == Constants.DevBoxProvisioningStates.Failed;
+            || provisioningState == Constants.DevBoxProvisioningStates.Failed
+            || provisioningState == Constants.DevBoxProvisioningStates.Deleted;
     }
 
     // Check if it is a final action state
@@ -333,6 +350,8 @@ public class DevBoxInstance : IComputeSystem
                     return ComputeSystemState.Creating;
                 case Constants.DevBoxProvisioningStates.Deleting:
                     return ComputeSystemState.Deleting;
+                case Constants.DevBoxProvisioningStates.Deleted:
+                    return ComputeSystemState.Deleted;
             }
         }
 

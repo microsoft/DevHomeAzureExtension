@@ -26,7 +26,13 @@ public class DevBoxProvider : IComputeSystemProvider
 
     private readonly DevBoxInstanceFactory _devBoxInstanceFactory;
 
+    private readonly Dictionary<string, DevBoxProjects> _devBoxProjectsMap = new();
+
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxProvider));
+
+    private List<DevBoxProjectAndPoolContainer> _devBoxProjectAndPools = new();
+
+    private List<IComputeSystem> _cachedDevBoxes = new();
 
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,
@@ -70,6 +76,8 @@ public class DevBoxProvider : IComputeSystemProvider
             {
                 if (_devBoxCreationManager.TryGetDevBoxInstanceIfBeingCreated(devBoxState.UniqueId, out var devBox))
                 {
+                    _log.Information($"DevBox with name: {devBox!.DevBoxState.Name} found and is currently being created and monitored by Dev Box provider");
+
                     // If the Dev Box's creation operation or its provisioning state are being tracked by us, then don't make a new instance.
                     // Add the one we're tracking. This is to avoid adding the same Dev Box twice. E.g User clicks Dev Homes refresh button while
                     // the Dev Box is being created.
@@ -81,6 +89,9 @@ public class DevBoxProvider : IComputeSystemProvider
 
                 if (newDevBoxInstance.IsDevBoxBeingCreatedOrProvisioned)
                 {
+                    _log.Information(
+                        $"DevBox with name: {newDevBoxInstance!.DevBoxState.Name} is currently being provisioned and is not monitored by the DevBox provider. Adding DevBox To Operation watcher");
+
                     // DevBox is being created but we aren't tracking it yet. So we'll start tracking its provisioning state until its fully provisioned.
                     // It was likely created by Dev Portals UI or some other non-Dev Home related UI.
                     _devBoxCreationManager.StartDevBoxProvisioningStateMonitor(newDevBoxInstance.AssociatedDeveloperId, newDevBoxInstance);
@@ -97,9 +108,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
     public async Task<IEnumerable<IComputeSystem>> GetDevBoxesAsync(IDeveloperId developerId)
     {
-        var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
-        var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
-        var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
+        var devBoxProjects = await GetDevBoxProjectsAsync(developerId);
         var computeSystems = new List<IComputeSystem>();
 
         if (devBoxProjects?.Data != null)
@@ -118,7 +127,8 @@ public class DevBoxProvider : IComputeSystemProvider
             }
         }
 
-        return computeSystems;
+        _cachedDevBoxes = computeSystems;
+        return _cachedDevBoxes;
     }
 
     /// <summary>
@@ -171,16 +181,55 @@ public class DevBoxProvider : IComputeSystemProvider
         return _createComputeSystemOperationFactory(developerId, parameters);
     }
 
-    // These methods are not implemented but will be implemented as part of the work to support DevBox creation before the feature is released before build.
     public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForDeveloperId(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind)
     {
-        var exception = new NotImplementedException();
-        return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
+        return Task.Run(async () =>
+        {
+            try
+            {
+                ArgumentNullException.ThrowIfNull(developerId);
+
+                if (_cachedDevBoxes.Count == 0)
+                {
+                    await GetDevBoxesAsync(developerId);
+                }
+
+                return new ComputeSystemAdaptiveCardResult(new CreationAdaptiveCardSession(_devBoxProjectAndPools, _cachedDevBoxes));
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Unable to get the adaptive card session for the provided developerId");
+                return new ComputeSystemAdaptiveCardResult(ex, ex.Message, ex.Message);
+            }
+        }).GetAwaiter().GetResult();
     }
 
     public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForComputeSystem(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind)
     {
         var exception = new NotImplementedException();
         return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
+    }
+
+    private async Task<DevBoxProjects> GetDevBoxProjectsAsync(IDeveloperId developerId)
+    {
+        var uniqueUserId = $"{developerId.LoginId}#{developerId.Url}";
+
+        if (_devBoxProjectsMap.TryGetValue(uniqueUserId, out var projects))
+        {
+            return projects;
+        }
+
+        var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
+        var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
+        var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
+
+        // Get Associated pools the first time we get the projects
+        if (_devBoxProjectAndPools.Count == 0)
+        {
+            _devBoxProjectAndPools = await _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(devBoxProjects!, developerId);
+        }
+
+        _devBoxProjectsMap.Add(uniqueUserId, devBoxProjects!);
+        return devBoxProjects!;
     }
 }

@@ -109,6 +109,8 @@ public static class Constants
         public const string Deleting = "Deleting";
 
         public const string Updating = "Updating";
+
+        public const string Deleted = "Deleted";
     }
 
     public static class DevBoxActionStates

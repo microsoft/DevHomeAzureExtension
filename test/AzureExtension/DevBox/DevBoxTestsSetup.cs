@@ -119,7 +119,7 @@ public partial class DevBoxTests : IDisposable
 
     private const string MockTestCreationParametersJson =
         @"{
-              ""devBoxName"": ""MyDevBox"",
+              ""NewEnvironmentName"": ""MyDevBox"",
               ""projectName"": ""MyProject"",
               ""poolName"": ""MyPoolName"",
               ""devCenterUri"": ""https://devcenter.azure.com""
