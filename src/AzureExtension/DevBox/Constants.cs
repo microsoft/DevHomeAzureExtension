@@ -44,9 +44,29 @@ public static class Constants
     /// </summary>
     public const string CustomizationAPI = "/customizationgroups/AzureExt";
 
-    public const string WingetTaskJsonFirstPart = "{\"tasks\":[{\"name\": \"winget\",\"parameters\": {\"inlineConfigurationBase64\": \"";
+    // Example of the JSON payload for the customization task
+    //  {
+    //    "tasks": [
+    //        {
+    //            "name": "winget",
+    //            "runAs": "User",
+    //            "parameters": {
+    //                "inlineConfigurationBase64": "..."
+    //            },
+    //        },
+    //    ]
+    //  }
+    public const string WingetTaskJsonBaseStart = "{\"tasks\": [";
 
-    public const string WingetTaskJsonLastPart = "\"},\"runAs\": \"User\"}]}";
+    public const string WingetTaskJsonTaskStart = @"{
+            ""name"": ""winget"",
+			""runAs"": ""User"",
+            ""parameters"": {
+                ""inlineConfigurationBase64"": """;
+
+    public const string WingetTaskJsonTaskEnd = "\"}},";
+
+    public const string WingetTaskJsonBaseEnd = "]}";
 
     /// <summary>
     /// Gets the Regex pattern for the name of a DevBox. This pattern is used to validate the name and the project name of a DevBox before attempting

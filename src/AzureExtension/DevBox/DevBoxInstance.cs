@@ -10,6 +10,7 @@ using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
 using AzureExtension.DevBox.Models;
+using AzureExtension.Helpers;
 using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
@@ -83,9 +84,17 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
 
+    private List<CustomizationTask>? _subTasks;
+
     private string _taskAPI = string.Empty;
 
-    private string _taskJson = string.Empty;
+    private string _taskJSON = string.Empty;
+
+    private JsonSerializerOptions _taskJsonSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     public DevBoxInstance(
         IDevBoxManagementService devBoxManagementService,
@@ -498,8 +507,7 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
 
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
-        var encodedConfiguration = DevBoxOperationHelper.Base64Encode(configuration);
-        _taskJson = Constants.WingetTaskJsonFirstPart + encodedConfiguration + Constants.WingetTaskJsonLastPart;
+        (_taskJSON, _subTasks) = DevBoxOperationHelper.GetFullJSONAndSubTasks(configuration);
         _taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
         return this;
     }
@@ -509,6 +517,7 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
         var setState = ConfigurationSetState.Unknown;
         var unitState = ConfigurationUnitState.Unknown;
         var changeType = ConfigurationSetChangeEventType.SetStateChanged;
+        ConfigurationUnitResultInformation? unitResultInformation = null;
 
         switch (status)
         {
@@ -523,6 +532,7 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
             case "Succeeded":
                 setState = ConfigurationSetState.Completed;
                 unitState = ConfigurationUnitState.Completed;
+                unitResultInformation = new ConfigurationUnitResultInformation(null, null, null, ConfigurationUnitResultSource.None);
                 break;
             case "Failed":
                 setState = ConfigurationSetState.Unknown;
@@ -530,20 +540,45 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
                 break;
         }
 
-        ConfigurationSetStateChangedEventArgs args = new(new(changeType, setState, unitState, null, null));
+        ConfigurationUnit unit = new("Customization", "Test", ConfigurationUnitState.Completed, false, null, null, ConfigurationUnitIntent.Apply);
+        ConfigurationSetStateChangedEventArgs args = new(new(changeType, setState, unitState, unitResultInformation, unit));
         ConfigurationSetStateChanged?.Invoke(this, args);
+    }
+
+    private async Task TestPoll()
+    {
+        var status = "NotStarted";
+        SetStateForCustomizationTask(status);
+        await Task.Delay(1000);
+        status = "Running";
+        SetStateForCustomizationTask(status);
+        await Task.Delay(1000);
+        status = "Succeeded";
+        SetStateForCustomizationTask(status);
+        await Task.Delay(1000);
     }
 
     private async Task PollForCustomizationTask()
     {
         var status = string.Empty;
-        while (status != "Succeeded" && status != "Failed")
+        while (status != "Succeeded" && status != "Failed" && status != "ValidationFailed")
         {
             var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
             var fullStatus = poll.JsonResponseRoot.ToString();
             status = poll.JsonResponseRoot.GetProperty("status").ToString();
+
+            var response = JsonSerializer.Deserialize<TaskJSONToCSClasses.BasePackage>(fullStatus, _taskJsonSerializerOptions);
+
             SetStateForCustomizationTask(status);
-            await Task.Delay(5000);
+            await Task.Delay(status == "Running" ? 2500 : 10000);
+            if (response is not null)
+            {
+                foreach (var task in response.Tasks)
+                {
+                    _log.Information($"---------------------------------------------------------------------------------------------------------------------------------------------> Individual Status: {task.Status}");
+                }
+            }
+
             _log.Information($"---------------------------------------------------------------------------------------------------------------------------------------------------> Status: {status}");
         }
     }
@@ -554,20 +589,22 @@ public class DevBoxInstance : IComputeSystem, IApplyConfigurationOperation
         {
             try
             {
-                _log.Information($"Applying config on {DisplayName} - {_taskJson}");
+                _log.Information($"Applying config on {DisplayName} - {_taskJSON}");
 
-                // To Do: Remove this once the API is ready
-                // _taskJson = "{\"tasks\":[{\"name\":\"powershell\",\"parameters\":{\"command\":\"New-Item -Path C:\\\\ -Name 'Test' -ItemType 'directory'\"},\"runAs\":\"User\"}]}";
-                HttpContent httpContent = new StringContent(_taskJson, Encoding.UTF8, "application/json");
+                HttpContent httpContent = new StringContent(_taskJSON, Encoding.UTF8, "application/json");
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Put, httpContent);
                 await PollForCustomizationTask();
 
-                return new ApplyConfigurationResult(null, null);
+                OpenConfigurationSetResult openConfigurationSetResult = new(null, null, null, 0, 0);
+                ConfigurationUnit unit = new("Customization", "Test", ConfigurationUnitState.Completed, false, null, null, ConfigurationUnitIntent.Apply);
+                ApplyConfigurationUnitResult unitResult = new(unit, ConfigurationUnitState.Completed, false, false, null);
+                ApplyConfigurationSetResult applyConfigurationSetResult = new(null, new List<ApplyConfigurationUnitResult> { unitResult });
+                return new ApplyConfigurationResult(openConfigurationSetResult, applyConfigurationSetResult);
             }
             catch (Exception ex)
             {
                 UpdateStateForUI();
-                _log.Error($"Unable to apply configuration {_taskJson}", ex);
+                _log.Error($"Unable to apply configuration {_taskJSON}", ex);
                 return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
