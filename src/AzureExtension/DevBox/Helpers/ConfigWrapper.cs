@@ -3,11 +3,12 @@
 
 using System.Text;
 using System.Text.Json;
+using AzureExtension.Contracts;
+using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
-using YamlDotNet.Serialization.NamingConventions;
 using YamlDotNet.Serialization;
-using AzureExtension.Contracts;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace AzureExtension.DevBox.Helpers;
 
@@ -23,37 +24,34 @@ public class ConfigWrapper : IApplyConfigurationOperation
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public string FullJson = string.Empty;
+    private string _fullTaskJSON = string.Empty;
 
-    public List<ConfigurationUnit> Units = new();
+    private List<ConfigurationUnit> _units = new();
 
-    public OpenConfigurationSetResult OpenConfigurationSetResult = new(null, null, null, 0, 0);
+    private OpenConfigurationSetResult _openConfigurationSetResult = new(null, null, null, 0, 0);
 
-    public ApplyConfigurationSetResult ApplyConfigurationSetResult = new(null, null);
+    private ApplyConfigurationSetResult _applyConfigurationSetResult = new(null, null);
 
-    private string configuration;
-
-    private string taskAPI;
+    private string _restAPI;
 
     private IDevBoxManagementService _managementService;
 
     private IDeveloperId _devId;
 
-    public ConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId)
+    private Serilog.ILogger _log;
+
+    private ConfigurationSetState _oldSetState = ConfigurationSetState.Unknown;
+
+    public ConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
     {
-        this.configuration = configuration;
-        this.taskAPI = taskAPI;
-        this._managementService = devBoxManagementService;
-        this._devId = associatedDeveloperId;
+        _restAPI = taskAPI;
+        _managementService = devBoxManagementService;
+        _devId = associatedDeveloperId;
+        _log = log;
+        Initialize(configuration);
     }
 
-    public void Initialize(string fullJson, List<ConfigurationUnit> units)
-    {
-        FullJson = fullJson;
-        Units = units;
-    }
-
-    public static ConfigWrapper GetFullJSONAndSubTasks(string configuration)
+    public void Initialize(string configuration)
     {
         // Remove " dependsOn: -'Git.Git | Install: Git'" from the configuration
         configuration = configuration.Replace("dependsOn:", string.Empty);
@@ -99,31 +97,37 @@ public class ConfigWrapper : IApplyConfigurationOperation
         fullTask.Remove(fullTask.Length - 1, 1);
         fullTask.Append(Constants.WingetTaskJsonBaseEnd);
 
-        var wrapper = new ConfigWrapper();
-        wrapper.Initialize(fullTask.ToString(), units);
-        return wrapper;
+        _fullTaskJSON = fullTask.ToString();
+        _units = units;
     }
-
 
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BasePackage response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
 
-        for (var i = 0; i < _currentConfig.Units.Count; i++)
+        for (var i = 0; i < _units.Count; i++)
         {
-            var task = _currentConfig.Units[i];
-            var oldStatus = task.State;
-            var newUnitStatus = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
-            if (oldStatus != newUnitStatus)
+            var task = _units[i];
+            var oldUnitState = task.State;
+            var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
+            if (oldUnitState != unitState)
             {
                 // var unitResultInformation = new ConfigurationUnitResultInformation(null, null, null, ConfigurationUnitResultSource.None);
-                ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, newUnitStatus, null, task));
+                ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
                 ConfigurationSetStateChanged?.Invoke(this, args);
             }
 
             // To Do: Simplify
-            _log.Debug($"-----------------------------------------------------------------> Individual Status: {newUnitStatus}");
+            _log.Debug($"-----------------------------------------------------------------> Individual Status: {unitState}");
         }
+
+        if (_oldSetState != setState)
+        {
+            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.SetStateChanged, setState, ConfigurationUnitState.Unknown, null, null));
+            ConfigurationSetStateChanged?.Invoke(this, args);
+            _oldSetState = setState;
+        }
+
         _log.Debug($"-------------------------------------------------------------------------> Status: {response.Status}");
     }
 
@@ -133,17 +137,17 @@ public class ConfigWrapper : IApplyConfigurationOperation
         {
             try
             {
-                _log.Information($"Applying config on {DisplayName} - {_currentConfig.FullJson}");
+                _log.Information($"Applying config {_fullTaskJSON}");
 
-                HttpContent httpContent = new StringContent(_currentConfig.FullJson, Encoding.UTF8, "application/json");
-                var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Put, httpContent);
+                HttpContent httpContent = new StringContent(_fullTaskJSON, Encoding.UTF8, "application/json");
+                var result = await _managementService.HttpsRequestToDataPlane(new Uri(_restAPI), _devId, HttpMethod.Put, httpContent);
 
                 var setStatus = string.Empty;
                 while (setStatus != "Succeeded" && setStatus != "Failed" && setStatus != "ValidationFailed")
                 {
                     await Task.Delay(setStatus == "Running" ? 2500 : 10000);
 
-                    var poll = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(_taskAPI), AssociatedDeveloperId, HttpMethod.Get, null);
+                    var poll = await _managementService.HttpsRequestToDataPlane(new Uri(_restAPI), _devId, HttpMethod.Get, null);
                     var rawResponse = poll.JsonResponseRoot.ToString();
                     var response = JsonSerializer.Deserialize<TaskJSONToCSClasses.BasePackage>(rawResponse, _taskJsonSerializerOptions);
                     setStatus = response?.Status;
@@ -154,15 +158,13 @@ public class ConfigWrapper : IApplyConfigurationOperation
                     }
                 }
 
-                return new ApplyConfigurationResult(_currentConfig.OpenConfigurationSetResult, _currentConfig.ApplyConfigurationSetResult);
+                return new ApplyConfigurationResult(_openConfigurationSetResult, _applyConfigurationSetResult);
             }
             catch (Exception ex)
             {
-                UpdateStateForUI();
-                _log.Error($"Unable to apply configuration {_currentConfig.FullJson}", ex);
+                _log.Error($"Unable to apply configuration {_fullTaskJSON}", ex);
                 return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
     }
-
 }

@@ -51,6 +51,7 @@ public static class DevBoxOperationHelper
             "Failed" => ConfigurationUnitState.Unknown,
             "TimedOut" => ConfigurationUnitState.Unknown,
             _ => ConfigurationUnitState.Unknown,
+
             // Not implemented by the REST API
             // "WaitingForUserInputUac" => ConfigurationUnitState.Unknown,
             // "WaitingForUserSession" => ConfigurationUnitState.Unknown,

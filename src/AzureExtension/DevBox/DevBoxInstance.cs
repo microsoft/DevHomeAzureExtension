@@ -490,7 +490,7 @@ public class DevBoxInstance : IComputeSystem
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
         var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
-        return new ConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId);
+        return new ConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log);
     }
 
     // Unsupported operations
