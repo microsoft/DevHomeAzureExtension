@@ -187,7 +187,7 @@ public class RepositoryProvider : IRepositoryProvider2
             }
             catch (Exception e)
             {
-                _log.Error(e.Message, e);
+                _log.Error(e, e.Message);
                 return new RepositoriesResult(e, e.Message);
             }
         }).AsAsyncOperation();
@@ -332,27 +332,27 @@ public class RepositoryProvider : IRepositoryProvider2
             }
             catch (LibGit2Sharp.RecurseSubmodulesException recurseException)
             {
-                _log.Error("Could not clone all sub modules", recurseException);
+                _log.Error(recurseException, "Could not clone all sub modules");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, recurseException, "Could not clone all modules", recurseException.Message);
             }
             catch (LibGit2Sharp.UserCancelledException userCancelledException)
             {
-                _log.Error("The user stopped the clone operation", userCancelledException);
+                _log.Error(userCancelledException, "The user stopped the clone operation");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, userCancelledException, "User cancelled the operation", userCancelledException.Message);
             }
             catch (LibGit2Sharp.NameConflictException nameConflictException)
             {
-                _log.Error(nameConflictException.Message, nameConflictException);
+                _log.Error(nameConflictException, nameConflictException.Message);
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, nameConflictException, "The location exists and is non-empty", nameConflictException.Message);
             }
             catch (LibGit2Sharp.LibGit2SharpException libGitTwoException)
             {
-                _log.Error($"Either no logged in account has access to this repo, or the repo can't be found", libGitTwoException);
+                _log.Error(libGitTwoException, $"Either no logged in account has access to this repo, or the repo can't be found");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, libGitTwoException, "LigGit2 threw an exception", "LibGit2 Threw an exception");
             }
             catch (Exception e)
             {
-                _log.Error("Could not clone the repository", e);
+                _log.Error(e, "Could not clone the repository");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, e, "Something happened when cloning the repo", "something happened when cloning the repo");
             }
 
@@ -459,7 +459,7 @@ public class RepositoryProvider : IRepositoryProvider2
             }
             catch (Exception e)
             {
-                _log.Error(e.Message, e);
+                _log.Error(e, e.Message);
             }
         });
 

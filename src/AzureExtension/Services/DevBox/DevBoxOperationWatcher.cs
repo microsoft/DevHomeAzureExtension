@@ -95,7 +95,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                 }
                 catch (Exception ex)
                 {
-                    _log.Error($"Dev Box operation monitoring stopped unexpectedly. Uri: {operationUri}, Id: {operationId}", ex);
+                    _log.Error(ex, $"Dev Box operation monitoring stopped unexpectedly. Uri: {operationUri}, Id: {operationId}");
 
                     completionCallback(DevCenterOperationStatus.Failed);
                     RemoveTimer(operationId);
@@ -150,7 +150,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                 }
                 catch (Exception ex)
                 {
-                    _log.Error($"Dev Box provisioning monitoring stopped unexpectedly.", ex);
+                    _log.Error(ex, $"Dev Box provisioning monitoring stopped unexpectedly.");
                     devBoxInstance.ProvisioningMonitorCompleted(null, ProvisioningStatus.Failed);
                     completionCallback(devBoxInstance);
                     RemoveTimer(devBoxId);

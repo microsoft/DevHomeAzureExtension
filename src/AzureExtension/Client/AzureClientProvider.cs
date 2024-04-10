@@ -72,7 +72,7 @@ public class AzureClientProvider
         }
         catch (Exception ex)
         {
-            Log.Error($"Failed creating connection for developer id and {uri} with exception:", ex);
+            Log.Error(ex, $"Failed creating connection for developer id and {uri} with exception:");
         }
 
         return null;

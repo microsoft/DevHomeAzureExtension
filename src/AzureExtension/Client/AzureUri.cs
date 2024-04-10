@@ -256,7 +256,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error($"InitializeOrganization failed for Uri: {Uri}", e);
+            Log.Error(e, $"InitializeOrganization failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -340,7 +340,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error($"InitializeProject failed for Uri: {Uri}", e);
+            Log.Error(e, $"InitializeProject failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -387,7 +387,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error($"InitializeRepository failed for Uri: {Uri}", e);
+            Log.Error(e, $"InitializeRepository failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -453,7 +453,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error($"InitializeQuery failed for Uri: {Uri}", e);
+            Log.Error(e, $"InitializeQuery failed for Uri: {Uri}");
             return string.Empty;
         }
     }

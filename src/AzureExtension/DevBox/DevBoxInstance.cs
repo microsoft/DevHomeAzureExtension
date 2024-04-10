@@ -120,7 +120,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                _log.Error($"Error processing properties for {DisplayName}", ex);
+                _log.Error(ex, $"Error processing properties for {DisplayName}");
             }
         }
     }
@@ -185,7 +185,7 @@ public class DevBoxInstance : IComputeSystem
             catch (Exception ex)
             {
                 UpdateStateForUI();
-                _log.Error($"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'", ex);
+                _log.Error(ex, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'");
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
@@ -278,7 +278,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                _log.Error($"Error setting state after the long running operation completed successfully", ex);
+                _log.Error(ex, $"Error setting state after the long running operation completed successfully");
                 DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
                 DevBoxState.PowerState = Constants.DevBoxPowerStates.Unknown;
                 RemoveOperationInProgressFlag();
@@ -429,7 +429,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                _log.Error($"Error connecting to {DisplayName}", ex);
+                _log.Error(ex, $"Error connecting to {DisplayName}");
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), string.Empty);
             }
         }).AsAsyncOperation();
@@ -470,7 +470,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                _log.Error($"Error getting thumbnail for {DisplayName}", ex);
+                _log.Error(ex, $"Error getting thumbnail for {DisplayName}");
                 return new ComputeSystemThumbnailResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();

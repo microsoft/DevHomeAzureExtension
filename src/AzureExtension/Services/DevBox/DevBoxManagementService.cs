@@ -62,7 +62,7 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
         catch (Exception ex)
         {
-            _log.Error($"DevBoxHttpRequest failed: Exception", ex);
+            _log.Error(ex, $"DevBoxHttpRequest failed: Exception");
             throw;
         }
     }
@@ -88,7 +88,7 @@ public class DevBoxManagementService : IDevBoxManagementService
             catch (Exception ex)
             {
                 projectJson.TryGetProperty("name", out var projectWithErrorName);
-                _log.Error($"unable to get pools for {projectWithErrorName}", ex);
+                _log.Error(ex, $"unable to get pools for {projectWithErrorName}");
             }
         }
 

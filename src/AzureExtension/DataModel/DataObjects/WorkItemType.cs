@@ -82,7 +82,7 @@ public class WorkItemType
         }
         catch (Exception ex)
         {
-            Log.Error($"Failed to deserialize Json object into WorkItemType: {json}", ex);
+            Log.Error(ex, $"Failed to deserialize Json object into WorkItemType: {json}");
             return null;
         }
     }
