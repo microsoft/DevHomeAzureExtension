@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.Helpers;
+namespace AzureExtension.DevBox.Helpers;
 
 // Example of a task JSON response that will be deserialized into the BasePackage class
 //    {

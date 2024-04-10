@@ -3,7 +3,7 @@
 
 using System.Text;
 using AzureExtension.DevBox.Models;
-using AzureExtension.Helpers;
+using Microsoft.Windows.DevHome.SDK;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -40,52 +40,33 @@ public static class DevBoxOperationHelper
         return System.Convert.ToBase64String(plainTextBytes);
     }
 
-    public static (string FullJson, List<CustomizationTask> Tasks) GetFullJSONAndSubTasks(string configuration)
+    public static ConfigurationUnitState JSONStatusToUnitStatus(string status)
     {
-        // Remove " dependsOn: -'Git.Git | Install: Git'" from the configuration
-        configuration = configuration.Replace("dependsOn:", string.Empty);
-        configuration = configuration.Replace("- 'Git.Git | Install: Git'", string.Empty);
-
-        List<CustomizationTask> tasks = new();
-
-        var deserializer = new DeserializerBuilder()
-            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.CamelCaseNamingConvention.Instance)
-            .Build();
-        var baseDSC = deserializer.Deserialize<TaskYAMLToCSClasses.BasePackage>(new StringReader(configuration));
-        var resources = baseDSC?.Properties?.Resources;
-        baseDSC?.Properties?.SetResources(null);
-        StringBuilder fullTask = new(Constants.WingetTaskJsonBaseStart);
-
-        if (resources != null)
+        return status switch
         {
-            foreach (var resource in resources)
-            {
-                if (resource.Resource is not null && resource.Directives is not null)
-                {
-                    if (resource.Resource.EndsWith("BasePackage", System.StringComparison.Ordinal))
-                    {
-                        tasks.Add(new CustomizationTask(resource.Directives.Description, resource, false));
-                    }
-                    else if (resource.Resource.EndsWith("GitClone", System.StringComparison.Ordinal))
-                    {
-                        tasks.Add(new CustomizationTask(resource.Directives.Description, resource, true));
-                    }
-                }
+            "NotStarted" => ConfigurationUnitState.Pending,
+            "Running" => ConfigurationUnitState.InProgress,
+            "Skipped" => ConfigurationUnitState.Skipped,
+            "Succeeded" => ConfigurationUnitState.Completed,
+            "Failed" => ConfigurationUnitState.Unknown,
+            "TimedOut" => ConfigurationUnitState.Unknown,
+            _ => ConfigurationUnitState.Unknown,
+            // Not implemented by the REST API
+            // "WaitingForUserInputUac" => ConfigurationUnitState.Unknown,
+            // "WaitingForUserSession" => ConfigurationUnitState.Unknown,
+        };
+    }
 
-                var tempDsc = baseDSC;
-                tempDsc?.Properties?.SetResources(new List<TaskYAMLToCSClasses.ResourceItem> { resource });
-                var serializer = new SerializerBuilder()
-                    .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                    .Build();
-                var yaml = serializer.Serialize(tempDsc);
-                var encodedConfiguration = DevBoxOperationHelper.Base64Encode(yaml);
-                fullTask.Append(Constants.WingetTaskJsonTaskStart + encodedConfiguration + Constants.WingetTaskJsonTaskEnd);
-            }
-        }
-
-        fullTask.Remove(fullTask.Length - 1, 1);
-        fullTask.Append(Constants.WingetTaskJsonBaseEnd);
-
-        return (fullTask.ToString(), tasks);
+    public static ConfigurationSetState JSONStatusToSetStatus(string status)
+    {
+        return status switch
+        {
+            "NotStarted" => ConfigurationSetState.Pending,
+            "Running" => ConfigurationSetState.InProgress,
+            "Succeeded" => ConfigurationSetState.Completed,
+            "Failed" => ConfigurationSetState.Unknown,
+            "ValidationFailed" => ConfigurationSetState.Unknown,
+            _ => ConfigurationSetState.Unknown,
+        };
     }
 }
