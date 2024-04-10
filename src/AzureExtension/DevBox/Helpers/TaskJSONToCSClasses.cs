@@ -3,7 +3,7 @@
 
 namespace AzureExtension.DevBox.Helpers;
 
-// Example of a task JSON response that will be deserialized into the BasePackage class
+// Example of a task JSON response that will be deserialized into the BaseClass class
 //    {
 //  "tasks": [
 //    {
@@ -42,7 +42,7 @@ namespace AzureExtension.DevBox.Helpers;
 /// </summary>
 public class TaskJSONToCSClasses
 {
-    public class BasePackage
+    public class BaseClass
     {
         public List<TaskItem> Tasks { get; set; } = new();
 

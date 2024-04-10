@@ -3,10 +3,10 @@
 
 namespace AzureExtension.DevBox.Helpers;
 
-// Example of a YAML file that will be deserialized into the BasePackage class
+// Example of a YAML file that will be deserialized
 //    properties:
 //      resources:
-//      - resource: Microsoft.WinGet.DSC/BasePackage
+//      - resource: Microsoft.WinGet.DSC/WinGetPackage
 //        directives:
 //          description: Installing SublimeHQ.SublimeText.4
 //          allowPrerelease: true
@@ -14,7 +14,7 @@ namespace AzureExtension.DevBox.Helpers;
 //          id: "SublimeHQ.SublimeText.4"
 //          source: winget
 //        id: 'SublimeHQ.SublimeText.4 | Install: Sublime Text 4'
-//      - resource: Microsoft.WinGet.DSC/BasePackage
+//      - resource: Microsoft.WinGet.DSC/WinGetPackage
 //        directives:
 //          description: Installing Git
 //          allowPrerelease: true
@@ -75,9 +75,9 @@ public class TaskYAMLToCSClasses
     {
         public string Id { get; set; } = string.Empty;
 
-        public string? HttpsUrl { get; set; }
+        public string HttpsUrl { get; set; } = string.Empty;
 
-        public string? RootDirectory { get; set; }
+        public string RootDirectory { get; set; } = string.Empty;
 
         public string Source { get; set; } = string.Empty;
     }
