@@ -75,7 +75,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         }
         catch (Exception ex)
         {
-            _log.Error($"unable to create the Dev Box with user options: {parameters}", ex);
+            _log.Error(ex, $"unable to create the Dev Box with user options: {parameters}");
             return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName), ex.Message);
         }
     }

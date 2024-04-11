@@ -57,12 +57,12 @@ public class AzureClientHelpers
         {
             if (ex.InnerException is VssResourceNotFoundException)
             {
-                log.Error($"Vss Resource Not Found for {azureUri}", ex);
+                log.Error(ex, $"Vss Resource Not Found for {azureUri}");
                 return new InfoResult(azureUri, InfoType.Query, ResultType.Failure, ErrorType.VssResourceNotFound, ex);
             }
             else
             {
-                log.Error($"Failed getting query info for: {azureUri}", ex);
+                log.Error(ex, $"Failed getting query info for: {azureUri}");
                 return new InfoResult(azureUri, InfoType.Query, ResultType.Failure, ErrorType.Unknown, ex);
             }
         }
@@ -125,12 +125,12 @@ public class AzureClientHelpers
         {
             if (ex.InnerException is VssResourceNotFoundException)
             {
-                log.Error($"Vss Resource Not Found for {azureUri}", ex);
+                log.Error(ex, $"Vss Resource Not Found for {azureUri}");
                 return new InfoResult(azureUri, InfoType.Repository, ResultType.Failure, ErrorType.VssResourceNotFound, ex);
             }
             else
             {
-                log.Error($"Failed getting repository info for: {azureUri}", ex);
+                log.Error(ex, $"Failed getting repository info for: {azureUri}");
                 return new InfoResult(azureUri, InfoType.Repository, ResultType.Failure, ErrorType.Unknown, ex);
             }
         }

@@ -184,7 +184,7 @@ public sealed class Program
         }
         catch (Exception ex)
         {
-            Log.Information("Failed getting package information.", ex);
+            Log.Information(ex, "Failed getting package information.");
         }
     }
 
@@ -219,7 +219,7 @@ public sealed class Program
         }
         catch (Exception ex)
         {
-            Log.Error("Failed attempting to verify or perform database recreation.", ex);
+            Log.Error(ex, "Failed attempting to verify or perform database recreation.");
         }
     }
 
