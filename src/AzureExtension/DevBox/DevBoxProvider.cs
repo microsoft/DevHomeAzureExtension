@@ -8,6 +8,7 @@ using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 
 namespace AzureExtension.DevBox;
@@ -24,6 +25,8 @@ public class DevBoxProvider : IComputeSystemProvider
     private readonly CreateComputeSystemOperationFactory _createComputeSystemOperationFactory;
 
     private readonly DevBoxInstanceFactory _devBoxInstanceFactory;
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxProvider));
 
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,
@@ -61,7 +64,7 @@ public class DevBoxProvider : IComputeSystemProvider
 
         if (devBoxMachines?.Value != null && devBoxMachines.Value.Length != 0)
         {
-            Log.Logger()?.ReportInfo($"Found {devBoxMachines!.Value.Length} boxes for project {devBoxProject.Name}");
+            _log.Information($"Found {devBoxMachines!.Value.Length} boxes for project {devBoxProject.Name}");
 
             foreach (var devBoxState in devBoxMachines!.Value)
             {
@@ -101,7 +104,7 @@ public class DevBoxProvider : IComputeSystemProvider
 
         if (devBoxProjects?.Data != null)
         {
-            Log.Logger()?.ReportInfo($"Found {devBoxProjects.Data.Length} projects");
+            _log.Information($"Found {devBoxProjects.Data.Length} projects");
             foreach (var project in devBoxProjects.Data)
             {
                 try
@@ -110,7 +113,7 @@ public class DevBoxProvider : IComputeSystemProvider
                 }
                 catch (Exception ex)
                 {
-                    Log.Logger()?.ReportError($"Error processing project {project.Name}", ex);
+                    _log.Error(ex, $"Error processing project {project.Name}");
                 }
             }
         }
@@ -135,8 +138,23 @@ public class DevBoxProvider : IComputeSystemProvider
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Unable to get all Dev Boxes", ex);
-                return new ComputeSystemsResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
+                var errorMessage = string.Empty;
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
+                {
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpiredKey);
+                }
+                else if (ex.Message.Contains("A passthrough token was detected without proper resource provider context"))
+                {
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.UnconfiguredKey);
+                }
+                else
+                {
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + ex.Message;
+                    return new ComputeSystemsResult(ex, Resources.GetResource(Constants.RetrivalFailKey), ex.Message);
+                }
+
+                _log.Error(errorMessage);
+                return new ComputeSystemsResult(ex, errorMessage, string.Empty);
             }
         }).AsAsyncOperation();
     }

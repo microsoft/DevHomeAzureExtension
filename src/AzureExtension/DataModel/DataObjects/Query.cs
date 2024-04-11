@@ -4,6 +4,7 @@
 using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Helpers;
+using Serilog;
 using DevId = DevHomeAzureExtension.DeveloperId;
 
 namespace DevHomeAzureExtension.DataModel;
@@ -11,6 +12,10 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Query")]
 public class Query
 {
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Query)}"));
+
+    private static readonly ILogger Log = _log.Value;
+
     // This is the time between seeing a search and updating it's TimeUpdated.
     private static readonly long UpdateThreshold = TimeSpan.FromMinutes(2).Ticks;
 
@@ -138,8 +143,8 @@ public class Query
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Logger()?.ReportDebug(DataStore.GetCommandLogMessage(sql, command));
+        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Logger()?.ReportDebug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

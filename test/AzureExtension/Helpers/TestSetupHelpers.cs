@@ -1,9 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Globalization;
 using DevHome.Logging;
 using DevHome.Logging.Helpers;
 using DevHomeAzureExtension.DataModel;
+using Serilog;
 
 namespace DevHomeAzureExtension.Test;
 
@@ -57,10 +59,8 @@ public partial class TestHelpers
         // to be consistent in test setup/cleanup.
         var path = GetUniqueFolderPath("AzureET");
         var options = new TestOptions();
-        options.LogOptions.FailFastSeverity = FailFastSeverityLevel.Ignore;
-        options.LogOptions.LogFileFilter = SeverityLevel.Debug;
-        options.LogOptions.LogFileFolderRoot = path;
-        options.LogOptions.LogFileName = LogFileName;
+        options.LogFileFolderRoot = path;
+        options.LogFileName = LogFileName;
         options.DataStoreOptions.DataStoreFileName = DataBaseFileName;
         options.DataStoreOptions.DataStoreFolderPath = path;
         options.DataStoreOptions.DataStoreSchema = new AzureDataStoreSchema();
@@ -84,6 +84,26 @@ public partial class TestHelpers
 
     public static string GetLogFilePath(TestOptions options)
     {
-        return FileSystem.SubstituteOutputFilename(options.LogOptions.LogFileName, options.LogOptions.LogFileFolderPath);
+        return FileSystem.SubstituteOutputFilename(options.LogFileName, options.LogFileFolderPath);
+    }
+
+    public static void ConfigureTestLog(TestOptions options, TestContext context)
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.File(
+                path: GetLogFilePath(options),
+                formatProvider: CultureInfo.InvariantCulture,
+                outputTemplate: "[{Timestamp:yyyy/MM/dd HH:mm:ss.fff} {Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}")
+            .WriteTo.TestContextSink(
+                context: context,
+                formatProvider: CultureInfo.InvariantCulture,
+                outputTemplate: "[{Timestamp:yyyy/MM/dd HH:mm:ss.fff} {Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}")
+            .CreateLogger();
+    }
+
+    public static void CloseTestLog()
+    {
+        Log.CloseAndFlush();
     }
 }

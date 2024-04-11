@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using Microsoft.Windows.Widgets.Providers;
+using Serilog;
 
 namespace DevHomeAzureExtension.Widgets;
 
@@ -11,18 +12,15 @@ namespace DevHomeAzureExtension.Widgets;
 [Guid("B91B13BB-B3B4-4F2E-9EF9-554757F33E1C")]
 public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 {
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(WidgetProvider));
+
     public WidgetProvider()
     {
-        Log.Logger()?.ReportDebug("Provider Constructed");
+        _log.Debug("Provider Constructed");
         widgetDefinitionRegistry.Add("Azure_QueryList", new WidgetImplFactory<AzureQueryListWidget>());
         widgetDefinitionRegistry.Add("Azure_QueryTiles", new WidgetImplFactory<AzureQueryTilesWidget>());
         widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsWidget>());
         RecoverRunningWidgets();
-    }
-
-    ~WidgetProvider()
-    {
-        Log.Logger()?.Dispose();
     }
 
     private readonly Dictionary<string, IWidgetImplFactory> widgetDefinitionRegistry = new();
@@ -32,7 +30,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
     {
         var widgetId = widgetContext.Id;
         var widgetDefinitionId = widgetContext.DefinitionId;
-        Log.Logger()?.ReportDebug($"Calling Initialize for Widget Id: {widgetId} - {widgetDefinitionId}");
+        _log.Debug($"Calling Initialize for Widget Id: {widgetId} - {widgetDefinitionId}");
         if (widgetDefinitionRegistry.TryGetValue(widgetDefinitionId, out var widgetFactory))
         {
             if (!runningWidgets.ContainsKey(widgetId))
@@ -42,12 +40,12 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
             }
             else
             {
-                Log.Logger()?.ReportWarn($"Attempted to initialize a widget twice: {widgetDefinitionId} - {widgetId}");
+                _log.Warning($"Attempted to initialize a widget twice: {widgetDefinitionId} - {widgetId}");
             }
         }
         else
         {
-            Log.Logger()?.ReportError($"Unknown widget DefinitionId: {widgetDefinitionId}");
+            _log.Error($"Unknown widget DefinitionId: {widgetDefinitionId}");
         }
     }
 
@@ -60,13 +58,13 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError("Failed retrieving list of running widgets.", e);
+            _log.Error(e, "Failed retrieving list of running widgets.");
             return;
         }
 
         if (runningWidgets is null)
         {
-            Log.Logger()?.ReportDebug("No running widgets to recover.");
+            _log.Debug("No running widgets to recover.");
             return;
         }
 
@@ -78,18 +76,18 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
             }
         }
 
-        Log.Logger()?.ReportDebug("Finished recovering widgets.");
+        _log.Debug("Finished recovering widgets.");
     }
 
     public void CreateWidget(WidgetContext widgetContext)
     {
-        Log.Logger()?.ReportInfo($"CreateWidget id: {widgetContext.Id} definitionId: {widgetContext.DefinitionId}");
+        _log.Information($"CreateWidget id: {widgetContext.Id} definitionId: {widgetContext.DefinitionId}");
         InitializeWidget(widgetContext, string.Empty);
     }
 
     public void Activate(WidgetContext widgetContext)
     {
-        Log.Logger()?.ReportDebug($"Activate id: {widgetContext.Id} definitionId: {widgetContext.DefinitionId}");
+        _log.Debug($"Activate id: {widgetContext.Id} definitionId: {widgetContext.DefinitionId}");
         var widgetId = widgetContext.Id;
         if (runningWidgets.TryGetValue(widgetId, out var widgetImpl))
         {
@@ -98,7 +96,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         else
         {
             // Called to activate a widget that we don't know about, which is unexpected. Try to recover by creating it.
-            Log.Logger()?.ReportWarn($"Found WidgetId that was not known: {widgetContext.Id}, attempting to recover by creating it.");
+            _log.Warning($"Found WidgetId that was not known: {widgetContext.Id}, attempting to recover by creating it.");
             CreateWidget(widgetContext);
             if (runningWidgets.TryGetValue(widgetId, out var widgetImplForUnknownWidget))
             {
@@ -111,7 +109,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
     {
         if (runningWidgets.TryGetValue(widgetId, out var widgetToDeactivate))
         {
-            Log.Logger()?.ReportDebug($"Deactivate id: {widgetId}");
+            _log.Debug($"Deactivate id: {widgetId}");
             widgetToDeactivate.Deactivate(widgetId);
         }
     }
@@ -120,7 +118,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
     {
         if (runningWidgets.TryGetValue(widgetId, out var widgetToDelete))
         {
-            Log.Logger()?.ReportInfo($"DeleteWidget id: {widgetId}");
+            _log.Information($"DeleteWidget id: {widgetId}");
             widgetToDelete.DeleteWidget(widgetId, customState);
             runningWidgets.Remove(widgetId);
         }
@@ -128,7 +126,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 
     public void OnActionInvoked(WidgetActionInvokedArgs actionInvokedArgs)
     {
-        Log.Logger()?.ReportDebug($"OnActionInvoked id: {actionInvokedArgs.WidgetContext.Id} definitionId: {actionInvokedArgs.WidgetContext.DefinitionId}");
+        _log.Debug($"OnActionInvoked id: {actionInvokedArgs.WidgetContext.Id} definitionId: {actionInvokedArgs.WidgetContext.DefinitionId}");
         var widgetContext = actionInvokedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
         if (runningWidgets.TryGetValue(widgetId, out var widgetToInvokeAnActionOn))
@@ -139,7 +137,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 
     public void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
     {
-        Log.Logger()?.ReportDebug($"OnCustomizationRequested id: {customizationRequestedArgs.WidgetContext.Id} definitionId: {customizationRequestedArgs.WidgetContext.DefinitionId}");
+        _log.Debug($"OnCustomizationRequested id: {customizationRequestedArgs.WidgetContext.Id} definitionId: {customizationRequestedArgs.WidgetContext.DefinitionId}");
         var widgetContext = customizationRequestedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
         if (runningWidgets.TryGetValue(widgetId, out var widgetToCustomize))
@@ -150,7 +148,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 
     public void OnWidgetContextChanged(WidgetContextChangedArgs contextChangedArgs)
     {
-        Log.Logger()?.ReportDebug($"OnWidgetContextChanged id: {contextChangedArgs.WidgetContext.Id} definitionId: {contextChangedArgs.WidgetContext.DefinitionId}");
+        _log.Debug($"OnWidgetContextChanged id: {contextChangedArgs.WidgetContext.Id} definitionId: {contextChangedArgs.WidgetContext.DefinitionId}");
         var widgetContext = contextChangedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
         if (runningWidgets.TryGetValue(widgetId, out var widgetWithAChangedContext))
