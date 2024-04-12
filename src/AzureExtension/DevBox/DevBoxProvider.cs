@@ -145,7 +145,7 @@ public class DevBoxProvider : IComputeSystemProvider
             catch (Exception ex)
             {
                 var errorMessage = string.Empty;
-                if (ex.InnerException != null && ex.InnerException.Message.Contains("Internal Error Code: 558133256"))
+                if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
                 {
                     errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.SessionExpiredKey);
                 }

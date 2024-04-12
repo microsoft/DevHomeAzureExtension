@@ -38,6 +38,10 @@ public class ConfigWrapper : IApplyConfigurationOperation
 
     public const string WingetTaskJsonBaseEnd = "]}";
 
+    public const string ConfigApplyFailedKey = "DevBox_ConfigApplyFailedKey";
+
+    public const string ValidationFailedKey = "DevBox_ValidationFailedKey";
+
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
@@ -143,9 +147,8 @@ public class ConfigWrapper : IApplyConfigurationOperation
 
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
-        // To Do: Simplify
-        _log.Debug($"-------------------------------------------------------------------------> Status: {response.Status}");
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
+        _log.Debug($"Set Status: {response.Status}");
 
         // No need to show the pending status more than once
         if (_pendingNotificationShown && setState == ConfigurationSetState.Pending)
@@ -172,8 +175,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
                         _oldUnitState[i] = unitState;
                     }
 
-                    // To Do: Simplify
-                    _log.Debug($"-----------------------------------------------------------------> Individual Status: {unitState}");
+                    _log.Debug($"Unit Status: {unitState}");
                 }
 
                 break;
@@ -190,12 +192,14 @@ public class ConfigWrapper : IApplyConfigurationOperation
                 break;
 
             case "ValidationFailed":
-                // To Do: More logging
-                _openConfigurationSetResult = new(new FormatException("Validation"), "Validation", "Validation", 0, 0);
+                _openConfigurationSetResult = new(new FormatException(Resources.GetResource(ValidationFailedKey)), null, null, 0, 0);
                 break;
 
             case "Failed":
-                // To Do: Add case. Currently the API only checks if Winget started the task
+                // To Do: Add case. Currently the API only checks if Winget started the task.
+                // Does not check if the task failed.
+                // Send UnitStateChanged event for the failed task with ResultInfo and ResultSource as UnitProcessing
+                // _applyConfigurationSetResult = new(new ApplicationException(Resources.GetResource(ConfigApplyFailedKey)), null);
                 break;
         }
     }

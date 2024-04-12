@@ -431,4 +431,12 @@
     <value>Dev Boxes aren't configured for the current account.</value>
     <comment>Error shown when Dev Boxes aren't configured for the current account.</comment>
   </data>
+  <data name="DevBox_ConfigApplyFailedKey" xml:space="preserve">
+    <value>Applying the configuration failed</value>
+    <comment>Error message when applying the configuration failed.</comment>
+  </data>
+  <data name="DevBox_ValidationFailedKey" xml:space="preserve">
+    <value>Validation failed for configuration</value>
+    <comment>Error message when validation fails for a configuration file.</comment>
+  </data>
 </root>
