@@ -14,6 +14,30 @@ namespace AzureExtension.DevBox.Helpers;
 
 public class ConfigWrapper : IApplyConfigurationOperation
 {
+    // Example of the JSON payload for the customization task
+    //  {
+    //    "tasks": [
+    //        {
+    //            "name": "winget",
+    //            "runAs": "User",
+    //            "parameters": {
+    //                "inlineConfigurationBase64": "..."
+    //            },
+    //        },
+    //    ]
+    //  }
+    public const string WingetTaskJsonBaseStart = "{\"tasks\": [";
+
+    public const string WingetTaskJsonTaskStart = @"{
+            ""name"": ""Quickstart-Catalog-Tasks/winget"",
+			""runAs"": ""User"",
+            ""parameters"": {
+                ""inlineConfigurationBase64"": """;
+
+    public const string WingetTaskJsonTaskEnd = "\"}},";
+
+    public const string WingetTaskJsonBaseEnd = "]}";
+
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
@@ -76,7 +100,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
         if (resources != null)
         {
             // Start collecting the individual tasks, starting with the base
-            StringBuilder fullTask = new(Constants.WingetTaskJsonBaseStart);
+            StringBuilder fullTask = new(WingetTaskJsonBaseStart);
 
             var serializer = new SerializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
@@ -89,11 +113,11 @@ public class ConfigWrapper : IApplyConfigurationOperation
                 {
                     if (resource.Resource.EndsWith("WinGetPackage", System.StringComparison.Ordinal))
                     {
-                        units.Add(new("Type - Winget", resource.Directives.Description, ConfigurationUnitState.Unknown, false, null, null, ConfigurationUnitIntent.Inform));
+                        units.Add(new("WinGetPackage", resource.Id, ConfigurationUnitState.Unknown, false, null, null, ConfigurationUnitIntent.Apply));
                     }
                     else if (resource.Resource.EndsWith("GitClone", System.StringComparison.Ordinal))
                     {
-                        units.Add(new("Type - GitClone", resource.Directives.Description, ConfigurationUnitState.Unknown, false, null, null, ConfigurationUnitIntent.Inform));
+                        units.Add(new("GitClone", resource.Id, ConfigurationUnitState.Unknown, false, null, null, ConfigurationUnitIntent.Apply));
                     }
                 }
 
@@ -102,12 +126,12 @@ public class ConfigWrapper : IApplyConfigurationOperation
                 tempDsc?.Properties?.SetResources(new List<TaskYAMLToCSClasses.ResourceItem> { resource });
                 var yaml = serializer.Serialize(tempDsc);
                 var encodedConfiguration = DevBoxOperationHelper.Base64Encode(yaml);
-                fullTask.Append(Constants.WingetTaskJsonTaskStart + encodedConfiguration + Constants.WingetTaskJsonTaskEnd);
+                fullTask.Append(WingetTaskJsonTaskStart + encodedConfiguration + WingetTaskJsonTaskEnd);
             }
 
             // Remove the last comma after the last task
             fullTask.Length--;
-            fullTask.Append(Constants.WingetTaskJsonBaseEnd);
+            fullTask.Append(WingetTaskJsonBaseEnd);
             _fullTaskJSON = fullTask.ToString();
 
             _units = units;
@@ -117,7 +141,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
-        if (setState != ConfigurationSetState.Pending)
+        if (setState == ConfigurationSetState.InProgress)
         {
             for (var i = 0; i < _units.Count; i++)
             {
@@ -126,7 +150,6 @@ public class ConfigWrapper : IApplyConfigurationOperation
                 var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
                 if (oldUnitState != unitState)
                 {
-                    // var unitResultInformation = new ConfigurationUnitResultInformation(null, null, null, ConfigurationUnitResultSource.None);
                     ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
                     ConfigurationSetStateChanged?.Invoke(this, args);
                 }
@@ -141,6 +164,27 @@ public class ConfigWrapper : IApplyConfigurationOperation
             ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.SetStateChanged, setState, ConfigurationUnitState.Unknown, null, null));
             ConfigurationSetStateChanged?.Invoke(this, args);
             _oldSetState = setState;
+
+            // To Do: Better error handling
+            if (response.Status == "ValidationFailed")
+            {
+                _openConfigurationSetResult = new(new FormatException(), "Validation", "Validation", 0, 0);
+            }
+            else if (response.Status == "Failed")
+            {
+                _openConfigurationSetResult = new(null, "Failed", "Failed", 0, 0);
+            }
+            else if (response.Status == "Succeeded")
+            {
+                List<ApplyConfigurationUnitResult> unitResults = new();
+                for (var i = 0; i < _units.Count; i++)
+                {
+                    var task = _units[i];
+                    unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
+                }
+
+                _applyConfigurationSetResult = new(null, unitResults);
+            }
         }
 
         _log.Debug($"-------------------------------------------------------------------------> Status: {response.Status}");

@@ -46,9 +46,9 @@ public class TaskYAMLToCSClasses
 
     public class Properties
     {
-        public string ConfigurationVersion { get; set; } = string.Empty;
-
         public List<ResourceItem>? Resources { get; set; }
+
+        public string ConfigurationVersion { get; set; } = string.Empty;
 
         public void SetResources(List<ResourceItem>? resources) => Resources = resources;
     }
