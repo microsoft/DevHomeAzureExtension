@@ -64,7 +64,9 @@ public class ConfigWrapper : IApplyConfigurationOperation
 
     private Serilog.ILogger _log;
 
-    private ConfigurationSetState _oldSetState = ConfigurationSetState.Unknown;
+    private ConfigurationUnitState[] _oldUnitState = Array.Empty<ConfigurationUnitState>();
+
+    private bool _pendingNotificationShown;
 
     public ConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
     {
@@ -135,6 +137,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
             _fullTaskJSON = fullTask.ToString();
 
             _units = units;
+            _oldUnitState = Enumerable.Repeat(ConfigurationUnitState.Unknown, units.Count).ToArray();
         }
     }
 
@@ -144,53 +147,56 @@ public class ConfigWrapper : IApplyConfigurationOperation
         _log.Debug($"-------------------------------------------------------------------------> Status: {response.Status}");
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
 
-        if (_oldSetState != setState)
+        // No need to show the pending status more than once
+        if (_pendingNotificationShown && setState == ConfigurationSetState.Pending)
         {
-            switch (response.Status)
-            {
-                case "NotStarted":
-                    ConfigurationSetStateChanged?.Invoke(this, new(new(ConfigurationSetChangeEventType.SetStateChanged, setState, ConfigurationUnitState.Unknown, null, null)));
-                    _oldSetState = setState;
-                    break;
+            return;
+        }
 
-                case "Running":
-                    for (var i = 0; i < _units.Count; i++)
+        switch (response.Status)
+        {
+            case "NotStarted":
+                ConfigurationSetStateChanged?.Invoke(this, new(new(ConfigurationSetChangeEventType.SetStateChanged, setState, ConfigurationUnitState.Unknown, null, null)));
+                _pendingNotificationShown = true;
+                break;
+
+            case "Running":
+                for (var i = 0; i < _units.Count; i++)
+                {
+                    var task = _units[i];
+                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
+                    if (_oldUnitState[i] != unitState)
                     {
-                        var task = _units[i];
-                        var oldUnitState = task.State;
-                        var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
-                        if (oldUnitState != unitState)
-                        {
-                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
-                            ConfigurationSetStateChanged?.Invoke(this, args);
-                        }
-
-                        // To Do: Simplify
-                        _log.Debug($"-----------------------------------------------------------------> Individual Status: {unitState}");
+                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
+                        ConfigurationSetStateChanged?.Invoke(this, args);
+                        _oldUnitState[i] = unitState;
                     }
 
-                    break;
+                    // To Do: Simplify
+                    _log.Debug($"-----------------------------------------------------------------> Individual Status: {unitState}");
+                }
 
-                case "Succeeded":
-                    List<ApplyConfigurationUnitResult> unitResults = new();
-                    for (var i = 0; i < _units.Count; i++)
-                    {
-                        var task = _units[i];
-                        unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
-                    }
+                break;
 
-                    _applyConfigurationSetResult = new(null, unitResults);
-                    break;
+            case "Succeeded":
+                List<ApplyConfigurationUnitResult> unitResults = new();
+                for (var i = 0; i < _units.Count; i++)
+                {
+                    var task = _units[i];
+                    unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
+                }
 
-                case "ValidationFailed":
-                    // To Do: More logging
-                    _openConfigurationSetResult = new(new FormatException("Validation"), "Validation", "Validation", 0, 0);
-                    break;
+                _applyConfigurationSetResult = new(null, unitResults);
+                break;
 
-                case "Failed":
-                    // To Do: Add case. Currently the API only checks if Winget started the task
-                    break;
-            }
+            case "ValidationFailed":
+                // To Do: More logging
+                _openConfigurationSetResult = new(new FormatException("Validation"), "Validation", "Validation", 0, 0);
+                break;
+
+            case "Failed":
+                // To Do: Add case. Currently the API only checks if Winget started the task
+                break;
         }
     }
 
