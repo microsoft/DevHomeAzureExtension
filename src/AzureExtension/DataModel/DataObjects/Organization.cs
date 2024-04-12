@@ -28,7 +28,11 @@ public class Organization
     // For this extension to function currently it does not matter.
     public string Connection { get; set; } = string.Empty;
 
+    // When this record was updated.
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
+
+    // When all records related to this one (i.e. projects) were completely updated.
+    public long TimeLastSync { get; set; } = DataStore.NoForeignKey;
 
     [Write(false)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used in near-future changes.")]
@@ -37,6 +41,10 @@ public class Organization
     [Write(false)]
     [Computed]
     public DateTime UpdatedAt => TimeUpdated.ToDateTime();
+
+    [Write(false)]
+    [Computed]
+    public DateTime LastSyncAt => TimeUpdated.ToDateTime();
 
     [Write(false)]
     [Computed]
@@ -57,6 +65,7 @@ public class Organization
             Name = azureUri.Organization,
             Connection = azureUri.Connection.ToString(),
             TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
         };
     }
 

@@ -34,7 +34,11 @@ public class Project
     // Key in the Organization table.
     public long OrganizationId { get; set; } = DataStore.NoForeignKey;
 
+    // When this record was updated
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
+
+    // When all records related to this one (i.e. repositories) were completely updated.
+    public long TimeLastSync { get; set; } = DataStore.NoForeignKey;
 
     [Write(false)]
     private DataStore? DataStore { get; set; }
@@ -42,6 +46,10 @@ public class Project
     [Write(false)]
     [Computed]
     public DateTime UpdatedAt => TimeUpdated.ToDateTime();
+
+    [Write(false)]
+    [Computed]
+    public DateTime LastSyncAt => TimeUpdated.ToDateTime();
 
     [Write(false)]
     [Computed]
@@ -65,6 +73,7 @@ public class Project
             Description = project.Description ?? string.Empty,
             OrganizationId = organizationId,
             TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
         };
     }
 
@@ -91,7 +100,7 @@ public class Project
             }
         }
 
-        // No existing pull request, add it.
+        // No existing project, add it.
         project.Id = dataStore.Connection!.Insert(project);
         project.DataStore = dataStore;
         return project;

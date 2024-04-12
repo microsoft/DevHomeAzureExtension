@@ -39,6 +39,8 @@ public sealed class AzureExtension : IExtension
                 return new object();
             case ProviderType.ComputeSystem:
                 return _host.Services.GetService<DevBoxProvider>();
+            case ProviderType.Settings:
+                return new SettingsProvider();
             default:
                 _log.Information($"Invalid provider: {providerType}");
                 return null;

@@ -14,7 +14,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     }
 
     // Update this anytime incompatible changes happen with a released version.
-    private const long SchemaVersionValue = 0x0003;
+    private const long SchemaVersionValue = 0x0004;
 
     private static readonly string Metadata =
     @"CREATE TABLE Metadata (" +
@@ -43,7 +43,8 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "InternalId TEXT NOT NULL," +
         "Description TEXT NOT NULL," +
         "OrganizationId INTEGER NOT NULL," +
-        "TimeUpdated INTEGER NOT NULL" +
+        "TimeUpdated INTEGER NOT NULL," +
+        "TimeLastSync INTEGER NOT NULL" +
     ");" +
 
     // Project ID is a Guid, so by definition is unique.
@@ -55,7 +56,8 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Name TEXT NOT NULL COLLATE NOCASE," +
         "Connection TEXT NOT NULL COLLATE NOCASE," +
-        "TimeUpdated INTEGER NOT NULL" +
+        "TimeUpdated INTEGER NOT NULL," +
+        "TimeLastSync INTEGER NOT NULL" +
     ");" +
 
     // Connections should be unique per organization. We do not appear to have
@@ -64,6 +66,20 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // constructor, so while the same organization may have multiple connections,
     // each connection should correspond to only one organization.
     "CREATE UNIQUE INDEX IDX_Organization_Connection ON Organization (Connection);";
+
+    private static readonly string Repository =
+    @"CREATE TABLE Repository (" +
+        "Id INTEGER PRIMARY KEY NOT NULL," +
+        "Name TEXT NOT NULL COLLATE NOCASE," +
+        "InternalId TEXT NOT NULL," +
+        "ProjectId INTEGER NOT NULL," +
+        "CloneUrl TEXT NOT NULL COLLATE NOCASE," +
+        "IsPrivate INTEGER NOT NULL," +
+        "TimeUpdated INTEGER NOT NULL" +
+    ");" +
+
+    // Repository ID is a Guid, so by definition is unique.
+    "CREATE UNIQUE INDEX IDX_Repository_InternalId ON Repository (InternalId);";
 
     private static readonly string Query =
     @"CREATE TABLE Query (" +
@@ -113,14 +129,15 @@ public class AzureDataStoreSchema : IDataStoreSchema
     "CREATE UNIQUE INDEX IDX_PullRequests_ProjectIdRepositoryNameDeveloperLoginViewId ON PullRequests (ProjectId, RepositoryName, DeveloperLogin, ViewId);";
 
     // All Sqls together.
-    private static readonly List<string> SchemaSqlsValue = new()
-    {
+    private static readonly List<string> SchemaSqlsValue =
+    [
         Metadata,
         Identity,
         Project,
         Organization,
+        Repository,
         Query,
         WorkItemType,
         PullRequests,
-    };
+    ];
 }
