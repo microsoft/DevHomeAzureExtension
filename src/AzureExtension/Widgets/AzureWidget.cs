@@ -340,7 +340,7 @@ public abstract class AzureWidget : WidgetImpl
         }
         catch (Exception e)
         {
-            Log.Error("Error getting template.", e);
+            Log.Error(e, "Error getting template.");
             return string.Empty;
         }
     }
@@ -479,7 +479,7 @@ public abstract class AzureWidget : WidgetImpl
         }
         catch (Exception ex)
         {
-            Log.Error("Failed Requesting Update", ex);
+            Log.Error(ex, "Failed Requesting Update");
         }
 
         lastUpdateRequest = DateTime.Now;
@@ -519,7 +519,7 @@ public abstract class AzureWidget : WidgetImpl
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed getting DeveloperId state.", ex);
+                Log.Error(ex, $"Failed getting DeveloperId state.");
             }
         }
 

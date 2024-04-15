@@ -157,7 +157,7 @@ public class AzureRepositoryHierarchy
         }
         catch (Exception e)
         {
-            Log.Error(e.Message, e);
+            Log.Error(e, e.Message);
         }
 
         return new List<TeamProjectReference>();

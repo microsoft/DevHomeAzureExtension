@@ -75,7 +75,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         catch (Exception e)
         {
             var log = Log.ForContext("SourceContext", Name);
-            log.Error($"Failed creating AzureDataManager for {identifier}", e);
+            log.Error(e, $"Failed creating AzureDataManager for {identifier}");
             return null;
         }
     }
@@ -108,7 +108,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         catch (Exception ex)
         {
             // This will likely fail during tests since DeveloperIdProvider uses ApplicationData.
-            _log.Warning("Failed setting DeveloperId change handler.", ex);
+            _log.Warning(ex, "Failed setting DeveloperId change handler.");
         }
 
         if (Instances.TryGetValue(InstanceName, out var instanceIdentifier))
@@ -670,7 +670,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
         catch (Exception ex)
         {
-            _log.Error($"Failed Updating DataStore for: {parameters}", ex);
+            _log.Error(ex, $"Failed Updating DataStore for: {parameters}");
             tx.Rollback();
 
             // Rethrow so clients can catch/display an error UX.
@@ -801,7 +801,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             }
             catch (Exception ex)
             {
-                _log.Error($"Failed setting Recreate Data Store setting.", ex);
+                _log.Error(ex, $"Failed setting Recreate Data Store setting.");
             }
         }
     }

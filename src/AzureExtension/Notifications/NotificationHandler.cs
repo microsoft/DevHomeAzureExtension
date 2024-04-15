@@ -41,7 +41,7 @@ public class NotificationHandler
             }
             catch (Exception ex)
             {
-                Log.Error($"Failed launching Uri for {args.Arguments["htmlurl"]}", ex);
+                Log.Error(ex, $"Failed launching Uri for {args.Arguments["htmlurl"]}");
             }
 
             return;

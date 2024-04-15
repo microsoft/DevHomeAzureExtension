@@ -220,7 +220,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         }
         catch (Exception ex)
         {
-            Log.Error("Failed requesting data update.", ex);
+            Log.Error(ex, "Failed requesting data update.");
         }
 
         Log.Debug($"Requested data update for this widget.");
@@ -282,7 +282,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                     }
                     catch (Exception ex)
                     {
-                        Log.Error($"Failed getting query info or creating the tile object.", ex);
+                        Log.Error(ex, $"Failed getting query info or creating the tile object.");
                         return;
                     }
                 }

@@ -65,7 +65,7 @@ public class Identity
         }
         catch (Exception ex)
         {
-            Log.Warning($"Failed getting Avatar for {identity}.", ex);
+            Log.Warning(ex, $"Failed getting Avatar for {identity}.");
             return string.Empty;
         }
     }
@@ -90,7 +90,7 @@ public class Identity
         }
         catch (Exception ex)
         {
-            Log.Error($"Failed to deserialize Json object into Identity: {json}", ex);
+            Log.Error(ex, $"Failed to deserialize Json object into Identity: {json}");
             return null;
         }
     }

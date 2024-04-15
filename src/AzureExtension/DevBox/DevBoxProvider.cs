@@ -122,7 +122,7 @@ public class DevBoxProvider : IComputeSystemProvider
                 }
                 catch (Exception ex)
                 {
-                    _log.Error($"Error processing project {project.Name}", ex);
+                    _log.Error(ex, $"Error processing project {project.Name}");
                 }
             }
         }
