@@ -16,8 +16,8 @@ using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Storage;
-using Log = DevHomeAzureExtension.DataModel.Log;
 using TFModels = Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 
 namespace DevHomeAzureExtension;
@@ -54,6 +54,8 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Connections are a pairing of DeveloperId and a Uri.
     private static readonly ConcurrentDictionary<Tuple<Uri, DeveloperId.DeveloperId>, VssConnection> Connections = new();
 
+    private readonly ILogger _log;
+
     private Guid UniqueName { get; } = Guid.NewGuid();
 
     private string InstanceName { get; } = string.Empty;
@@ -72,8 +74,8 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, identifier, $"Failed creating AzureDataManager", e);
-            Environment.FailFast(e.Message, e);
+            var log = Log.ForContext("SourceContext", Name);
+            log.Error(e, $"Failed creating AzureDataManager for {identifier}");
             return null;
         }
     }
@@ -86,6 +88,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
 
         InstanceName = identifier;
+        _log = Log.ForContext("SourceContext", $"{Name}/{InstanceName}");
         DataStoreOptions = dataStoreOptions;
         DataStore = new DataStore(
             "DataStore",
@@ -105,7 +108,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         catch (Exception ex)
         {
             // This will likely fail during tests since DeveloperIdProvider uses ApplicationData.
-            Log.Logger()?.ReportWarn(Name, InstanceName, "Failed setting DeveloperId change handler.", ex);
+            _log.Warning(ex, "Failed setting DeveloperId change handler.");
         }
 
         if (Instances.TryGetValue(InstanceName, out var instanceIdentifier))
@@ -114,14 +117,14 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             // but the identifiers may not be unique if using partial Guids. Note in the log
             // the duplicate as a warning and the existing unique name so we can see in the log what
             // client created the duplicate in order to discern random chance / consistent pattern.
-            Log.Logger()?.ReportWarn(Name, InstanceName, $"Duplicate instance created for identifier {InstanceName}:{instanceIdentifier}.");
+            _log.Warning($"Duplicate instance created for identifier {InstanceName}:{instanceIdentifier}.");
         }
         else
         {
             Instances.TryAdd(InstanceName, UniqueName);
         }
 
-        Log.Logger()?.ReportInfo(Name, InstanceName, $"Created AzureDataManager: {UniqueName}.");
+        _log.Information($"Created AzureDataManager: {UniqueName}.");
     }
 
     ~AzureDataManager()
@@ -179,11 +182,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         catch (Exception ex)
         {
             contextDict.Add("ErrorMessage", ex.Message);
-            SendErrorUpdateEvent(this, parameters.Requestor, context, ex);
+            SendErrorUpdateEvent(_log, this, parameters.Requestor, context, ex);
             return;
         }
 
-        SendQueryUpdateEvent(this, parameters.Requestor, context);
+        SendQueryUpdateEvent(_log, this, parameters.Requestor, context);
     }
 
     public async Task UpdateDataForQueryAsync(AzureUri queryUri, string developerLogin, RequestOptions? options = null, Guid? requestor = null)
@@ -220,11 +223,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         catch (Exception ex)
         {
             contextDict.Add("ErrorMessage", ex.Message);
-            SendErrorUpdateEvent(this, parameters.Requestor, context, ex);
+            SendErrorUpdateEvent(_log, this, parameters.Requestor, context, ex);
             return;
         }
 
-        SendPullRequestUpdateEvent(this, parameters.Requestor, context);
+        SendPullRequestUpdateEvent(_log, this, parameters.Requestor, context);
     }
 
     public Query? GetQuery(string queryId, string developerId)
@@ -261,7 +264,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     private async Task UpdateDataForQueriesAsync(DataStoreOperationParameters parameters)
     {
-        Log.Logger()?.ReportDebug(Name, InstanceName, $"Inside UpdateDataForQueriesAsync with Parameters: {parameters}");
+        _log.Debug($"Inside UpdateDataForQueriesAsync with Parameters: {parameters}");
         foreach (var uri in parameters.Uris)
         {
             if (!uri.IsQuery)
@@ -383,7 +386,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     goto case TFModels.QueryType.Tree;
 
                 default:
-                    Log.Logger()?.ReportWarn(Name, InstanceName, $"Found unhandled QueryType: {queryResult.QueryType} for query: {queryId}");
+                    _log.Warning($"Found unhandled QueryType: {queryResult.QueryType} for query: {queryId}");
                     break;
             }
 
@@ -416,7 +419,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     // Ensure we do not try to add duplicate fields.
                     if (workItemObjFields.ContainsKey(field))
                     {
-                        Log.Logger()?.ReportWarn(Name, InstanceName, $"Found duplicate field '{field} in RequestOptions.Fields: {string.Join(",", parameters.RequestOptions.Fields.ToArray())}");
+                        _log.Warning($"Found duplicate field '{field} in RequestOptions.Fields: {string.Join(",", parameters.RequestOptions.Fields.ToArray())}");
                         continue;
                     }
 
@@ -486,7 +489,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     private async Task UpdateDataForPullRequestsAsync(DataStoreOperationParameters parameters)
     {
-        Log.Logger()?.ReportDebug(Name, InstanceName, $"Inside UpdateDataForDeveloperPullRequestsAsync with Parameters: {parameters}");
+        _log.Debug($"Inside UpdateDataForDeveloperPullRequestsAsync with Parameters: {parameters}");
         foreach (var uri in parameters.Uris)
         {
             if (!uri.IsRepository)
@@ -650,7 +653,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         parameters.RequestOptions ??= RequestOptions.RequestOptionsDefault();
         if (parameters.DeveloperId == null)
         {
-            Log.Logger()?.ReportError(Name, InstanceName, $"Specified DeveloperId was not found: {parameters.LoginId}");
+            _log.Error($"Specified DeveloperId was not found: {parameters.LoginId}");
             throw new ArgumentException($"Specified DeveloperId was not found:");
         }
 
@@ -667,7 +670,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(Name, InstanceName, $"Failed Updating DataStore for: {parameters}", ex);
+            _log.Error(ex, $"Failed Updating DataStore for: {parameters}");
             tx.Rollback();
 
             // Rethrow so clients can catch/display an error UX.
@@ -675,31 +678,29 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
 
         tx.Commit();
-        Log.Logger()?.ReportDebug(Name, InstanceName, $"Updated datastore: {parameters}");
+        _log.Debug($"Updated datastore: {parameters}");
     }
 
-    private static void SendQueryUpdateEvent(object? source, Guid requestor, dynamic context)
+    private static void SendQueryUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context)
     {
-        SendUpdateEvent(source, DataManagerUpdateKind.Query, requestor, context);
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.Query, requestor, context);
     }
 
-    private static void SendPullRequestUpdateEvent(object? source, Guid requestor, dynamic context)
+    private static void SendPullRequestUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context)
     {
-        SendUpdateEvent(source, DataManagerUpdateKind.PullRequest, requestor, context);
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.PullRequest, requestor, context);
     }
 
-    private static void SendErrorUpdateEvent(object? source, Guid requestor, dynamic context, Exception ex)
+    private static void SendErrorUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception ex)
     {
-        SendUpdateEvent(source, DataManagerUpdateKind.Error, requestor, context, ex);
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.Error, requestor, context, ex);
     }
 
-    private static void SendUpdateEvent(object? source, DataManagerUpdateKind kind, Guid requestor, dynamic context, Exception? ex = null)
+    private static void SendUpdateEvent(ILogger logger, object? source, DataManagerUpdateKind kind, Guid requestor, dynamic context, Exception? ex = null)
     {
-        var instanceName = (source as AzureDataManager)?.InstanceName ?? "Unknown";
-
         if (OnUpdate != null)
         {
-            Log.Logger()?.ReportInfo(Name, instanceName, $"Sending Update Event for {requestor}  Kind: {kind}  Context: {string.Join(",", context)}");
+            logger.Debug($"Sending Update Event for {requestor}  Kind: {kind}  Context: {string.Join(",", context)}");
             OnUpdate.Invoke(source, new DataManagerUpdateEventArgs(kind, requestor, context, ex));
         }
     }
@@ -709,6 +710,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // the bad connection issue can be reliably detected and solved.
     public static ConnectionResult GetConnection(Uri connectionUri, DeveloperId.DeveloperId developerId, bool forceNewConnection = true)
     {
+        var log = Log.ForContext("SourceContext", Name);
         VssConnection? connection;
         var connectionKey = Tuple.Create(connectionUri, developerId);
         if (Connections.ContainsKey(connectionKey))
@@ -718,7 +720,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 // If not forcing a new connection and it has authenticated, reuse it.
                 if (!forceNewConnection && connection.HasAuthenticated)
                 {
-                    Log.Logger()?.ReportDebug(Name, $"Retrieving valid connection to {connectionUri} with {developerId.LoginId}");
+                    log.Debug($"Retrieving valid connection to {connectionUri} with {developerId.LoginId}");
                     return new ConnectionResult(connectionUri, null, connection);
                 }
                 else
@@ -726,13 +728,13 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     // Remove the bad connection.
                     if (Connections.TryRemove(new KeyValuePair<Tuple<Uri, DeveloperId.DeveloperId>, VssConnection>(connectionKey, connection)))
                     {
-                        Log.Logger()?.ReportDebug(Name, $"Removed bad connection to {connectionUri} with {developerId.LoginId}");
+                        log.Debug($"Removed bad connection to {connectionUri} with {developerId.LoginId}");
                     }
                     else
                     {
                         // Something else may have removed it first, that's probably OK, but log it
                         // in case it isn't as it may be a symptom of a larger problem.
-                        Log.Logger()?.ReportWarn(Name, $"Failed to remove bad connection to {connectionUri} with {developerId.LoginId}");
+                        log.Warning($"Failed to remove bad connection to {connectionUri} with {developerId.LoginId}");
                     }
                 }
             }
@@ -744,11 +746,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         {
             if (Connections.TryAdd(connectionKey, result.Connection!))
             {
-                Log.Logger()?.ReportDebug(Name, $"Added connection for {connectionUri} with {developerId.LoginId}");
+                log.Debug($"Added connection for {connectionUri} with {developerId.LoginId}");
             }
             else
             {
-                Log.Logger()?.ReportWarn(Name, $"Failed to add connection for {connectionUri} with {developerId.LoginId}");
+                log.Warning($"Failed to add connection for {connectionUri} with {developerId.LoginId}");
             }
         }
 
@@ -793,13 +795,13 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             // instead mark a setting that will have the datastore recreated on next launch.
             try
             {
-                Log.Logger()?.ReportInfo(Name, InstanceName, $"DeveloperId has logged out, marking DataStore for recreation on next launch.");
+                _log.Information($"DeveloperId has logged out, marking DataStore for recreation on next launch.");
                 var localSettings = ApplicationData.Current.LocalSettings;
                 localSettings.Values[RecreateDataStoreSettingsKey] = true;
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(Name, InstanceName, $"Failed setting Recreate Data Store setting.", ex);
+                _log.Error(ex, $"Failed setting Recreate Data Store setting.");
             }
         }
     }
@@ -829,11 +831,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             {
                 try
                 {
-                    Log.Logger()?.ReportDebug(Name, InstanceName, "Disposing of all Disposable resources.");
+                    _log.Debug("Disposing of all Disposable resources.");
                     if (Instances.TryGetValue(InstanceName, out var instanceName) && instanceName == UniqueName)
                     {
                         Instances.TryRemove(InstanceName, out _);
-                        Log.Logger()?.ReportInfo(Name, InstanceName, $"Removed AzureDataManager: {UniqueName}.");
+                        _log.Information($"Removed AzureDataManager: {UniqueName}.");
                     }
 
                     DataStore?.Dispose();

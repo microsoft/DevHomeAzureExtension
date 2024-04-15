@@ -14,6 +14,7 @@ using AzureExtension.DevBox.Models;
 using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -40,11 +41,13 @@ public enum DevBoxActionToPerform
 /// </summary>
 public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
-    private readonly IDevBoxAuthService _authService;
-
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
+
+    private readonly IPackagesService _packagesService;
+
+    private readonly ILogger _log;
 
     private const string SupplementalDisplayNamePrefix = "DevBox_SupplementalDisplayNamePrefix";
 
@@ -94,20 +97,21 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
     public DevBoxInstance(
-        IDevBoxAuthService devBoxAuthService,
         IDevBoxManagementService devBoxManagementService,
         IDevBoxOperationWatcher devBoxOperationWatcher,
         IDeveloperId developerId,
-        DevBoxMachineState devBoxMachineState)
+        DevBoxMachineState devBoxMachineState,
+        IPackagesService packagesService)
     {
-        _authService = devBoxAuthService;
         _devBoxManagementService = devBoxManagementService;
         _devBoxOperationWatcher = devBoxOperationWatcher;
+        _packagesService = packagesService;
 
         DevBoxState = devBoxMachineState;
         AssociatedDeveloperId = developerId;
         DisplayName = devBoxMachineState.Name;
         Id = devBoxMachineState.UniqueId;
+        _log = Log.ForContext("SourceContext", $"DevBox/{Id}");
 
         if (IsDevBoxBeingCreatedOrProvisioned)
         {
@@ -136,7 +140,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error processing properties for {DisplayName}", ex);
+                _log.Error(ex, $"Error processing properties for {DisplayName}");
             }
         }
     }
@@ -185,7 +189,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                 // The creation and delete operations do not require an operation string, but all the other operations do.
                 var operationUri = operation.Length > 0 ?
                     $"{DevBoxState.Uri}:{operation}?{Constants.APIVersion}" : $"{DevBoxState.Uri}?{Constants.APIVersion}";
-                Log.Logger()?.ReportInfo($"Starting {DisplayName} with {operationUri}");
+                _log.Information($"Starting {DisplayName} with {operationUri}");
 
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
                 var operationLocation = result.ResponseHeader.OperationLocation;
@@ -202,7 +206,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             catch (Exception ex)
             {
                 UpdateStateForUI();
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'", ex);
+                _log.Error(ex, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'");
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
@@ -261,7 +265,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             default:
                 RemoveOperationInProgressFlag();
                 UpdateStateForUI();
-                Log.Logger()?.ReportError($"Dev Box operation stopped unexpectedly with status '{status}'");
+                _log.Error($"Dev Box operation stopped unexpectedly with status '{status}'");
                 break;
         }
     }
@@ -295,7 +299,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(DevBoxInstanceName, $"Error setting state after the long running operation completed successfully", ex);
+                _log.Error(ex, $"Error setting state after the long running operation completed successfully");
                 DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
                 DevBoxState.PowerState = Constants.DevBoxPowerStates.Unknown;
                 RemoveOperationInProgressFlag();
@@ -439,13 +443,14 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
-                psi.FileName = RemoteConnectionData?.WebUrl;
+                var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
+                psi.FileName = isWindowsAppInstalled ? RemoteConnectionData?.CloudPcConnectionUrl : RemoteConnectionData?.WebUrl;
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error connecting to {DisplayName}", ex);
+                _log.Error(ex, $"Error connecting to {DisplayName}");
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), string.Empty);
             }
         }).AsAsyncOperation();
@@ -486,7 +491,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Error getting thumbnail for {DisplayName}", ex);
+                _log.Error(ex, $"Error getting thumbnail for {DisplayName}");
                 return new ComputeSystemThumbnailResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();

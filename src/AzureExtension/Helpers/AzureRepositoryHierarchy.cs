@@ -6,6 +6,7 @@ using DevHomeAzureExtension.DeveloperId;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.Account.Client;
 using Microsoft.VisualStudio.Services.WebApi;
+using Serilog;
 
 // In the past, an organization was known as an account.  Typedef to organization to make the code easier to read.
 using Organization = Microsoft.VisualStudio.Services.Account.Account;
@@ -17,6 +18,10 @@ namespace AzureExtension.Helpers;
 /// </summary>
 public class AzureRepositoryHierarchy
 {
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
+
+    private static readonly ILogger Log = _log.Value;
+
     private readonly object _getOrganizationsLock = new();
 
     private readonly object _getProjectsLock = new();
@@ -152,7 +157,7 @@ public class AzureRepositoryHierarchy
         }
         catch (Exception e)
         {
-            DevHomeAzureExtension.Client.Log.Logger()?.ReportError("DevHomeRepository", e);
+            Log.Error(e, e.Message);
         }
 
         return new List<TeamProjectReference>();

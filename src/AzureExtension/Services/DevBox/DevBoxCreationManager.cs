@@ -8,7 +8,7 @@ using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
-using Log = AzureExtension.DevBox.Log;
+using Serilog;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -33,6 +33,8 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     private readonly DevBoxInstanceFactory _devBoxInstanceFactory;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxCreationManager));
 
     public DevBoxCreationManager(IDevBoxManagementService devBoxManagementService, IDevBoxOperationWatcher devBoxOperationWatcher,  DevBoxInstanceFactory devBoxInstanceFactory)
     {
@@ -73,7 +75,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(DevBoxCreationManagerName, $"unable to create the Dev Box with user options: {parameters}", ex);
+            _log.Error(ex, $"unable to create the Dev Box with user options: {parameters}");
             return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName), ex.Message);
         }
     }
