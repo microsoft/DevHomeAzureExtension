@@ -59,12 +59,14 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     private const string DevBoxMultipleConcurrentOperationsNotSupportedKey = "DevBox_MultipleConcurrentOperationsNotSupport";
 
-    private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome&location=taskbar");
+    private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
 
     // this is the version of the Windows App package that supports protocol associations for pinning
     private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
 
     // These exit codes must be kept in sync with WindowsApp
+    private const int ExitCodeInvalid = -1;
+
     private const int ExitCodeFailure = 0;
 
     private const int ExitCodeSuccess = 1;
@@ -607,144 +609,88 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         }).AsAsyncOperation();
     }
 
-    public IAsyncOperation<ComputeSystemOperationResult> PinToStartMenuAsync()
+    public IAsyncOperation<ComputeSystemOperationResult> DoPinActionAsync(string location, string pinAction)
     {
         return Task.Run(() =>
         {
+            var exitcode = ExitCodeInvalid;
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, "startmenu", "pin", WorkspaceId, DisplayName, Username, Environment);
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Username, Environment);
             Process? p = Process.Start(psi);
             if (p != null)
             {
                 p.WaitForExit();
-                var exitcode = p.ExitCode;
+                exitcode = p.ExitCode;
                 if (exitcode == ExitCodeSuccess)
                 {
                     return new ComputeSystemOperationResult();
                 }
             }
 
-            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "The Operation Failed");
+            var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
+            _log.Error($"Error getting thumbnail for {DisplayName}");
+            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
         }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> PinToStartMenuAsync()
+    {
+        return DoPinActionAsync("startMenu", "pin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> UnpinFromStartMenuAsync()
     {
-        return Task.Run(() =>
-        {
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, "startmenu", "unpin", WorkspaceId, DisplayName, Username, Environment);
-            Process? p = Process.Start(psi);
-            if (p != null)
-            {
-                p.WaitForExit();
-                var exitcode = p.ExitCode;
-                if (exitcode == ExitCodeSuccess)
-                {
-                    return new ComputeSystemOperationResult();
-                }
-            }
-
-            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "The Operation Failed");
-        }).AsAsyncOperation();
+        return DoPinActionAsync("startMenu", "unpin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> PinToTaskbarAsync()
     {
-        return Task.Run(() =>
-        {
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, "taskbar", "pin", WorkspaceId, DisplayName, Username, Environment);
-            Process? p = Process.Start(psi);
-            if (p != null)
-            {
-                p.WaitForExit();
-                var exitcode = p.ExitCode;
-                if (exitcode == ExitCodeSuccess)
-                {
-                    return new ComputeSystemOperationResult();
-                }
-            }
-
-            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "The Operation Failed");
-        }).AsAsyncOperation();
+        return DoPinActionAsync("taskbar", "pin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> UnpinFromTaskbarAsync()
     {
+        return DoPinActionAsync("taskbar", "unpin");
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetPinStatusAsync(string location)
+    {
         return Task.Run(() =>
         {
+            var exitcode = ExitCodeInvalid;
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, "taskbar", "unpin", WorkspaceId, DisplayName, Username, Environment);
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Username, Environment);
             Process? p = Process.Start(psi);
             if (p != null)
             {
                 p.WaitForExit();
-                var exitcode = p.ExitCode;
-                if (exitcode == ExitCodeSuccess)
+                exitcode = p.ExitCode;
+                if (exitcode == ExitCodePinned)
                 {
-                    return new ComputeSystemOperationResult();
+                    return new ComputeSystemPinnedResult(true);
+                }
+                else if (exitcode == ExitCodeUnpinned)
+                {
+                    return new ComputeSystemPinnedResult(false);
                 }
             }
 
-            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "The Operation Failed");
+            var errorString = $"GetPinStatusAsync from location {location} failed with exitcode: {exitcode}";
+            _log.Error($"Error getting thumbnail for {DisplayName}");
+            return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
         }).AsAsyncOperation();
     }
 
     public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToStartMenuAsync()
     {
-        return Task.Run(() =>
-        {
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, "startmenu", "status", WorkspaceId, DisplayName, Username, Environment);
-            Process? p = Process.Start(psi);
-            if (p != null)
-            {
-                p.WaitForExit();
-                var exitcode = p.ExitCode;
-                if (exitcode == ExitCodePinned)
-                {
-                    return new ComputeSystemPinnedResult(true);
-                }
-                else if (exitcode == ExitCodeUnpinned)
-                {
-                    return new ComputeSystemPinnedResult(false);
-                }
-            }
-
-            return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "The Operation Failed");
-        }).AsAsyncOperation();
+        return GetPinStatusAsync("startmenu");
     }
 
     public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToTaskbarAsync()
     {
-        return Task.Run(() =>
-        {
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, "taskbar", "status", WorkspaceId, DisplayName, Username, Environment);
-            Process? p = Process.Start(psi);
-            if (p != null)
-            {
-                p.WaitForExit();
-                var exitcode = p.ExitCode;
-                if (exitcode == ExitCodePinned)
-                {
-                    return new ComputeSystemPinnedResult(true);
-                }
-                else if (exitcode == ExitCodeUnpinned)
-                {
-                    return new ComputeSystemPinnedResult(false);
-                }
-            }
-
-            return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "The Operation Failed");
-        }).AsAsyncOperation();
+        return GetPinStatusAsync("taskbar");
     }
 
     public async void LoadWindowsAppParameters()
@@ -754,16 +700,16 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
         }
 
-        var uriString = RemoteConnectionData?.RdpConnectionUrl;
+        var uriString = RemoteConnectionData?.CloudPcConnectionUrl;
         if (uriString == null)
         {
             return;
         }
 
         var launchUri = new Uri(uriString);
-        WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["workspaceId"];
+        WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["cpcid"];
         Username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
-        Environment = "PROD";
+        Environment = HttpUtility.ParseQueryString(launchUri.Query)["environment"];
     }
 
     // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
