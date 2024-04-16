@@ -77,6 +77,19 @@ public class Project
         };
     }
 
+    private static Project CreateFromTeamProject(TeamProjectReference project, long organizationId)
+    {
+        return new Project
+        {
+            InternalId = project.Id.ToString(),
+            Name = project.Name ?? string.Empty,
+            Description = project.Description ?? string.Empty,
+            OrganizationId = organizationId,
+            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
+        };
+    }
+
     public static Project AddOrUpdateProject(DataStore dataStore, Project project)
     {
         // Check for existing Project data.
@@ -188,6 +201,12 @@ public class Project
     }
 
     public static Project GetOrCreateByTeamProject(DataStore dataStore, TeamProject project, long organizationId)
+    {
+        var newProject = CreateFromTeamProject(project, organizationId);
+        return AddOrUpdateProject(dataStore, newProject);
+    }
+
+    public static Project GetOrCreateByTeamProject(DataStore dataStore, TeamProjectReference project, long organizationId)
     {
         var newProject = CreateFromTeamProject(project, organizationId);
         return AddOrUpdateProject(dataStore, newProject);

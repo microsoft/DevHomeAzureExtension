@@ -327,7 +327,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             }
 
             var queryId = new Guid(azureUri.Query);
-            var count = await witClient.GetQueryResultCountAsync(project.Name, queryId);
             var queryResult = await witClient.QueryByIdAsync(project.InternalId, queryId);
             if (queryResult == null)
             {
@@ -481,7 +480,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             };
 
             var serializedJson = JsonSerializer.Serialize(workItemsObj, serializerOptions);
-            Query.GetOrCreate(DataStore, azureUri.Query, project.Id, parameters.DeveloperId.LoginId, getQueryResult.Name, serializedJson, count);
+            Query.GetOrCreate(DataStore, azureUri.Query, project.Id, parameters.DeveloperId.LoginId, getQueryResult.Name, serializedJson, workItemIds.Count);
         } // Foreach AzureUri
 
         return;

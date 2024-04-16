@@ -12,6 +12,8 @@ public interface IAzureDataManager : IDisposable
 
     DateTime LastUpdated { get; }
 
+    Task UpdateDataForAccountsAsync(bool force = false);
+
     Task UpdateDataForQueryAsync(AzureUri queryUri, string developerLogin, RequestOptions? options = null, Guid? requestor = null);
 
     Task UpdateDataForQueriesAsync(IEnumerable<AzureUri> queryUris, string developerLogin, RequestOptions? options = null, Guid? requestor = null);

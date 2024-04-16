@@ -443,4 +443,7 @@
   <data name="Settings_UpdateData" xml:space="preserve">
     <value>Update Organization Data</value>
   </data>
+  <data name="Settings_ViewLogs" xml:space="preserve">
+    <value>View Logs</value>
+  </data>
 </root>

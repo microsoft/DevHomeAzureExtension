@@ -44,13 +44,22 @@ public class Organization
 
     [Write(false)]
     [Computed]
-    public DateTime LastSyncAt => TimeUpdated.ToDateTime();
+    public DateTime LastSyncAt => TimeLastSync.ToDateTime();
 
     [Write(false)]
     [Computed]
     public Uri ConnectionUri => new(Connection);
 
     public override string ToString() => Name;
+
+    public void SetSynced()
+    {
+        TimeLastSync = DateTime.Now.ToDataStoreInteger();
+        if (DataStore?.Connection is not null)
+        {
+            DataStore.Connection.Update(this);
+        }
+    }
 
     private static Organization Create(Uri connection)
     {

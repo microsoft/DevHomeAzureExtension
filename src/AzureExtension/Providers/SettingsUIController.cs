@@ -61,10 +61,18 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
 
                             case "UpdateData":
                                 Log.Information($"Updating data for organizations...");
+                                var dataManager = AzureDataManager.CreateInstance(Guid.NewGuid().ToString());
+                                if (dataManager is null)
+                                {
+                                    Log.Error("Failed creating instance of datamanager.");
+                                    break;
+                                }
+
+                                await dataManager.UpdateDataForAccountsAsync();
+                                Log.Information($"Data update complete.");
                                 break;
 
                             case "OpenLogs":
-                                Log.Information($"Opening Logs...");
                                 FileHelper.OpenLogsLocation();
                                 break;
 
@@ -99,31 +107,47 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
             var notificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
             var notificationsEnabledString = (notificationsEnabled == "true") ? loader.GetString("Settings_NotificationsEnabled") : loader.GetString("Settings_NotificationsDisabled");
             var updateAzureDataString = loader.GetString("Settings_UpdateData");
+            var openLogsString = loader.GetString("Settings_ViewLogs");
 
             var settingsUI = @"
 {
     ""type"": ""AdaptiveCard"",
     ""body"": [
         {
-            ""type"": ""ActionSet"",
-            ""actions"": [
+          ""type"": ""Container"",
+          ""items"": [
                 {
-                    ""type"": ""Action.Submit"",
-                    ""title"": """ + $"{notificationsEnabledString}" + @""",
-                    ""verb"": ""ToggleNotifications"",
-                    ""associatedInputs"": ""auto""
+                    ""type"": ""ActionSet"",
+                    ""actions"": [
+                        {
+                            ""type"": ""Action.Submit"",
+                            ""title"": """ + $"{notificationsEnabledString}" + @""",
+                            ""verb"": ""ToggleNotifications"",
+                            ""associatedInputs"": ""auto""
+                        }
+                    ]
                 },
                 {
-                    ""type"": ""Action.Execute"",
-                    ""title"": """ + $"{updateAzureDataString}" + @""",
-                    ""verb"": ""UpdateData"",
-                    ""tooltip"": """ + $"{updateAzureDataString}" + @"""
+                    ""type"": ""ActionSet"",
+                    ""actions"": [
+                        {
+                            ""type"": ""Action.Execute"",
+                            ""title"": """ + $"{updateAzureDataString}" + @""",
+                            ""verb"": ""UpdateData"",
+                            ""tooltip"": """ + $"{updateAzureDataString}" + @"""
+                        }
+                    ]
                 },
                 {
-                    ""type"": ""Action.Execute"",
-                    ""title"": """ + $"Open Logs" + @""",
-                    ""verb"": ""OpenLogs"",
-                    ""tooltip"": """ + $"Open Logs" + @"""
+                    ""type"": ""ActionSet"",
+                    ""actions"": [
+                        {
+                            ""type"": ""Action.Execute"",
+                            ""title"": """ + $"{openLogsString}" + @""",
+                            ""verb"": ""OpenLogs"",
+                            ""tooltip"": """ + $"{openLogsString}" + @"""
+                        }
+                    ]
                 }
             ]
         }
