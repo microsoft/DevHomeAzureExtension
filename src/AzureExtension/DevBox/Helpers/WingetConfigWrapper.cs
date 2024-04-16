@@ -218,7 +218,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 var setStatus = string.Empty;
                 while (setStatus != "Succeeded" && setStatus != "Failed" && setStatus != "ValidationFailed")
                 {
-                    await Task.Delay(10000);
+                    await Task.Delay(TimeSpan.FromSeconds(15));
                     var poll = await _managementService.HttpsRequestToDataPlane(new Uri(_restAPI), _devId, HttpMethod.Get, null);
                     var rawResponse = poll.JsonResponseRoot.ToString();
                     var response = JsonSerializer.Deserialize<TaskJSONToCSClasses.BaseClass>(rawResponse, _taskJsonSerializerOptions);
