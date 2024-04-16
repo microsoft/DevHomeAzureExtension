@@ -76,7 +76,7 @@ public static class Constants
 
     public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
 
-    public static readonly TimeSpan FiveMinutePeriod = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan ThreeMinutePeriod = TimeSpan.FromMinutes(3);
 
     public static readonly TimeSpan OperationDeadline = TimeSpan.FromHours(2);
 
