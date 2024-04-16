@@ -40,7 +40,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     public static readonly int PullRequestResultLimit = 25;
 
     // Max number of query results to fetch for a given query.
-    public static readonly int QueryResultLimit = 25;
+    public static readonly int QueryResultLimit = 26;
 
     // Most data that has not been updated within this time will be removed.
     private static readonly TimeSpan DataRetentionTime = TimeSpan.FromDays(1);
