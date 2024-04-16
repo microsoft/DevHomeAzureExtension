@@ -272,7 +272,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                         }
 
                         var workItemCountDisplay = workItemCount.ToString(CultureInfo.InvariantCulture);
-                        if (workItemCount == 25)
+                        if (workItemCount > 25)
                         {
                             workItemCountDisplay = $">25";
                         }
