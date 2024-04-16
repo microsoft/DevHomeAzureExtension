@@ -15,7 +15,9 @@ using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using Windows.ApplicationModel;
 using Windows.Foundation;
+using Windows.Management.Deployment;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
@@ -58,6 +60,9 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     private const string DevBoxMultipleConcurrentOperationsNotSupportedKey = "DevBox_MultipleConcurrentOperationsNotSupport";
 
     private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome&location=taskbar");
+
+    // this is the version of the Windows App package that supports protocol associations for pinning
+    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
 
     // These exit codes must be kept in sync with WindowsApp
     private const int ExitCodeFailure = 0;
@@ -152,9 +157,49 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
     }
 
-    public ComputeSystemOperations SupportedOperations =>
-        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart |
-          ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
+    public ComputeSystemOperations SupportedOperations => GetOperations();
+
+    // Is lversion greater than rversion
+    public bool IsPackageVersionGreaterThan(PackageVersion lversion, PackageVersion rversion)
+    {
+        if (lversion.Major != rversion.Major)
+        {
+            return lversion.Major > rversion.Major;
+        }
+
+        if (lversion.Minor != rversion.Minor)
+        {
+            return lversion.Minor > rversion.Minor;
+        }
+
+        if (lversion.Build != rversion.Build)
+        {
+            return lversion.Build > rversion.Build;
+        }
+
+        if (lversion.Revision != rversion.Revision)
+        {
+            return lversion.Revision > rversion.Revision;
+        }
+
+        return false;
+    }
+
+    private ComputeSystemOperations GetOperations()
+    {
+        ComputeSystemOperations operations = ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
+
+        if (_packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName))
+        {
+            PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
+            if (IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+            {
+                operations |= ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
+            }
+        }
+
+        return operations;
+    }
 
     public string SupplementalDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
