@@ -12,7 +12,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace AzureExtension.DevBox.Helpers;
 
-public class ConfigWrapper : IApplyConfigurationOperation
+public class WingetConfigWrapper : IApplyConfigurationOperation
 {
     // Example of the JSON payload for the customization task
     //  {
@@ -72,7 +72,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
 
     private bool _pendingNotificationShown;
 
-    public ConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
+    public WingetConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
     {
         _restAPI = taskAPI;
         _managementService = devBoxManagementService;
@@ -117,11 +117,11 @@ public class ConfigWrapper : IApplyConfigurationOperation
             {
                 if (resource.Resource is not null && resource.Directives is not null)
                 {
-                    if (resource.Resource.EndsWith("WinGetPackage", System.StringComparison.Ordinal))
+                    if (resource.Resource.Equals("Microsoft.WinGet.DSC/WinGetPackage", System.StringComparison.OrdinalIgnoreCase))
                     {
                         units.Add(new("WinGetPackage", resource.Id, ConfigurationUnitState.Unknown, false, null, null, ConfigurationUnitIntent.Apply));
                     }
-                    else if (resource.Resource.EndsWith("GitClone", System.StringComparison.Ordinal))
+                    else if (resource.Resource.EndsWith("GitDsc/GitClone", System.StringComparison.OrdinalIgnoreCase))
                     {
                         units.Add(new("GitClone", resource.Id, ConfigurationUnitState.Unknown, false, null, null, ConfigurationUnitIntent.Apply));
                     }
@@ -148,7 +148,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
-        _log.Debug($"Set Status: {response.Status}");
+        _log.Information($"Set Status: {response.Status}");
 
         // No need to show the pending status more than once
         if (_pendingNotificationShown && setState == ConfigurationSetState.Pending)
@@ -175,7 +175,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
                         _oldUnitState[i] = unitState;
                     }
 
-                    _log.Debug($"Unit Status: {unitState}");
+                    _log.Information($"Unit Status: {unitState}");
                 }
 
                 break;
@@ -234,7 +234,7 @@ public class ConfigWrapper : IApplyConfigurationOperation
             }
             catch (Exception ex)
             {
-                _log.Error($"Unable to apply configuration {_fullTaskJSON}", ex);
+                _log.Error(ex, $"Unable to apply configuration {_fullTaskJSON}");
                 return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
