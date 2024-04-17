@@ -431,6 +431,78 @@
     <value>Dev Boxes aren't configured for the current account.</value>
     <comment>Error shown when Dev Boxes aren't configured for the current account.</comment>
   </data>
+  <data name="SettingsCardLabel" xml:space="preserve">
+    <value>Choose an image to use</value>
+    <comment>Label text for a list of cards that appear in the UI</comment>
+  </data>
+  <data name="DevBox_SecondaryButtonLabelForCreationFlow" xml:space="preserve">
+    <value>Previous</value>
+    <comment>Text to display to the user about what the secondary button does in the UI.</comment>
+  </data>
+  <data name="DevBox_PrimaryButtonLabelForCreationFlow" xml:space="preserve">
+    <value>Next</value>
+    <comment>Text to display to the user about what the primary button does in the UI</comment>
+  </data>
+  <data name="DevBox_EnterNewEnvironmentTextBoxLabel" xml:space="preserve">
+    <value>Enter a name for your Microsoft DevBox</value>
+    <comment>Label text for textbox where users will enter the name for their Dev Box</comment>
+  </data>
+  <data name="DevBox_ReviewPageNameLabel" xml:space="preserve">
+    <value>Name{0}</value>
+    <comment>Label text for textbox where users will enter the name for their Dev Box</comment>
+  </data>
+  <data name="DevBox_ProjectComboBoxLabel" xml:space="preserve">
+    <value>Select a project</value>
+    <comment>Label text for combo box where users will select the project their Dev Box will be created in</comment>
+  </data>
+  <data name="DevBox_ReviewPageProjectNameLabel" xml:space="preserve">
+    <value>Project{0}</value>
+    <comment>Label text in Dev Homes review page that will display the name of the project the user selected in the wizard flow. {0} is a punctuation like ':'</comment>
+  </data>
+  <data name="DevBox_ReviewPagePoolNameLabel" xml:space="preserve">
+    <value>Pool{0}</value>
+    <comment>Label text in Dev Homes review page that will display the name of the pool the user selected in the wizard flow. {0} is a punctuation like ':'</comment>
+  </data>
+  <data name="DevBox_PoolComboBoxLabel" xml:space="preserve">
+    <value>Select a pool</value>
+    <comment>Label text for combo box where users will select the pool their Dev Box will be created in</comment>
+  </data>
+  <data name="DevBox_PoolsButtonLabel" xml:space="preserve">
+    <value>View Pools</value>
+    <comment>Label text for combo box where users will select the pool their Dev Box will be created in</comment>
+  </data>
+  <data name="DevBox_InitialCreationFormGenerationFailedError" xml:space="preserve">
+    <value>Failed to generate the initial creation form</value>
+    <comment>Error text to show the user when there was an error getting the project names for the dev box creation wizard</comment>
+  </data>
+  <data name="DevBox_ReviewFormGenerationFailedError" xml:space="preserve">
+    <value>Failed to generate the review form</value>
+    <comment>Error text to show the user when the was an error getting the review page for dev box creation wizard</comment>
+  </data>
+  <data name="DevBox_TextBoxErrorMessage" xml:space="preserve">
+    <value>Please enter a name that contains more than three characters, uses only alphanumeric characters and hyphens, and does not start with a hypen</value>
+    <comment>Error text to show the user when the name of the new Dev Box they've entered does not match the criteria</comment>
+  </data>
+  <data name="DevBox_ProjectComboBoxErrorMessage" xml:space="preserve">
+    <value>A project must be selected</value>
+    <comment>Error text to show the user when the user does not select a project name in the project combo box</comment>
+  </data>
+  <data name="DevBox_PoolsComboBoxErrorMessage" xml:space="preserve">
+    <value>A pool must be selected</value>
+    <comment>Error text to show the user when the user does not select a pool name in the pools combo box</comment>
+  </data>
+  <data name="DevBox_PoolSubtitle" xml:space="preserve">
+    <value>{0} vCPU {1} GB RAM {2} GB Storage</value>
+    <comment>Text to describe the hardware specs for a machine</comment>
+  </data>
+  <data name="DevBox_AdaptiveCardStateNotRecognizedError" xml:space="preserve">
+    <value>Adaptive card state not recognized</value>
+    <comment>Error text to show when we don't recognize the state of the adaptive card that was given to us</comment>
+  </data>
+  <data name="DevBox_PoolsPlaceHolder" xml:space="preserve">
+    <value>Please select a pool closest to your physical location for optimal performance</value>
+    <comment>text instructions to show the user in the select pools drop down box</comment>
+  </data>
   <data name="DevBox_ConfigApplyFailedKey" xml:space="preserve">
     <value>Applying the configuration failed</value>
     <comment>Error message when applying the configuration failed.</comment>

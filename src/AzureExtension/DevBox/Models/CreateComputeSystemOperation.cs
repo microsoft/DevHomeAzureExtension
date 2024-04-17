@@ -5,6 +5,7 @@ using AzureExtension.Contracts;
 using AzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 
 namespace AzureExtension.DevBox.Models;
@@ -16,6 +17,8 @@ public delegate CreateComputeSystemOperation CreateComputeSystemOperationFactory
 /// </summary>
 public class CreateComputeSystemOperation : ICreateComputeSystemOperation
 {
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(CreateComputeSystemOperation));
+
     private CreateComputeSystemResult? _result;
 
     private const string OperationInProgressMessageKey = "DevBox_CreationOperationAlreadyInProgress";
@@ -60,6 +63,7 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
                     if (IsOperationInProgress)
                     {
                         var exception = new DevBoxCreationException("Operation already in progress");
+                        _log.Error(exception, exception.Message);
                         return new CreateComputeSystemResult(exception, Resources.GetResource(OperationInProgressMessageKey), exception.Message);
                     }
                     else if (IsCompleted)
@@ -77,6 +81,7 @@ public class CreateComputeSystemOperation : ICreateComputeSystemOperation
             }
             catch (Exception ex)
             {
+                _log.Error(ex, "unable to start the Dev Box creation process");
                 _result = new CreateComputeSystemResult(ex, Resources.GetResource(OperationCompletedMessageKey), ex.Message);
             }
 

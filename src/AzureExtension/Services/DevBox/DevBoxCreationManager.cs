@@ -9,6 +9,7 @@ using AzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -48,23 +49,24 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     {
         try
         {
+            _log.Information($"Starting the create DevBox operation for new environment with new: {parameters.NewEnvironmentName}");
             operation.UpdateProgress(Resources.GetResource(SendingCreationRequestProgressKey), Constants.IndefiniteProgress);
 
             var result = await _devBoxManagementService.CreateDevBox(parameters, developerId);
-            operation.UpdateProgress(Resources.GetResource(CreationResponseReceivedProgressKey, parameters.DevBoxName, parameters.ProjectName), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(CreationResponseReceivedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), Constants.IndefiniteProgress);
 
             var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
             var devBox = _devBoxInstanceFactory(developerId, devBoxState);
 
-            operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.DevBoxName, parameters.ProjectName), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), Constants.IndefiniteProgress);
 
             var callback = DevCenterLongRunningOperationCallback(devBox);
 
             // Now we can start querying the Dev Center for the creation status of the Dev Box operation. This operation will continue until the Dev Box is ready for use.
             var operationUri = result.ResponseHeader.OperationLocation;
-            var operationid = Guid.Parse(operationUri!.Segments.Last());
+            var operationId = Guid.Parse(operationUri!.Segments.Last());
 
-            _devBoxOperationWatcher.StartDevCenterOperationMonitor(developerId, operationUri!, operationid, DevBoxActionToPerform.Create, callback);
+            _devBoxOperationWatcher.StartDevCenterOperationMonitor(developerId, operationUri!, operationId, DevBoxActionToPerform.Create, callback);
 
             // At this point the DevBox is partially created in the cloud. However the DevBox is not ready for use. Querying for all Dev Box will
             // return this DevBox via Json with its provisioningState set to "Provisioning". So, we'll keep track of the operation.
@@ -76,7 +78,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         catch (Exception ex)
         {
             _log.Error(ex, $"unable to create the Dev Box with user options: {parameters}");
-            return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName), ex.Message);
+            return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.NewEnvironmentName, parameters.ProjectName, ex.Message), ex.Message);
         }
     }
 
@@ -84,6 +86,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     {
         return (DevCenterOperationStatus? status) =>
             {
+                _log.Information($"Long running operation status: '{status}' received for DevBox: {devBox.DisplayName}, Id: {devBox.Id}.");
                 switch (status)
                 {
                     case DevCenterOperationStatus.NotStarted:

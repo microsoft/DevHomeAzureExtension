@@ -72,6 +72,8 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
             {
                 try
                 {
+                    _log.Information($"Starting Dev Box operation with action {actionToPerform}, Uri: {operationUri}, Id: {operationId}");
+
                     // Query the Dev Center for the status of the Dev Box operation.
                     var result = await _managementService.HttpsRequestToDataPlane(operationUri, developerId, HttpMethod.Get, null);
                     var operation = JsonSerializer.Deserialize<DevCenterOperationBase>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
@@ -132,6 +134,8 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
             {
                 try
                 {
+                    _log.Information($"Starting the provisioning monitor for Dev Box with Name: '{devBoxInstance.DisplayName}' , Id: '{devBoxInstance.Id}'");
+
                     // Query the Dev Center for the provisioning status of the Dev Box. This is needed for when the Dev Box was created outside of Dev Home.
                     var devBoxUri = $"{devBoxInstance.DevBoxState.Uri}?{Constants.APIVersion}";
                     var result = await _managementService.HttpsRequestToDataPlane(new Uri(devBoxUri), developerId, HttpMethod.Get, null);

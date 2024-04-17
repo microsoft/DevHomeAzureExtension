@@ -81,7 +81,7 @@ public static class Constants
 
     public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
 
-    public static readonly TimeSpan FiveMinutePeriod = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan ThreeMinutePeriod = TimeSpan.FromMinutes(3);
 
     public static readonly TimeSpan OperationDeadline = TimeSpan.FromHours(2);
 
@@ -114,6 +114,8 @@ public static class Constants
         public const string Deleting = "Deleting";
 
         public const string Updating = "Updating";
+
+        public const string Deleted = "Deleted";
     }
 
     public static class DevBoxActionStates
