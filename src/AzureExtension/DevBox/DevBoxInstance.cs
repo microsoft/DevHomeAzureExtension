@@ -62,7 +62,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
 
     // this is the version of the Windows App package that supports protocol associations for pinning
-    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
+    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 100, 0);
 
     // These exit codes must be kept in sync with WindowsApp
     private const int ExitCodeInvalid = -1;
@@ -609,14 +609,33 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         }).AsAsyncOperation();
     }
 
+    private string ValidateWindowsAppParameters()
+    {
+        if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
+        {
+            return $"ValidateWindowsAppParameters failed with workspaceid={WorkspaceId} displayname={DisplayName} environment={Environment} username={Username}";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
     public IAsyncOperation<ComputeSystemOperationResult> DoPinActionAsync(string location, string pinAction)
     {
         return Task.Run(() =>
         {
+            var validationString = ValidateWindowsAppParameters();
+            if (!string.IsNullOrEmpty(validationString))
+            {
+                _log.Error(validationString);
+                return new ComputeSystemOperationResult(new InvalidDataException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+            }
+
             var exitcode = ExitCodeInvalid;
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Username, Environment);
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
             Process? p = Process.Start(psi);
             if (p != null)
             {
@@ -629,7 +648,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             }
 
             var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
-            _log.Error($"Error getting thumbnail for {DisplayName}");
+            _log.Error(errorString);
             return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
         }).AsAsyncOperation();
     }
@@ -658,10 +677,17 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
+            var validationString = ValidateWindowsAppParameters();
+            if (!string.IsNullOrEmpty(validationString))
+            {
+                _log.Error(validationString);
+                return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+            }
+
             var exitcode = ExitCodeInvalid;
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Username, Environment);
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
             Process? p = Process.Start(psi);
             if (p != null)
             {
@@ -678,7 +704,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             }
 
             var errorString = $"GetPinStatusAsync from location {location} failed with exitcode: {exitcode}";
-            _log.Error($"Error getting thumbnail for {DisplayName}");
+            _log.Error(errorString);
             return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
         }).AsAsyncOperation();
     }
@@ -695,21 +721,28 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public async void LoadWindowsAppParameters()
     {
-        if (RemoteConnectionData is null)
+        try
         {
-            await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
-        }
+            if (RemoteConnectionData is null)
+            {
+                await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
+            }
 
-        var uriString = RemoteConnectionData?.CloudPcConnectionUrl;
-        if (uriString == null)
+            var uriString = RemoteConnectionData?.CloudPcConnectionUrl;
+            if (string.IsNullOrEmpty(uriString))
+            {
+                return;
+            }
+
+            var launchUri = new Uri(uriString);
+            WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["cpcid"];
+            Username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
+            Environment = HttpUtility.ParseQueryString(launchUri.Query)["environment"];
+        }
+        catch (Exception ex)
         {
-            return;
+            _log.Error(ex, $"LoadWindowsAppParameters failed");
         }
-
-        var launchUri = new Uri(uriString);
-        WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["cpcid"];
-        Username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
-        Environment = HttpUtility.ParseQueryString(launchUri.Query)["environment"];
     }
 
     // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
