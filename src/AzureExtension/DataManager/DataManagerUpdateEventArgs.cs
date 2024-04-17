@@ -10,6 +10,8 @@ public enum DataManagerUpdateKind
     Query,          // A custom query was updated, which could be any amount of data in the datastore.
     PullRequest,
     Error,
+    Cache,
+    Cancel,
 }
 
 public class DataManagerUpdateEventArgs : EventArgs

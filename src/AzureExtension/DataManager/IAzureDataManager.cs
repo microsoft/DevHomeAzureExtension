@@ -12,7 +12,13 @@ public interface IAzureDataManager : IDisposable
 
     DateTime LastUpdated { get; }
 
-    Task UpdateDataForAccountsAsync(bool force = false);
+    string GetMetaData(string key);
+
+    void SetMetaData(string key, string value);
+
+    Task UpdateDataForAccountsAsync(RequestOptions? options = null, Guid? requestor = null);
+
+    Task UpdateDataForAccountsAsync(TimeSpan olderThan, RequestOptions? options = null, Guid? requestor = null);
 
     Task UpdateDataForQueryAsync(AzureUri queryUri, string developerLogin, RequestOptions? options = null, Guid? requestor = null);
 

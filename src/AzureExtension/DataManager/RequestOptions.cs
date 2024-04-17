@@ -7,6 +7,10 @@ public class RequestOptions
 {
     public List<string> Fields { get; set; }
 
+    public CancellationToken? CancellationToken { get; set; }
+
+    public bool Refresh { get; set; }
+
     public RequestOptions()
     {
         Fields = new List<string>();

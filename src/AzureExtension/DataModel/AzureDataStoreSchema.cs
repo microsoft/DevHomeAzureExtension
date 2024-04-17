@@ -43,8 +43,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "InternalId TEXT NOT NULL," +
         "Description TEXT NOT NULL," +
         "OrganizationId INTEGER NOT NULL," +
-        "TimeUpdated INTEGER NOT NULL," +
-        "TimeLastSync INTEGER NOT NULL" +
+        "TimeUpdated INTEGER NOT NULL" +
     ");" +
 
     // Project ID is a Guid, so by definition is unique.

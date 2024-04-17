@@ -5,12 +5,17 @@ using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.Helpers;
+using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
 
 [Table("Organization")]
 public class Organization
 {
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Organization)}"));
+
+    private static readonly ILogger Log = _log.Value;
+
     // This is the time between seeing a potential updated Organization record and updating it.
     // This value / 2 is the average time between Organization updating their Organization data and
     // having it reflected in the datastore.
@@ -59,6 +64,19 @@ public class Organization
         {
             DataStore.Connection.Update(this);
         }
+    }
+
+    // Sets updated and sync time for all organization rows to 0, causing them to qualify for updating.
+    public static void ClearAllSynced(DataStore dataStore)
+    {
+        // Delete queries older than the date listed.
+        var sql = @"UPDATE Organization SET (TimeLastSync, TimeUpdated) = ($Time, $Time);";
+        var command = dataStore.Connection!.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$Time", DataStore.NoForeignKey);
+        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
+        var rowsUpdated = command.ExecuteNonQuery();
+        Log.Debug($"Updated {rowsUpdated} rows.");
     }
 
     private static Organization Create(Uri connection)

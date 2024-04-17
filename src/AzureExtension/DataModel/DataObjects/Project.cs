@@ -37,9 +37,6 @@ public class Project
     // When this record was updated
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
 
-    // When all records related to this one (i.e. repositories) were completely updated.
-    public long TimeLastSync { get; set; } = DataStore.NoForeignKey;
-
     [Write(false)]
     private DataStore? DataStore { get; set; }
 
@@ -73,7 +70,6 @@ public class Project
             Description = project.Description ?? string.Empty,
             OrganizationId = organizationId,
             TimeUpdated = DateTime.Now.ToDataStoreInteger(),
-            TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
         };
     }
 
@@ -86,7 +82,6 @@ public class Project
             Description = project.Description ?? string.Empty,
             OrganizationId = organizationId,
             TimeUpdated = DateTime.Now.ToDataStoreInteger(),
-            TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
         };
     }
 

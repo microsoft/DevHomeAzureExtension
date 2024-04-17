@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Globalization;
 using System.Text.Json.Nodes;
+using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.ApplicationModel.Resources;
@@ -32,6 +34,7 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
     {
         Log.Debug($"Initialize");
         _settingsUI = extensionUI;
+        CacheManager.GetInstance().OnUpdate += HandleCacheUpdate;
         return _settingsUI.Update(_settingsUITemplate.GetSettingsUITemplate(), null, "SettingsPage");
     }
 
@@ -60,16 +63,8 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
                                 break;
 
                             case "UpdateData":
-                                Log.Information($"Updating data for organizations...");
-                                var dataManager = AzureDataManager.CreateInstance(Guid.NewGuid().ToString());
-                                if (dataManager is null)
-                                {
-                                    Log.Error("Failed creating instance of datamanager.");
-                                    break;
-                                }
-
-                                await dataManager.UpdateDataForAccountsAsync();
-                                Log.Information($"Data update complete.");
+                                Log.Information($"Refreshing data for organizations.");
+                                _ = CacheManager.GetInstance().Refresh();
                                 break;
 
                             case "OpenLogs":
@@ -97,6 +92,12 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
         }).AsAsyncOperation();
     }
 
+    private void HandleCacheUpdate(object? source, CacheManagerUpdateEventArgs e)
+    {
+        Log.Debug("Cache was updated, updating settings UI.");
+        _settingsUI?.Update(_settingsUITemplate.GetSettingsUITemplate(), null, "SettingsPage");
+    }
+
     // Adaptive Card Templates for SettingsUI.
     private sealed class SettingsUITemplate
     {
@@ -106,7 +107,20 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
 
             var notificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
             var notificationsEnabledString = (notificationsEnabled == "true") ? loader.GetString("Settings_NotificationsEnabled") : loader.GetString("Settings_NotificationsDisabled");
+
+            var lastUpdated = CacheManager.GetInstance().LastUpdated;
+            var lastUpdatedString = $"Last updated: {lastUpdated.ToString(CultureInfo.InvariantCulture)}";
+            if (lastUpdated == DateTime.MinValue)
+            {
+                lastUpdatedString = "Last updated: never";
+            }
+
             var updateAzureDataString = loader.GetString("Settings_UpdateData");
+            if (CacheManager.GetInstance().UpdateInProgress)
+            {
+                updateAzureDataString = "Update in progress";
+            }
+
             var openLogsString = loader.GetString("Settings_ViewLogs");
 
             var settingsUI = @"
@@ -126,6 +140,11 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
                             ""associatedInputs"": ""auto""
                         }
                     ]
+                },
+                {
+                  ""type"": ""TextBlock"",
+                  ""text"": """ + $"{lastUpdatedString}" + @""",
+                  ""size"": ""medium""
                 },
                 {
                     ""type"": ""ActionSet"",
