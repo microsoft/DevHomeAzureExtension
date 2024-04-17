@@ -424,7 +424,7 @@
     <comment>Error shown when user session has expired and re-login is needed.</comment>
   </data>
   <data name="DevBox_RetrivalFailKey" xml:space="preserve">
-    <value>Unable to retrieve Dev Boxes. </value>
+    <value>Unable to retrieve all Dev Boxes for {0}. </value>
     <comment>Error shown when Dev Boxes retrival failed.</comment>
   </data>
   <data name="DevBox_Unconfigured" xml:space="preserve">
@@ -499,12 +499,15 @@
     <value>Adaptive card state not recognized</value>
     <comment>Error text to show when we don't recognize the state of the adaptive card that was given to us</comment>
   </data>
-  <data name="DevBox_ReviewFormGenerationFailedError" xml:space="preserve">
-    <value>Failed to generate the review form</value>
-    <comment>Error text to show the user when the was an error getting the review page in the creation wizard flow</comment>
-  </data>
   <data name="DevBox_PoolsPlaceHolder" xml:space="preserve">
     <value>Please select a pool closest to your physical location for optimal performance</value>
     <comment>text instructions to show the user in the select pools drop down box</comment>
+  <data name="DevBox_ConfigApplyFailedKey" xml:space="preserve">
+    <value>Applying the configuration failed</value>
+    <comment>Error message when applying the configuration failed.</comment>
+  </data>
+  <data name="DevBox_ValidationFailedKey" xml:space="preserve">
+    <value>Validation failed for configuration</value>
+    <comment>Error message when validation fails for a configuration file.</comment>
   </data>
 </root>

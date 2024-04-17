@@ -1,8 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
@@ -148,7 +150,7 @@ public class DevBoxInstance : IComputeSystem
                 return ComputeSystemOperations.None;
             }
 
-            return ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
+            return ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
         }
     }
 
@@ -522,6 +524,12 @@ public class DevBoxInstance : IComputeSystem
         }).AsAsyncOperation();
     }
 
+    public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
+    {
+        var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
+        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log);
+    }
+
     // Unsupported operations
     public IAsyncOperation<ComputeSystemOperationResult> RevertSnapshotAsync(string options)
     {
@@ -578,9 +586,4 @@ public class DevBoxInstance : IComputeSystem
             return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
     }
-
-    // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
-    // Dev Home should not call this method and should use the Supported Operations to determine what operations are available.
-    // Currently, the supported operations are Start, Shutdown, Restart, and Delete.
-    public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration) => throw new NotImplementedException();
 }
