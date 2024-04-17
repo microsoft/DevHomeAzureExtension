@@ -38,6 +38,7 @@ public partial class DevBoxTests
         var contentList = new List<HttpContent>
         {
             new StringContent(MockProjectJson),
+            new StringContent(MockTestPoolJson),
             new StringContent(MockDevBoxListJson),
         };
         UpdateHttpClientResponseMock(contentList);
