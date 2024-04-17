@@ -61,8 +61,8 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
 
-    // this is the version of the Windows App package that supports protocol associations for pinning
-    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 100, 0);
+    // This is the version of the Windows App package that supports protocol associations for pinning
+    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
 
     // These exit codes must be kept in sync with WindowsApp
     private const int ExitCodeInvalid = -1;
