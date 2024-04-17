@@ -201,7 +201,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         {
             return ComputeSystemOperations.None;
         }
-        
+
         ComputeSystemOperations operations = ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete |
             ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
 
