@@ -101,6 +101,7 @@ public partial class DevBoxTests
             new StringContent(MockProjectJson),
             new StringContent(MockTestPoolJson),
             new StringContent(devBoxListPoweredOffJson),
+            new StringContent(devBoxListPoweredOffJson),
             new StringContent(MockTestOperationJson), // initial operation status with 'Running' status
             new StringContent(succeededJson), // ending operation status with 'Succeeded' status
             new StringContent(runningDevBoxJson), // ending operation status with 'Succeeded' status

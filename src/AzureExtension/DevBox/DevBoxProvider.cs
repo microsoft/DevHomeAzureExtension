@@ -98,6 +98,10 @@ public class DevBoxProvider : IComputeSystemProvider
                     // It was likely created by Dev Portals UI or some other non-Dev Home related UI.
                     _devBoxCreationManager.StartDevBoxProvisioningStateMonitor(newDevBoxInstance.AssociatedDeveloperId, newDevBoxInstance);
                 }
+                else
+                {
+                    newDevBoxInstance.LoadWindowsAppParameters();
+                }
 
                 systems.Add(newDevBoxInstance);
             }
