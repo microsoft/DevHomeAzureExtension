@@ -111,6 +111,33 @@ public partial class DevBoxTests : IDisposable
               ""startTime"": ""2024-02-20T08:23:16.8547869+00:00""
         }";
 
+    private const string MockTestPoolJson =
+        @"{
+          ""uri"": ""https://8a40af38-3b4c-4672-a6a4-5e964b1870ed-contosodevcenter.centralus.devcenter.azure.com/projects/myProject/users/b08e39b4-2ac6-4465-a35e-48322efb0f98/devboxes/MyDevBox"",
+          ""name"": ""MyDevBox"",
+          ""provisioningState"": ""Succeeded"",
+          ""projectName"": ""ContosoProject"",
+          ""poolName"": ""LargeDevWorkStationPool"",
+          ""location"": ""centralus"",
+          ""osType"": ""Windows"",
+          ""user"": ""b08e39b4-2ac6-4465-a35e-48322efb0f98"",
+          ""hardwareProfile"": {
+            ""vCPUs"": 8,
+            ""memoryGB"": 32
+          },
+          ""storageProfile"": {
+            ""osDisk"": {
+              ""diskSizeGB"": 1024
+            }
+          },
+          ""hibernateSupport"": ""Enabled"",
+          ""imageReference"": {
+            ""name"": ""DevImage"",
+            ""version"": ""1.0.0"",
+            ""publishedDate"": ""2022-03-01T00:13:23.323Z""
+          }
+        }";
+
     private const string MockTestRemoteConnectionJson =
         @"{
               ""webUrl"": ""https://devcenter.azure.com/projects/project/users/b214d34a-3feb-12ab-96bd-cca70d0c9d69/devboxes/DevBox1"",
@@ -119,7 +146,7 @@ public partial class DevBoxTests : IDisposable
 
     private const string MockTestCreationParametersJson =
         @"{
-              ""devBoxName"": ""MyDevBox"",
+              ""NewEnvironmentName"": ""MyDevBox"",
               ""projectName"": ""MyProject"",
               ""poolName"": ""MyPoolName"",
               ""devCenterUri"": ""https://devcenter.azure.com""

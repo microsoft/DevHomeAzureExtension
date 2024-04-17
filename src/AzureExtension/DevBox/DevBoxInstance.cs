@@ -1,9 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Text.Json;
+using System.Web;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
@@ -12,7 +16,9 @@ using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using Windows.ApplicationModel;
 using Windows.Foundation;
+using Windows.Management.Deployment;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
@@ -36,7 +42,7 @@ public enum DevBoxActionToPerform
 /// It contains the DevBox details such as name, id, state, CPU, memory, and OS. And all the
 /// operations that can be performed on the DevBox.
 /// </summary>
-public class DevBoxInstance : IComputeSystem
+public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
     private readonly IDevBoxManagementService _devBoxManagementService;
 
@@ -54,6 +60,22 @@ public class DevBoxInstance : IComputeSystem
 
     private const string DevBoxMultipleConcurrentOperationsNotSupportedKey = "DevBox_MultipleConcurrentOperationsNotSupport";
 
+    private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
+
+    // This is the version of the Windows App package that supports protocol associations for pinning
+    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
+
+    // These exit codes must be kept in sync with WindowsApp
+    private const int ExitCodeInvalid = -1;
+
+    private const int ExitCodeFailure = 0;
+
+    private const int ExitCodeSuccess = 1;
+
+    private const int ExitCodePinned = 2;
+
+    private const int ExitCodeUnpinned = 3;
+
     private readonly object _operationLock = new();
 
     public bool IsOperationInProgress { get; private set; }
@@ -63,6 +85,12 @@ public class DevBoxInstance : IComputeSystem
     public string Id { get; private set; }
 
     public string DisplayName { get; private set; }
+
+    public string? WorkspaceId { get; private set; }
+
+    public string? Username { get; private set; }
+
+    public string? Environment { get; private set; }
 
     public DevBoxMachineState DevBoxState { get; private set; }
 
@@ -107,6 +135,7 @@ public class DevBoxInstance : IComputeSystem
         {
             try
             {
+                _log.Information($"Retrieving properties for Dev Box '{DisplayName}'");
                 var properties = new List<ComputeSystemProperty>();
                 var cpu = ComputeSystemProperty.Create(ComputeSystemPropertyKind.CpuCount, DevBoxState.HardwareProfile.VCPUs);
                 var memory = ComputeSystemProperty.Create(ComputeSystemPropertyKind.AssignedMemorySizeInBytes, (ulong)DevBoxState.HardwareProfile.MemoryGB * Constants.BytesInGb);
@@ -120,7 +149,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                _log.Error(ex, $"Error processing properties for {DisplayName}");
+                _log.Error(ex, $"Error processing properties for '{DisplayName}'");
             }
         }
     }
@@ -132,8 +161,61 @@ public class DevBoxInstance : IComputeSystem
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
     }
 
-    public ComputeSystemOperations SupportedOperations =>
-        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete | ComputeSystemOperations.Restart;
+    public ComputeSystemOperations SupportedOperations => GetOperations();
+
+    // Is lversion greater than rversion
+    public bool IsPackageVersionGreaterThan(PackageVersion lversion, PackageVersion rversion)
+    {
+        if (lversion.Major != rversion.Major)
+        {
+            return lversion.Major > rversion.Major;
+        }
+
+        if (lversion.Minor != rversion.Minor)
+        {
+            return lversion.Minor > rversion.Minor;
+        }
+
+        if (lversion.Build != rversion.Build)
+        {
+            return lversion.Build > rversion.Build;
+        }
+
+        if (lversion.Revision != rversion.Revision)
+        {
+            return lversion.Revision > rversion.Revision;
+        }
+
+        return false;
+    }
+
+    private ComputeSystemOperations GetOperations()
+    {
+        var state = GetState();
+        if (state == ComputeSystemState.Creating)
+        {
+            return ComputeSystemOperations.Delete | ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
+        }
+
+        if ((state == ComputeSystemState.Deleting) || (state == ComputeSystemState.Deleted))
+        {
+            return ComputeSystemOperations.None;
+        }
+
+        ComputeSystemOperations operations = ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete |
+            ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
+
+        if (_packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName))
+        {
+            PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
+            if (IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+            {
+                operations |= ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
+            }
+        }
+
+        return operations;
+    }
 
     public string SupplementalDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
@@ -154,8 +236,12 @@ public class DevBoxInstance : IComputeSystem
             {
                 lock (_operationLock)
                 {
-                    if (IsOperationInProgress)
+                    // Only the delete operation can be performed while other operations are being performed.
+                    if (IsOperationInProgress &&
+                        (CurrentActionToPerform != DevBoxActionToPerform.Delete) &&
+                        (action != DevBoxActionToPerform.Delete))
                     {
+                        _log.Error("Multiple operations are not supported for DevBoxes. Only the Delete operation can be performed while other operations are in progress");
                         return new ComputeSystemOperationResult(new InvalidOperationException(), Resources.GetResource(DevBoxMultipleConcurrentOperationsNotSupportedKey), "Running multiple operations is not supported");
                     }
 
@@ -168,7 +254,8 @@ public class DevBoxInstance : IComputeSystem
                 // The creation and delete operations do not require an operation string, but all the other operations do.
                 var operationUri = operation.Length > 0 ?
                     $"{DevBoxState.Uri}:{operation}?{Constants.APIVersion}" : $"{DevBoxState.Uri}?{Constants.APIVersion}";
-                _log.Information($"Starting {DisplayName} with {operationUri}");
+
+                _log.Information($"Performing {operation} operation for '{DisplayName}' with {operationUri}");
 
                 var result = await _devBoxManagementService.HttpsRequestToDataPlane(new Uri(operationUri), AssociatedDeveloperId, method, null);
                 var operationLocation = result.ResponseHeader.OperationLocation;
@@ -178,6 +265,8 @@ public class DevBoxInstance : IComputeSystem
                 // See example Response: https://learn.microsoft.com/en-us/rest/api/devcenter/developer/dev-boxes/start-dev-box?view=rest-devcenter-developer-2023-04-01&tabs=HTTP
                 var operationId = Guid.Parse(operationLocation!.Segments.Last());
 
+                _log.Information($"Adding Dev Box '{DisplayName}' with to OperationMonitor");
+
                 // Monitor the operations progress
                 _devBoxOperationWatcher.StartDevCenterOperationMonitor(AssociatedDeveloperId, operationLocation!, operationId, action, OperationCallback);
                 return new ComputeSystemOperationResult();
@@ -185,7 +274,7 @@ public class DevBoxInstance : IComputeSystem
             catch (Exception ex)
             {
                 UpdateStateForUI();
-                _log.Error(ex, $"Unable to procress DevBox operation '{nameof(DevBoxOperation)}'");
+                _log.Error(ex, $"Unable to process DevBox operation '{nameof(DevBoxOperation)}'");
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
@@ -203,7 +292,7 @@ public class DevBoxInstance : IComputeSystem
     /// When a Dev Box is created it the Dev Center started to provision it. We use this method once the provisioning is complete.
     /// </summary>
     /// <param name="devBoxMachineState">The new state of the Dev Box from the Dev Center</param>
-    /// <param name="status">The status of the provisioing</param>
+    /// <param name="status">The status of the provisioning</param>
     public void ProvisioningMonitorCompleted(DevBoxMachineState? devBoxMachineState, ProvisioningStatus status)
     {
         if (!IsDevBoxBeingCreatedOrProvisioned)
@@ -213,10 +302,13 @@ public class DevBoxInstance : IComputeSystem
 
         if (status == ProvisioningStatus.Succeeded && devBoxMachineState != null)
         {
+            _log.Information($"Dev Box provisioning succeeded for '{DisplayName}'");
             DevBoxState = devBoxMachineState;
         }
         else
         {
+            _log.Information($"Dev Box provisioning failed for '{DisplayName}'");
+
             // If the provisioning failed, we'll set the state to failed and powerstate to unknown.
             // The PowerState being unknown will make the UI show the Dev Box state as unknown.
             DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
@@ -233,6 +325,7 @@ public class DevBoxInstance : IComputeSystem
     /// <param name="status">The current status of the operation</param>
     public void OperationCallback(DevCenterOperationStatus? status)
     {
+        _log.Information($"Dev Box operation Callback for '{DisplayName}' invoked with status '{status}'");
         switch (status)
         {
             case DevCenterOperationStatus.NotStarted:
@@ -259,6 +352,7 @@ public class DevBoxInstance : IComputeSystem
         {
             try
             {
+                _log.Information($"Dev Box operation completed for '{DisplayName}'. ActionPerformed: '{CurrentActionToPerform}'");
                 if (CurrentActionToPerform == DevBoxActionToPerform.Delete)
                 {
                     // DevBox no longer exists, so we can't get the state from the Dev Center.
@@ -317,6 +411,8 @@ public class DevBoxInstance : IComputeSystem
         var actionState = DevBoxState.ActionState;
         var powerState = DevBoxState.PowerState;
 
+        _log.Information($"Getting State for devBox: '{DisplayName}', Provisioning: {provisioningState}, Action: {actionState}, Power: {powerState}");
+
         // This state is actually failed, but since ComputeSystemState doesn't have a failed state, we'll return unknown.
         if (provisioningState == Constants.DevBoxProvisioningStates.Failed
             || provisioningState == Constants.DevBoxProvisioningStates.ProvisionedWithWarning)
@@ -333,6 +429,8 @@ public class DevBoxInstance : IComputeSystem
                     return ComputeSystemState.Creating;
                 case Constants.DevBoxProvisioningStates.Deleting:
                     return ComputeSystemState.Deleting;
+                case Constants.DevBoxProvisioningStates.Deleted:
+                    return ComputeSystemState.Deleted;
             }
         }
 
@@ -415,6 +513,7 @@ public class DevBoxInstance : IComputeSystem
         {
             try
             {
+                _log.Information($"Retrieving remote connection data for '{DisplayName}'");
                 if (RemoteConnectionData is null)
                 {
                     await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
@@ -424,12 +523,15 @@ public class DevBoxInstance : IComputeSystem
                 psi.UseShellExecute = true;
                 var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
                 psi.FileName = isWindowsAppInstalled ? RemoteConnectionData?.CloudPcConnectionUrl : RemoteConnectionData?.WebUrl;
+
+                _log.Information($"Launching DevBox '{DisplayName}' with connection data: {psi.FileName}. Windows App installed: {(isWindowsAppInstalled ? "True" : "False")}");
+
                 Process.Start(psi);
                 return new ComputeSystemOperationResult();
             }
             catch (Exception ex)
             {
-                _log.Error(ex, $"Error connecting to {DisplayName}");
+                _log.Error(ex, $"Error connecting to '{DisplayName}'");
                 return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), string.Empty);
             }
         }).AsAsyncOperation();
@@ -454,6 +556,7 @@ public class DevBoxInstance : IComputeSystem
         {
             try
             {
+                _log.Information($"Retrieving thumbnail for '{DisplayName}'");
                 var uri = new Uri(Constants.ThumbnailURI);
                 var storageFile = await StorageFile.GetFileFromApplicationUriAsync(uri);
                 var randomAccessStream = await storageFile.OpenReadAsync();
@@ -470,7 +573,7 @@ public class DevBoxInstance : IComputeSystem
             }
             catch (Exception ex)
             {
-                _log.Error(ex, $"Error getting thumbnail for {DisplayName}");
+                _log.Error(ex, $"Error getting thumbnail for '{DisplayName}'");
                 return new ComputeSystemThumbnailResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
@@ -482,6 +585,12 @@ public class DevBoxInstance : IComputeSystem
         {
             return Properties;
         }).AsAsyncOperation();
+    }
+
+    public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
+    {
+        var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
+        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log);
     }
 
     // Unsupported operations
@@ -541,8 +650,139 @@ public class DevBoxInstance : IComputeSystem
         }).AsAsyncOperation();
     }
 
-    // Apply configuration isn't supported yet for Dev Boxes. This functionality will be created before the feature is released at build.
-    // Dev Home should not call this method and should use the Supported Operations to determine what operations are available.
-    // Currently, the supported operations are Start, Shutdown, Restart, and Delete.
-    public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration) => throw new NotImplementedException();
+    private string ValidateWindowsAppParameters()
+    {
+        if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
+        {
+            return $"ValidateWindowsAppParameters failed with workspaceid={WorkspaceId} displayname={DisplayName} environment={Environment} username={Username}";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> DoPinActionAsync(string location, string pinAction)
+    {
+        return Task.Run(() =>
+        {
+            var validationString = ValidateWindowsAppParameters();
+            if (!string.IsNullOrEmpty(validationString))
+            {
+                _log.Error(validationString);
+                return new ComputeSystemOperationResult(new InvalidDataException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+            }
+
+            var exitcode = ExitCodeInvalid;
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = true;
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
+            Process? p = Process.Start(psi);
+            if (p != null)
+            {
+                p.WaitForExit();
+                exitcode = p.ExitCode;
+                if (exitcode == ExitCodeSuccess)
+                {
+                    return new ComputeSystemOperationResult();
+                }
+            }
+
+            var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
+            _log.Error(errorString);
+            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> PinToStartMenuAsync()
+    {
+        return DoPinActionAsync("startMenu", "pin");
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> UnpinFromStartMenuAsync()
+    {
+        return DoPinActionAsync("startMenu", "unpin");
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> PinToTaskbarAsync()
+    {
+        return DoPinActionAsync("taskbar", "pin");
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> UnpinFromTaskbarAsync()
+    {
+        return DoPinActionAsync("taskbar", "unpin");
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetPinStatusAsync(string location)
+    {
+        return Task.Run(() =>
+        {
+            var validationString = ValidateWindowsAppParameters();
+            if (!string.IsNullOrEmpty(validationString))
+            {
+                _log.Error(validationString);
+                return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+            }
+
+            var exitcode = ExitCodeInvalid;
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = true;
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
+            Process? p = Process.Start(psi);
+            if (p != null)
+            {
+                p.WaitForExit();
+                exitcode = p.ExitCode;
+                if (exitcode == ExitCodePinned)
+                {
+                    return new ComputeSystemPinnedResult(true);
+                }
+                else if (exitcode == ExitCodeUnpinned)
+                {
+                    return new ComputeSystemPinnedResult(false);
+                }
+            }
+
+            var errorString = $"GetPinStatusAsync from location {location} failed with exitcode: {exitcode}";
+            _log.Error(errorString);
+            return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToStartMenuAsync()
+    {
+        return GetPinStatusAsync("startmenu");
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToTaskbarAsync()
+    {
+        return GetPinStatusAsync("taskbar");
+    }
+
+    public async void LoadWindowsAppParameters()
+    {
+        try
+        {
+            if (RemoteConnectionData is null)
+            {
+                await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
+            }
+
+            var uriString = RemoteConnectionData?.CloudPcConnectionUrl;
+            if (string.IsNullOrEmpty(uriString))
+            {
+                return;
+            }
+
+            var launchUri = new Uri(uriString);
+            WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["cpcid"];
+            Username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
+            Environment = HttpUtility.ParseQueryString(launchUri.Query)["environment"];
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"LoadWindowsAppParameters failed");
+        }
+    }
 }

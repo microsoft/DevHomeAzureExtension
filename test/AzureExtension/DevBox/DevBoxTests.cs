@@ -38,6 +38,7 @@ public partial class DevBoxTests
         var contentList = new List<HttpContent>
         {
             new StringContent(MockProjectJson),
+            new StringContent(MockTestPoolJson),
             new StringContent(MockDevBoxListJson),
         };
         UpdateHttpClientResponseMock(contentList);
@@ -99,6 +100,8 @@ public partial class DevBoxTests
         var contentList = new List<HttpContent>
         {
             new StringContent(MockProjectJson),
+            new StringContent(MockTestPoolJson),
+            new StringContent(devBoxListPoweredOffJson),
             new StringContent(devBoxListPoweredOffJson),
             new StringContent(MockTestOperationJson), // initial operation status with 'Running' status
             new StringContent(succeededJson), // ending operation status with 'Succeeded' status

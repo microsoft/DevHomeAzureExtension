@@ -3,7 +3,11 @@
 
 namespace AzureExtension.Contracts;
 
+using Windows.ApplicationModel;
+
 public interface IPackagesService
 {
     public bool IsPackageInstalled(string packageName);
+
+    public PackageVersion GetPackageInstalledVersion(string packageName);
 }

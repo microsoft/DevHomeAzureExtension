@@ -28,7 +28,7 @@ public class TimeSpanService : ITimeSpanService
         switch (actionToPerform)
         {
             case DevBoxActionToPerform.Create:
-                return Constants.FiveMinutePeriod;
+                return Constants.ThreeMinutePeriod;
             default:
                 return Constants.OneMinutePeriod;
         }

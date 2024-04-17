@@ -22,6 +22,13 @@ public static class Constants
         " \"options\":{\"allowPartialScopes\":true}}";
 
     /// <summary>
+    /// API version used for enumeration and start, stop, and restart APIs
+    /// </summary>
+    /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
+    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
+    public const string APIVersion = "api-version=2024-05-01-preview";
+
+    /// <summary>
     /// DevCenter API to get all devboxes
     /// </summary>
     /// for stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
@@ -31,6 +38,11 @@ public static class Constants
     public const string DevBoxUserSegmentOfUri = "/users/me/devboxes";
 
     public const string OperationsParameter = "operations";
+
+    /// <summary>
+    /// Dev Box API to run the winget customization task
+    /// </summary>
+    public const string CustomizationAPI = "/customizationgroups/AzureExt";
 
     /// <summary>
     /// Gets the Regex pattern for the name of a DevBox. This pattern is used to validate the name and the project name of a DevBox before attempting
@@ -49,13 +61,6 @@ public static class Constants
     /// Scope to query for all projects
     /// </summary>
     public const string ManagementPlaneScope = "https://management.azure.com/user_impersonation";
-
-    /// <summary>
-    /// API version used for enumeration and start, stop, and restart APIs
-    /// </summary>
-    /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
-    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
-    public const string APIVersion = "api-version=2024-05-01-preview";
 
     public const string Pools = "pools";
 
@@ -76,7 +81,7 @@ public static class Constants
 
     public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
 
-    public static readonly TimeSpan FiveMinutePeriod = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan ThreeMinutePeriod = TimeSpan.FromMinutes(3);
 
     public static readonly TimeSpan OperationDeadline = TimeSpan.FromHours(2);
 
@@ -109,6 +114,8 @@ public static class Constants
         public const string Deleting = "Deleting";
 
         public const string Updating = "Updating";
+
+        public const string Deleted = "Deleted";
     }
 
     public static class DevBoxActionStates
