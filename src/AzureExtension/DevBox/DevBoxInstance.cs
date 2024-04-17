@@ -3,9 +3,11 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
+using System.Web;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
@@ -14,7 +16,9 @@ using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using Windows.ApplicationModel;
 using Windows.Foundation;
+using Windows.Management.Deployment;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
@@ -38,7 +42,7 @@ public enum DevBoxActionToPerform
 /// It contains the DevBox details such as name, id, state, CPU, memory, and OS. And all the
 /// operations that can be performed on the DevBox.
 /// </summary>
-public class DevBoxInstance : IComputeSystem
+public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
     private readonly IDevBoxManagementService _devBoxManagementService;
 
@@ -56,6 +60,22 @@ public class DevBoxInstance : IComputeSystem
 
     private const string DevBoxMultipleConcurrentOperationsNotSupportedKey = "DevBox_MultipleConcurrentOperationsNotSupport";
 
+    private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
+
+    // This is the version of the Windows App package that supports protocol associations for pinning
+    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
+
+    // These exit codes must be kept in sync with WindowsApp
+    private const int ExitCodeInvalid = -1;
+
+    private const int ExitCodeFailure = 0;
+
+    private const int ExitCodeSuccess = 1;
+
+    private const int ExitCodePinned = 2;
+
+    private const int ExitCodeUnpinned = 3;
+
     private readonly object _operationLock = new();
 
     public bool IsOperationInProgress { get; private set; }
@@ -65,6 +85,12 @@ public class DevBoxInstance : IComputeSystem
     public string Id { get; private set; }
 
     public string DisplayName { get; private set; }
+
+    public string? WorkspaceId { get; private set; }
+
+    public string? Username { get; private set; }
+
+    public string? Environment { get; private set; }
 
     public DevBoxMachineState DevBoxState { get; private set; }
 
@@ -134,9 +160,50 @@ public class DevBoxInstance : IComputeSystem
         RemoteConnectionData = JsonSerializer.Deserialize<DevBoxRemoteConnectionData>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
     }
 
-    public ComputeSystemOperations SupportedOperations =>
-        ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete |
-        ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
+    public ComputeSystemOperations SupportedOperations => GetOperations();
+
+    // Is lversion greater than rversion
+    public bool IsPackageVersionGreaterThan(PackageVersion lversion, PackageVersion rversion)
+    {
+        if (lversion.Major != rversion.Major)
+        {
+            return lversion.Major > rversion.Major;
+        }
+
+        if (lversion.Minor != rversion.Minor)
+        {
+            return lversion.Minor > rversion.Minor;
+        }
+
+        if (lversion.Build != rversion.Build)
+        {
+            return lversion.Build > rversion.Build;
+        }
+
+        if (lversion.Revision != rversion.Revision)
+        {
+            return lversion.Revision > rversion.Revision;
+        }
+
+        return false;
+    }
+
+    private ComputeSystemOperations GetOperations()
+    {
+        ComputeSystemOperations operations = ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete |
+            ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
+
+        if (_packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName))
+        {
+            PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
+            if (IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+            {
+                operations |= ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
+            }
+        }
+
+        return operations;
+    }
 
     public string SupplementalDisplayName => $"{Resources.GetResource(SupplementalDisplayNamePrefix)}: {DevBoxState.ProjectName}";
 
@@ -548,5 +615,141 @@ public class DevBoxInstance : IComputeSystem
         {
             return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
         }).AsAsyncOperation();
+    }
+
+    private string ValidateWindowsAppParameters()
+    {
+        if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
+        {
+            return $"ValidateWindowsAppParameters failed with workspaceid={WorkspaceId} displayname={DisplayName} environment={Environment} username={Username}";
+        }
+        else
+        {
+            return string.Empty;
+        }
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> DoPinActionAsync(string location, string pinAction)
+    {
+        return Task.Run(() =>
+        {
+            var validationString = ValidateWindowsAppParameters();
+            if (!string.IsNullOrEmpty(validationString))
+            {
+                _log.Error(validationString);
+                return new ComputeSystemOperationResult(new InvalidDataException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+            }
+
+            var exitcode = ExitCodeInvalid;
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = true;
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
+            Process? p = Process.Start(psi);
+            if (p != null)
+            {
+                p.WaitForExit();
+                exitcode = p.ExitCode;
+                if (exitcode == ExitCodeSuccess)
+                {
+                    return new ComputeSystemOperationResult();
+                }
+            }
+
+            var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
+            _log.Error(errorString);
+            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> PinToStartMenuAsync()
+    {
+        return DoPinActionAsync("startMenu", "pin");
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> UnpinFromStartMenuAsync()
+    {
+        return DoPinActionAsync("startMenu", "unpin");
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> PinToTaskbarAsync()
+    {
+        return DoPinActionAsync("taskbar", "pin");
+    }
+
+    public IAsyncOperation<ComputeSystemOperationResult> UnpinFromTaskbarAsync()
+    {
+        return DoPinActionAsync("taskbar", "unpin");
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetPinStatusAsync(string location)
+    {
+        return Task.Run(() =>
+        {
+            var validationString = ValidateWindowsAppParameters();
+            if (!string.IsNullOrEmpty(validationString))
+            {
+                _log.Error(validationString);
+                return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+            }
+
+            var exitcode = ExitCodeInvalid;
+            var psi = new ProcessStartInfo();
+            psi.UseShellExecute = true;
+            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
+            Process? p = Process.Start(psi);
+            if (p != null)
+            {
+                p.WaitForExit();
+                exitcode = p.ExitCode;
+                if (exitcode == ExitCodePinned)
+                {
+                    return new ComputeSystemPinnedResult(true);
+                }
+                else if (exitcode == ExitCodeUnpinned)
+                {
+                    return new ComputeSystemPinnedResult(false);
+                }
+            }
+
+            var errorString = $"GetPinStatusAsync from location {location} failed with exitcode: {exitcode}";
+            _log.Error(errorString);
+            return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
+        }).AsAsyncOperation();
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToStartMenuAsync()
+    {
+        return GetPinStatusAsync("startmenu");
+    }
+
+    public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToTaskbarAsync()
+    {
+        return GetPinStatusAsync("taskbar");
+    }
+
+    public async void LoadWindowsAppParameters()
+    {
+        try
+        {
+            if (RemoteConnectionData is null)
+            {
+                await GetRemoteLaunchURIsAsync(new Uri(DevBoxState.Uri));
+            }
+
+            var uriString = RemoteConnectionData?.CloudPcConnectionUrl;
+            if (string.IsNullOrEmpty(uriString))
+            {
+                return;
+            }
+
+            var launchUri = new Uri(uriString);
+            WorkspaceId = HttpUtility.ParseQueryString(launchUri.Query)["cpcid"];
+            Username = HttpUtility.ParseQueryString(launchUri.Query)["username"];
+            Environment = HttpUtility.ParseQueryString(launchUri.Query)["environment"];
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"LoadWindowsAppParameters failed");
+        }
     }
 }
