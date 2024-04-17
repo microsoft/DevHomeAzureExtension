@@ -502,6 +502,7 @@
   <data name="DevBox_PoolsPlaceHolder" xml:space="preserve">
     <value>Please select a pool closest to your physical location for optimal performance</value>
     <comment>text instructions to show the user in the select pools drop down box</comment>
+  </data>
   <data name="DevBox_ConfigApplyFailedKey" xml:space="preserve">
     <value>Applying the configuration failed</value>
     <comment>Error message when applying the configuration failed.</comment>
