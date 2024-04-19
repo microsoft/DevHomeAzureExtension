@@ -29,7 +29,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
     public const string WingetTaskJsonBaseStart = "{\"tasks\": [";
 
     public const string WingetTaskJsonTaskStart = @"{
-            ""name"": ""Quickstart-Catalog-Tasks/winget"",
+            ""name"": ""winget"",
 			""runAs"": ""User"",
             ""parameters"": {
                 ""inlineConfigurationBase64"": """;
@@ -85,11 +85,6 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
     {
         List<ConfigurationUnit> units = new();
 
-        // Remove " dependsOn: -'Git.Git | Install: Git'" from the configuration
-        // This is a workaround as the current implementation does not support dependsOn
-        configuration = configuration.Replace("dependsOn:", string.Empty);
-        configuration = configuration.Replace("- 'Git.Git | Install: Git'", string.Empty);
-
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
@@ -110,7 +105,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
 
             var serializer = new SerializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitEmptyCollections)
+                .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitEmptyCollections | DefaultValuesHandling.OmitNull)
                 .Build();
 
             foreach (var resource in resources)
@@ -129,6 +124,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
 
                 // Add the resource back as an individual task
                 var tempDsc = baseDSC;
+
+                // Remove "dependsOn:" from the configuration
+                // This is a workaround as the current implementation breaks down the task into individual tasks
+                // and we cannot have dependencies between them
+                resource.DependsOn = null;
                 tempDsc?.Properties?.SetResources(new List<TaskYAMLToCSClasses.ResourceItem> { resource });
                 var yaml = serializer.Serialize(tempDsc);
                 var encodedConfiguration = DevBoxOperationHelper.Base64Encode(yaml);

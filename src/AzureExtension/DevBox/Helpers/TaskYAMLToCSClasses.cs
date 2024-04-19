@@ -63,6 +63,8 @@ public class TaskYAMLToCSClasses
         public Settings? Settings { get; set; }
 
         public string Id { get; set; } = string.Empty;
+
+        public List<string>? DependsOn { get; set; }
     }
 
     public class Directives
