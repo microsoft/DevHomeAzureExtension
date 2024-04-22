@@ -1,0 +1,109 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "ColumnSet",
+      "spacing": "large",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "Input.Text",
+              "id": "NewEnvironmentName",
+              "label": "${EnterNewEnvironmentTextBoxLabel}",
+              "maxLength": 100,
+              "isRequired": true,
+              "errorMessage": "${DevBoxTextBoxErrorMessage}",
+              "regex": "${DevBoxNameRegex}",
+              "spacing": "large",
+              "value": "${TextBoxText}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "spacing": "large",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "Input.ChoiceSet",
+              "id": "ProjectsComboBox",
+              "label": "${ProjectComboBoxLabel}",
+              "devHomeChildChoiceSetId": "PoolsComboBox",
+              "devHomeSelectionChangedDataForChildChoiceSet": "${SelectionChangedDataForChildChoiceSet}",
+              "devHomeRefreshChildChoiceSetOnSelectionChanged": true,
+              "isRequired": true,
+              "errorMessage": "${DevBoxProjectComboBoxErrorMessage}",
+              "style": "compact",
+              "value": "${SelectedProjectIndex}",
+              "choices": [
+                {
+                  "$data": "${ProjectList}",
+                  "title": "${title}",
+                  "value": "${value}"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ColumnSet",
+      "spacing": "large",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+
+            {
+              "type": "Input.ChoiceSet",
+              "id": "PoolsComboBox",
+              "devHomeParentChoiceSetId": "ProjectsComboBox",
+              "label": "${DevBoxPoolComboBoxLabel}",
+              "isRequired": true,
+              "errorMessage": "${DevBoxPoolsComboBoxErrorMessage}",
+              "placeholder": "${DevBoxPoolsPlaceHolder}",
+              "style": "compact",
+              "value": "${SelectedPoolIndex}",
+              "devHomeChoicesData": [
+                {
+                  "$data": "${PoolsList}",
+                  "title": "${title}",
+                  "subtitle": "${subtitle}",
+                  "value": "${value}"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "ActionSet",
+      "id": "DevHomeTopLevelActionSet",
+      "actions": [
+        {
+          "id": "DevHomeMachineConfigurationNextButton",
+          "type": "Action.Submit",
+          "title": "${PrimaryButtonLabelForCreationFlow}"
+        },
+        {
+          "id": "DevHomeMachineConfigurationPreviousButton",
+          "type": "Action.Submit",
+          "title": "${SecondaryButtonLabelForCreationFlow}"
+        }
+      ]
+    }
+  ]
+}

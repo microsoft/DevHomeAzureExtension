@@ -24,11 +24,6 @@ public partial class WidgetTests
     [TestCategory("Unit")]
     public void AzureUriValidation()
     {
-        using var log = new Logger("TestLog", TestOptions.LogOptions);
-        var testListener = new TestListener("TestListener", TestContext!);
-        log.AddListener(testListener);
-        Log.Attach(log);
-
         var testUrisValid = new List<Tuple<string, AzureUriType, bool>>
         {
             // Test Uris use legacy and new format, with and without collection, and
@@ -195,7 +190,7 @@ public partial class WidgetTests
             // Validate the different inputs are identical regardless of which constructor was used.
             var azureUri = new AzureUri(uriTuple.Item1);
 
-            Uri? uri = null;
+            Uri? uri;
             if (uriTuple.Item2 != AzureUriType.Garbage)
             {
                 // Type garbage Uris will fail Uri constructor, that's fine for AzureUris, but we
@@ -408,8 +403,5 @@ public partial class WidgetTests
         Assert.IsFalse(emptyAzureUri.IsQuery);
         Assert.AreEqual(string.Empty, emptyAzureUri.Query);
         Assert.AreEqual(AzureHostType.NotHosted, emptyAzureUri.HostType);
-
-        testListener.PrintEventCounts();
-        Assert.AreEqual(false, testListener.FoundErrors());
     }
 }

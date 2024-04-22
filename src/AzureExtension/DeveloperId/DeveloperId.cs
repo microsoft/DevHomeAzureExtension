@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.Common;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 
 namespace DevHomeAzureExtension.DeveloperId;
 
@@ -18,6 +19,8 @@ public class DeveloperId : IDeveloperId
     public string Email { get; private set; }
 
     public string Url { get; private set; }
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DeveloperId));
 
     private Dictionary<Uri, VssConnection> Connections { get; } = new Dictionary<Uri, VssConnection>();
 
@@ -59,22 +62,22 @@ public class DeveloperId : IDeveloperId
         }
         catch (MsalUiRequiredException ex)
         {
-            Log.Logger()?.ReportError($"GetVssCredentials failed and requires user interaction {ex}");
+            _log.Error($"GetVssCredentials failed and requires user interaction {ex}");
             throw;
         }
         catch (MsalServiceException ex)
         {
-            Log.Logger()?.ReportError($"GetVssCredentials failed with MSAL service error: {ex}");
+            _log.Error($"GetVssCredentials failed with MSAL service error: {ex}");
             throw;
         }
         catch (MsalClientException ex)
         {
-            Log.Logger()?.ReportError($"GetVssCredentials failed with MSAL client error: {ex}");
+            _log.Error($"GetVssCredentials failed with MSAL client error: {ex}");
             throw;
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"GetVssCredentials failed with error: {ex}");
+            _log.Error($"GetVssCredentials failed with error: {ex}");
             throw;
         }
 

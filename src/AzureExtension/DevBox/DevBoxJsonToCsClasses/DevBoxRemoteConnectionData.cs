@@ -12,4 +12,7 @@ public class DevBoxRemoteConnectionData
     public string? WebUrl { get; set; }
 
     public string? RdpConnectionUrl { get; set; }
+
+    // Example - ms-cloudpc:connect?cpcid={cloud-pc-id}&username={username}&environment={environment}&version={version}&rdlaunchurl={optional-rd-launch-url}
+    public string? CloudPcConnectionUrl { get; set; }
 }

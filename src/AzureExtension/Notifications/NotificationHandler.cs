@@ -5,18 +5,23 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Microsoft.Windows.AppNotifications;
+using Serilog;
 
 namespace DevHomeAzureExtension.Notifications;
 
 public class NotificationHandler
 {
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(NotificationHandler)));
+
+    private static readonly ILogger Log = _log.Value;
+
 #pragma warning disable IDE0060 // Remove unused parameter
     public static void OnNotificationInvoked(object sender, AppNotificationActivatedEventArgs args) => NotificationActivation(args);
 #pragma warning restore IDE0060 // Remove unused parameter
 
     public static void NotificationActivation(AppNotificationActivatedEventArgs args)
     {
-        Log.Logger()?.ReportInfo($"Notification Activated with args: {NotificationArgsToString(args)}");
+        Log.Information($"Notification Activated with args: {NotificationArgsToString(args)}");
 
         if (args.Arguments.TryGetValue("htmlurl", out var urlString))
         {
@@ -25,7 +30,7 @@ public class NotificationHandler
                 // Do not assume this string is a safe URL and blindly execute it; verify that it is
                 // in fact a valid Azure URL.
                 // TODO: Validate Azure URL
-                Log.Logger()?.ReportInfo($"Launching Uri: {urlString}");
+                Log.Information($"Launching Uri: {urlString}");
                 var processStartInfo = new ProcessStartInfo
                 {
                     UseShellExecute = true,
@@ -36,7 +41,7 @@ public class NotificationHandler
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError($"Failed launching Uri for {args.Arguments["htmlurl"]}", ex);
+                Log.Error(ex, $"Failed launching Uri for {args.Arguments["htmlurl"]}");
             }
 
             return;

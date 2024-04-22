@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -10,7 +11,7 @@ using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
-using Log = AzureExtension.DevBox.Log;
+using Serilog;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -21,6 +22,10 @@ namespace AzureExtension.Services.DevBox;
 public class DevBoxManagementService : IDevBoxManagementService
 {
     private readonly IDevBoxAuthService _authService;
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxManagementService));
+
+    private readonly Dictionary<string, List<DevBoxProjectAndPoolContainer>> _projectAndPoolContainerMap = new();
 
     public DevBoxManagementService(IDevBoxAuthService authService) => _authService = authService;
 
@@ -59,45 +64,51 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(DevBoxManagementServiceName, $"DevBoxHttpRequest failed: Exception", ex);
+            _log.Error(ex, $"DevBoxHttpRequest failed: Exception");
             throw;
         }
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.GetAllProjectsToPoolsMappingAsync"/>
-    public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(JsonElement projectsJson, IDeveloperId developerId)
+    public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(DevBoxProjects projects, IDeveloperId developerId)
     {
+        var uniqueUserId = $"{developerId.LoginId}#{developerId.Url}";
+
+        if (_projectAndPoolContainerMap.TryGetValue(uniqueUserId, out var devBoxProjectAndPools))
+        {
+            return devBoxProjectAndPools;
+        }
+
         var projectsToPoolsMapping = new List<DevBoxProjectAndPoolContainer>();
 
-        foreach (var projectJson in projectsJson.EnumerateArray())
+        foreach (var project in projects.Data!)
         {
             try
             {
-                var projectObj = JsonSerializer.Deserialize<DevBoxProject>(projectJson.ToString(), Constants.JsonOptions)!;
-                var properties = projectObj.Properties;
-                var uriToRetrievePools = $"{properties.DevCenterUri}{Constants.Projects}/{projectObj.Name}/{Constants.Pools}?{Constants.APIVersion}";
+                var properties = project.Properties;
+                var uriToRetrievePools = $"{properties.DevCenterUri}{Constants.Projects}/{project.Name}/{Constants.Pools}?{Constants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
                 var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
-                var container = new DevBoxProjectAndPoolContainer { Project = projectObj, Pools = pools };
+                var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
 
                 projectsToPoolsMapping.Add(container);
             }
             catch (Exception ex)
             {
-                projectJson.TryGetProperty("name", out var projectWithErrorName);
-                Log.Logger()?.ReportError(DevBoxManagementServiceName, $"unable to get pools for {projectWithErrorName}", ex);
+                _log.Error(ex, $"unable to get pools for {project.Name}");
             }
         }
 
+        _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping);
         return projectsToPoolsMapping;
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.CreateDevBox"/>
     public async Task<DevBoxHttpsRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId)
     {
-        if (!Regex.IsMatch(parameters.DevBoxName, Constants.NameRegexPattern))
+        if (!Regex.IsMatch(parameters.NewEnvironmentName, Constants.NameRegexPattern))
         {
-            throw new DevBoxNameInvalidException($"Unable to create Dev Box due to Invalid Dev Box name: {parameters.DevBoxName}");
+            throw new DevBoxNameInvalidException($"Unable to create Dev Box due to Invalid Dev Box name: {parameters.NewEnvironmentName}");
         }
 
         if (!Regex.IsMatch(parameters.ProjectName, Constants.NameRegexPattern))
@@ -105,7 +116,7 @@ public class DevBoxManagementService : IDevBoxManagementService
             throw new DevBoxProjectNameInvalidException($"Unable to create Dev Box due to Invalid project name: {parameters.ProjectName}");
         }
 
-        var uriToCreateDevBox = $"{parameters.DevCenterUri}{Constants.Projects}/{parameters.ProjectName}{Constants.DevBoxUserSegmentOfUri}/{parameters.DevBoxName}?{Constants.APIVersion}";
+        var uriToCreateDevBox = $"{parameters.DevCenterUri}{Constants.Projects}/{parameters.ProjectName}{Constants.DevBoxUserSegmentOfUri}/{parameters.NewEnvironmentName}?{Constants.APIVersion}";
         var contentJson = JsonSerializer.Serialize(new DevBoxCreationPoolName(parameters.PoolName));
         var content = new StringContent(contentJson, Encoding.UTF8, "application/json");
         return await HttpsRequestToDataPlane(new Uri(uriToCreateDevBox), developerId, HttpMethod.Put, content);

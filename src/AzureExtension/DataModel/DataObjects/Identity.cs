@@ -9,12 +9,17 @@ using DevHomeAzureExtension.Helpers;
 using Microsoft.VisualStudio.Services.Profile;
 using Microsoft.VisualStudio.Services.Profile.Client;
 using Microsoft.VisualStudio.Services.WebApi;
+using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
 
 [Table("Identity")]
 public class Identity
 {
+    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
+
+    private static readonly ILogger Log = _log.Value;
+
     // This is the time between seeing a potential updated Identity record and updating it.
     // This value / 2 is the average time between Identity updating their Identity data and having
     // it reflected in the datastore. We expect identity data to change very infrequently.
@@ -55,18 +60,19 @@ public class Identity
         {
             var client = connection.GetClient<ProfileHttpClient>();
             var avatar = client.GetAvatarAsync(identity, AvatarSize.Small).Result;
-            Log.Logger()?.ReportDebug($"Avatar found: {avatar.Value.Length} bytes.");
+            Log.Debug($"Avatar found: {avatar.Value.Length} bytes.");
             return Convert.ToBase64String(avatar.Value);
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportWarn($"Failed getting Avatar for {identity}.", ex);
+            Log.Warning(ex, $"Failed getting Avatar for {identity}.");
             return string.Empty;
         }
     }
 
     public static Identity? FromJson(DataStore dataStore, string json)
     {
+        var log = Serilog.Log.ForContext("SourceContext", nameof(Identity));
         if (string.IsNullOrEmpty(json))
         {
             return null;
@@ -84,7 +90,7 @@ public class Identity
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError($"Failed to deserialize Json object into Identity: {json}", ex);
+            Log.Error(ex, $"Failed to deserialize Json object into Identity: {json}");
             return null;
         }
     }
@@ -192,8 +198,8 @@ public class Identity
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Logger()?.ReportDebug(DataStore.GetCommandLogMessage(sql, command));
+        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Logger()?.ReportDebug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

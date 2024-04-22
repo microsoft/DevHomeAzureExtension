@@ -10,6 +10,7 @@ using DevHomeAzureExtension.Helpers;
 using DevHomeAzureExtension.Widgets.Enums;
 using Microsoft.Windows.DevHome.SDK;
 using Microsoft.Windows.Widgets.Providers;
+using Serilog;
 
 namespace DevHomeAzureExtension.Widgets;
 
@@ -22,8 +23,6 @@ public abstract class AzureWidget : WidgetImpl
     protected IAzureDataManager? DataManager { get; private set; }
 
     private DateTime lastUpdateRequest = DateTime.MinValue;
-
-    protected static readonly string Name = nameof(AzureWidget);
 
     protected WidgetActivityState ActivityState { get; set; } = WidgetActivityState.Unknown;
 
@@ -143,7 +142,7 @@ public abstract class AzureWidget : WidgetImpl
     public override void OnActionInvoked(WidgetActionInvokedArgs actionInvokedArgs)
     {
         var verb = GetWidgetActionForVerb(actionInvokedArgs.Verb);
-        Log.Logger()?.ReportDebug(Name, ShortId, $"ActionInvoked: {verb}");
+        Log.Debug($"ActionInvoked: {verb}");
 
         switch (verb)
         {
@@ -175,7 +174,7 @@ public abstract class AzureWidget : WidgetImpl
                 break;
 
             case WidgetAction.Unknown:
-                Log.Logger()?.ReportError(Name, ShortId, $"Unknown verb: {actionInvokedArgs.Verb}");
+                Log.Error($"Unknown verb: {actionInvokedArgs.Verb}");
                 break;
         }
     }
@@ -195,7 +194,7 @@ public abstract class AzureWidget : WidgetImpl
     protected async Task HandleSignIn()
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
-        Log.Logger()?.ReportInfo(Name, ShortId, $"WidgetAction invoked for user sign in");
+        Log.Information($"WidgetAction invoked for user sign in");
 
         // We cannot do sign-in flow because it requires the main window of DevHome.
     }
@@ -209,7 +208,7 @@ public abstract class AzureWidget : WidgetImpl
         catch (Exception)
         {
             // Invalid verb.
-            Log.Logger()?.ReportError(Name, ShortId, $"Unknown WidgetAction verb: {verb}");
+            Log.Error($"Unknown WidgetAction verb: {verb}");
             return WidgetAction.Unknown;
         }
     }
@@ -220,7 +219,7 @@ public abstract class AzureWidget : WidgetImpl
     {
         var signInData = new JsonObject
         {
-            { "message", Resources.GetResource(@"Widget_Template/SignInRequired", Log.Logger()) },
+            { "message", Resources.GetResource(@"Widget_Template/SignInRequired", Log) },
         };
 
         return signInData.ToString();
@@ -272,7 +271,7 @@ public abstract class AzureWidget : WidgetImpl
     {
         if (ActivityState == WidgetActivityState.Deleted)
         {
-            Log.Logger()?.ReportError(Name, ShortId, $"Attempted to change state of deleted widget: {Id}");
+            Log.Error($"Attempted to change state of deleted widget: {Id}");
             return;
         }
 
@@ -308,7 +307,7 @@ public abstract class AzureWidget : WidgetImpl
             CustomState = ConfigurationData,
         };
 
-        Log.Logger()?.ReportDebug(Name, ShortId, $"Updating widget for {Page}");
+        Log.Debug($"Updating widget for {Page}");
         WidgetManager.GetDefault().UpdateWidget(updateOptions);
     }
 
@@ -326,7 +325,7 @@ public abstract class AzureWidget : WidgetImpl
     {
         if (Template.TryGetValue(page, out var azureTemplate))
         {
-            Log.Logger()?.ReportDebug(Name, ShortId, $"Using cached template for {page}");
+            Log.Debug($"Using cached template for {page}");
             return azureTemplate;
         }
 
@@ -334,14 +333,14 @@ public abstract class AzureWidget : WidgetImpl
         {
             var path = Path.Combine(AppContext.BaseDirectory, GetTemplatePath(page));
             var template = File.ReadAllText(path, Encoding.Default) ?? throw new FileNotFoundException(path);
-            template = Resources.ReplaceIdentifiers(template, Resources.GetWidgetResourceIdentifiers(), Log.Logger());
-            Log.Logger()?.ReportDebug(Name, ShortId, $"Caching template for {page}");
+            template = Resources.ReplaceIdentifiers(template, Resources.GetWidgetResourceIdentifiers(), Log);
+            Log.Debug($"Caching template for {page}");
             Template[page] = template;
             return template;
         }
         catch (Exception e)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Error getting template.", e);
+            Log.Error(e, "Error getting template.");
             return string.Empty;
         }
     }
@@ -353,7 +352,7 @@ public abstract class AzureWidget : WidgetImpl
 
     protected void LogCurrentState()
     {
-        Log.Logger()?.ReportDebug(Name, ShortId, GetCurrentState());
+        Log.Debug(GetCurrentState());
     }
 
     protected void SetActive()
@@ -434,16 +433,16 @@ public abstract class AzureWidget : WidgetImpl
         ActivityState = WidgetActivityState.Deleted;
 
         // Report deletion confirmation on the Info channel.
-        Log.Logger()?.ReportInfo(Name, ShortId, GetCurrentState());
+        Log.Information(GetCurrentState());
     }
 
-    protected static string GetMessageForError(ErrorType errorType, string? fallback = null)
+    protected string GetMessageForError(ErrorType errorType, string? fallback = null)
     {
         var identifier = $"ErrorMessage/{errorType}";
         var message = errorType switch
         {
             ErrorType.None => string.Empty,
-            _ => Resources.GetResource(identifier, Log.Logger() ?? null),
+            _ => Resources.GetResource(identifier, Log),
         };
 
         // If identifier and message are different, then it means we have a specific message to
@@ -480,7 +479,7 @@ public abstract class AzureWidget : WidgetImpl
         }
         catch (Exception ex)
         {
-            Log.Logger()?.ReportError(Name, ShortId, "Failed Requesting Update", ex);
+            Log.Error(ex, "Failed Requesting Update");
         }
 
         lastUpdateRequest = DateTime.Now;
@@ -520,12 +519,12 @@ public abstract class AzureWidget : WidgetImpl
             }
             catch (Exception ex)
             {
-                Log.Logger()?.ReportError(Name, ShortId, $"Failed getting DeveloperId state.", ex);
+                Log.Error(ex, $"Failed getting DeveloperId state.");
             }
         }
 
         // Update state regardless, since we could be waiting for any developer to sign in.
-        Log.Logger()?.ReportInfo(Name, ShortId, $"Change in Developer Id,  Updating widget state.");
+        Log.Information($"Change in Developer Id,  Updating widget state.");
         UpdateActivityState();
     }
 }

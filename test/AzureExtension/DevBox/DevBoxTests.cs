@@ -38,6 +38,7 @@ public partial class DevBoxTests
         var contentList = new List<HttpContent>
         {
             new StringContent(MockProjectJson),
+            new StringContent(MockTestPoolJson),
             new StringContent(MockDevBoxListJson),
         };
         UpdateHttpClientResponseMock(contentList);
@@ -87,9 +88,9 @@ public partial class DevBoxTests
     {
         // Arrange
         var devBoxList = JsonSerializer.Deserialize<DevBoxMachines>(MockDevBoxListJson, Constants.JsonOptions);
-        devBoxList!.Value![0].PowerState = Constants.DevBoxPoweredOffState;
+        devBoxList!.Value![0].PowerState = Constants.DevBoxPowerStates.PoweredOff;
         var devBoxListPoweredOffJson = JsonSerializer.Serialize(devBoxList!, Constants.JsonOptions);
-        devBoxList!.Value![0].PowerState = Constants.DevBoxRunningState;
+        devBoxList!.Value![0].PowerState = Constants.DevBoxPowerStates.Running;
         var runningDevBox = devBoxList!.Value![0];
         var runningDevBoxJson = JsonSerializer.Serialize(runningDevBox, Constants.JsonOptions);
         var operationCompletedSucceeded = JsonSerializer.Deserialize<DevBoxOperation>(MockTestOperationJson, Constants.JsonOptions);
@@ -99,6 +100,8 @@ public partial class DevBoxTests
         var contentList = new List<HttpContent>
         {
             new StringContent(MockProjectJson),
+            new StringContent(MockTestPoolJson),
+            new StringContent(devBoxListPoweredOffJson),
             new StringContent(devBoxListPoweredOffJson),
             new StringContent(MockTestOperationJson), // initial operation status with 'Running' status
             new StringContent(succeededJson), // ending operation status with 'Succeeded' status

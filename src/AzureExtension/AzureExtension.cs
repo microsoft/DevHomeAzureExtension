@@ -8,6 +8,7 @@ using DevHomeAzureExtension.Providers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 
 namespace DevHomeAzureExtension;
 
@@ -18,6 +19,7 @@ public sealed class AzureExtension : IExtension
 {
     private readonly ManualResetEvent _extensionDisposedEvent;
     private readonly IHost _host;
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(AzureExtension));
 
     public AzureExtension(ManualResetEvent extensionDisposedEvent, IHost host)
     {
@@ -32,13 +34,13 @@ public sealed class AzureExtension : IExtension
             case ProviderType.DeveloperId:
                 return DeveloperIdProvider.GetInstance();
             case ProviderType.Repository:
-                return new RepositoryProvider();
+                return RepositoryProvider.GetInstance();
             case ProviderType.FeaturedApplications:
                 return new object();
             case ProviderType.ComputeSystem:
                 return _host.Services.GetService<DevBoxProvider>();
             default:
-                Providers.Log.Logger()?.ReportInfo("Invalid provider");
+                _log.Information($"Invalid provider: {providerType}");
                 return null;
         }
     }

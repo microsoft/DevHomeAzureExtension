@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Data.Sqlite;
+using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
 
@@ -15,11 +16,14 @@ public class DataStore : IDisposable
 
     public const long NoForeignKey = 0;
 
+    private readonly ILogger _log;
+
     public DataStore(string name, string dataStoreFilePath, IDataStoreSchema schema)
     {
         Name = name;
         DataStoreFilePath = dataStoreFilePath;
         this.schema = schema;
+        _log = Log.ForContext("SourceContext", Name);
     }
 
     public SqliteConnection? Connection { get; private set; }
@@ -53,7 +57,7 @@ public class DataStore : IDisposable
                         // migration method is to delete the existing database and create anew.
                         deleteExistingDatabase = true;
                         Close();
-                        Log.Logger()?.ReportInfo($"Schema mismatch. Expected: {schema.SchemaVersion}  Actual: {currentSchemaVersion}");
+                        _log.Information($"Schema mismatch. Expected: {schema.SchemaVersion}  Actual: {currentSchemaVersion}");
                     }
                 }
                 catch (SqliteException e)
@@ -61,7 +65,7 @@ public class DataStore : IDisposable
                     // if we had a problem opening the DB and fetching the pragma, then
                     // we surely cannot reuse it.
                     deleteExistingDatabase = true;
-                    Log.Logger()?.ReportError($"Unable to open existing database to verify schema. Deleting database.", e);
+                    _log.Error(e, $"Unable to open existing database to verify schema. Deleting database.");
                 }
             }
 
@@ -71,7 +75,7 @@ public class DataStore : IDisposable
             }
             else
             {
-                Log.Logger()?.ReportWarn($"Deleting database: {DataStoreFilePath}");
+                _log.Warning($"Deleting database: {DataStoreFilePath}");
 
                 if (IsConnected)
                 {
@@ -87,18 +91,18 @@ public class DataStore : IDisposable
                 {
                     if ((uint)e.HResult == 0x80070020)
                     {
-                        Log.Logger()?.ReportError($"Sharing Violation Error; datastore exists and cannot be deleted ({DataStoreFilePath})", e);
+                        _log.Error(e, $"Sharing Violation Error; datastore exists and cannot be deleted ({DataStoreFilePath})");
                     }
                     else
                     {
-                        Log.Logger()?.ReportError($"I/O Error ({DataStoreFilePath})", e);
+                        _log.Error(e, $"I/O Error ({DataStoreFilePath})");
                     }
 
                     throw;
                 }
                 catch (UnauthorizedAccessException e)
                 {
-                    Log.Logger()?.ReportError($"Access Denied ({e})", e);
+                    _log.Error(e, $"Access Denied ({e})");
                     throw;
                 }
             }
@@ -107,7 +111,7 @@ public class DataStore : IDisposable
         // Report creating new if it didn't exist or it was successfully deleted.
         if (!File.Exists(DataStoreFilePath))
         {
-            Log.Logger()?.ReportInfo($"Creating new DataStore at {DataStoreFilePath}");
+            _log.Information($"Creating new DataStore at {DataStoreFilePath}");
         }
 
         // Ensure Directory exists. SQLite open database will create a file
@@ -116,14 +120,14 @@ public class DataStore : IDisposable
         if (!Directory.Exists(directory))
         {
             // Create the directory.
-            Log.Logger()?.ReportInfo($"Creating root directory: {directory}");
+            _log.Information($"Creating root directory: {directory}");
             try
             {
                 Directory.CreateDirectory(directory!);
             }
             catch (Exception e)
             {
-                Log.Logger()?.ReportError($"Failed creating directory: ({directory})", e);
+                _log.Error(e, $"Failed creating directory: ({directory})");
                 throw;
             }
         }
@@ -140,11 +144,11 @@ public class DataStore : IDisposable
     {
         if (Connection is not null)
         {
-            Log.Logger()?.ReportDebug($"Connection is already open.");
+            _log.Debug($"Connection is already open.");
             return;
         }
 
-        Log.Logger()?.ReportDebug($"Opening datastore {DataStoreFilePath}");
+        _log.Debug($"Opening datastore {DataStoreFilePath}");
         disposed = false;
         var builder = new SqliteConnectionStringBuilder
         {
@@ -153,7 +157,7 @@ public class DataStore : IDisposable
             Cache = SqliteCacheMode.Shared,
         };
         Connection = new SqliteConnection(builder.ToString());
-        Log.Logger()?.ReportDebug($"SL: new SQLiteConnection: {Connection.ConnectionString}");
+        _log.Debug($"SL: new SQLiteConnection: {Connection.ConnectionString}");
 
         try
         {
@@ -162,15 +166,15 @@ public class DataStore : IDisposable
         }
         catch (SqliteException e)
         {
-            Log.Logger()?.ReportError($"Failed to open connection: {Connection.ConnectionString}", e);
+            _log.Error(e, $"Failed to open connection: {Connection.ConnectionString}");
         }
 
-        Log.Logger()?.ReportDebug($"Opened DataStore at {DataStoreFilePath}");
+        _log.Debug($"Opened DataStore at {DataStoreFilePath}");
     }
 
     private void CreateSchema()
     {
-        Log.Logger()?.ReportDebug("Creating Schema");
+        _log.Debug("Creating Schema");
         SetPragma("encoding", "\"UTF-8\"");
 
         using var tx = BeginTransaction();
@@ -180,7 +184,7 @@ public class DataStore : IDisposable
             Execute(sql);
         }
 
-        Log.Logger()?.ReportDebug($"Created schema ({sqls.Count} entities)");
+        _log.Debug($"Created schema ({sqls.Count} entities)");
         SetPragma("user_version", schema.SchemaVersion);
         tx.Commit();
     }
@@ -258,7 +262,7 @@ public class DataStore : IDisposable
         }
         catch (SqliteException e)
         {
-            Log.Logger()?.ReportError($"Failure executing SQL Command: {command.CommandText}", e);
+            _log.Error(e, $"Failure executing SQL Command: {command.CommandText}");
         }
     }
 
@@ -284,7 +288,7 @@ public class DataStore : IDisposable
         if (Connection != null)
         {
             Connection.Close();
-            Log.Logger()?.ReportDebug("DataStore closed.");
+            _log.Debug("DataStore closed.");
             Connection = null;
             SqliteConnection.ClearAllPools();
         }
