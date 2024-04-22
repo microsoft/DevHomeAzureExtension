@@ -8,7 +8,10 @@ using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Client;
+using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
+using Microsoft.VisualStudio.Services.Account.Client;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
@@ -35,6 +38,8 @@ public class DevBoxProvider : IComputeSystemProvider
     private readonly Dictionary<string, List<DevBoxProjectAndPoolContainer>> _devBoxProjectAndPoolsMap = new();
 
     private readonly Dictionary<string, List<IComputeSystem>> _cachedDevBoxesMap = new();
+
+    public static readonly string[] TfsServiceUrlPropertyName = new string[] { "Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48CA-87D9-7F5672854EF7" };
 
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,

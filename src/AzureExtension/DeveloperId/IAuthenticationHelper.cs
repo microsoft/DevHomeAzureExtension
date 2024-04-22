@@ -29,5 +29,5 @@ public interface IAuthenticationHelper
 
     public Task<IEnumerable<string>> AcquireAllDeveloperAccountTokens(string[] scopes);
 
-    public Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId);
+    public Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId, string? tenantId = null);
 }

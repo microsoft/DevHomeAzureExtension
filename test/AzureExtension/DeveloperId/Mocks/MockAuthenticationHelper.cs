@@ -79,4 +79,6 @@ internal sealed class MockAuthenticationHelper : IAuthenticationHelper
         await Task.Run(() => { });
         return;
     }
+
+    public Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId, string? tenantId = null) => throw new NotImplementedException();
 }

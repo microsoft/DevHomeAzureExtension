@@ -284,7 +284,7 @@ public class AuthenticationHelper : IAuthenticationHelper
         return null;
     }
 
-    public async Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId)
+    public async Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId, string? tenantId = null)
     {
         Log.Information($"ObtainTokenForLoggedInDeveloperAccount");
         AuthenticationResult = null;
@@ -293,7 +293,16 @@ public class AuthenticationHelper : IAuthenticationHelper
 
         if (PublicClientApplication != null && existingAccount != null)
         {
-            var silentTokenAcquisitionBuilder = PublicClientApplication.AcquireTokenSilent(scopes, existingAccount);
+            AcquireTokenSilentParameterBuilder silentTokenAcquisitionBuilder;
+            if (string.IsNullOrEmpty(tenantId))
+            {
+                silentTokenAcquisitionBuilder = PublicClientApplication.AcquireTokenSilent(scopes, existingAccount);
+            }
+            else
+            {
+                silentTokenAcquisitionBuilder = PublicClientApplication.AcquireTokenSilent(scopes, existingAccount).WithTenantId(tenantId);
+            }
+
             if (Guid.TryParse(existingAccount.HomeAccountId.TenantId, out var homeTenantId) && homeTenantId == MSATenetId)
             {
                 silentTokenAcquisitionBuilder = silentTokenAcquisitionBuilder.WithTenantId(TransferTenetId.ToString("D"));

@@ -16,6 +16,8 @@ public class DeveloperIdProvider : IDeveloperIdProvider
 
     private static readonly object AuthenticationProviderLock = new();
 
+    private readonly string[] _dataPlaneScope = new string[] { "https://devcenter.azure.com/userimpersonation" };
+
     // DeveloperId list containing all Logged in Ids.
     private List<DeveloperId> DeveloperIds
     {
@@ -291,11 +293,45 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
     }
 
-    public AuthenticationResult? GetAuthenticationResultForDeveloperId(DeveloperId developerId)
+    public AuthenticationResult? GetTenants(DeveloperId developerId, string[] scopes)
     {
         try
         {
-            var taskResult = DeveloperIdAuthenticationHelper.ObtainTokenForLoggedInDeveloperAccount(DeveloperIdAuthenticationHelper.MicrosoftEntraIdSettings.ScopesArray, developerId.LoginId);
+            var taskResult = DeveloperIdAuthenticationHelper.ObtainTokenForLoggedInDeveloperAccount(scopes, developerId.LoginId);
+            if (taskResult.Result != null)
+            {
+                return taskResult.Result;
+            }
+        }
+        catch (MsalUiRequiredException ex)
+        {
+            _log.Error($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
+            throw;
+        }
+        catch (MsalServiceException ex)
+        {
+            _log.Error($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
+            throw;
+        }
+        catch (MsalClientException ex)
+        {
+            _log.Error($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"AcquireDeveloperAccountToken failed with error: {ex}");
+            throw;
+        }
+
+        return null;
+    }
+
+    public AuthenticationResult? GetAuthenticationResultForDeveloperId(DeveloperId developerId, string? tenantId = null)
+    {
+        try
+        {
+            var taskResult = DeveloperIdAuthenticationHelper.ObtainTokenForLoggedInDeveloperAccount(DeveloperIdAuthenticationHelper.MicrosoftEntraIdSettings.ScopesArray, developerId.LoginId, tenantId);
             if (taskResult.Result != null)
             {
                 return taskResult.Result;

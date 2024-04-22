@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Net.Http.Headers;
 using System.Security.Authentication;
 using AzureExtension.Helpers;
 using DevHomeAzureExtension.Client;
@@ -9,6 +10,7 @@ using DevHomeAzureExtension.Helpers;
 using Microsoft.Identity.Client;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
+using Microsoft.VisualStudio.Services.Account.Client;
 using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.Windows.DevHome.SDK;
@@ -54,6 +56,10 @@ public class RepositoryProvider : IRepositoryProvider2
     }
 
     public string[] SearchFieldNames => [_server, _organization];
+
+    public static readonly string[] FiltersForAccount = new string[] { "https://management.azure.com/user_impersonation", "https://devcenter.azure.com/access_as_user" };
+
+    public static readonly string[] TfsServiceUrlPropertyName = new string[] { "Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48CA-87D9-7F5672854EF7" };
 
     public string AskToSearchLabel => Resources.GetResource(@"SelectionOptionsPrompt");
 
@@ -151,6 +157,41 @@ public class RepositoryProvider : IRepositoryProvider2
         }
     }
 
+    /*
+     * {
+  "value": [
+    {
+      "id": "/tenants/dd21365c-cafc-4991-8e95-c3e4d1b77897",
+      "tenantId": "dd21365c-cafc-4991-8e95-c3e4d1b77897",
+      "countryCode": "US",
+      "displayName": "That Programming Guy",
+      "domains": [
+        "ThatProgrammingGuy.onmicrosoft.com"
+      ],
+      "tenantCategory": "Home",
+      "defaultDomain": "ThatProgrammingGuy.onmicrosoft.com",
+      "tenantType": "AAD"
+    },
+    {
+      "id": "/tenants/e8cf5e65-bb37-4597-a4c8-3e7d5d781678",
+      "tenantId": "e8cf5e65-bb37-4597-a4c8-3e7d5d781678",
+      "countryCode": "US",
+      "displayName": "Default Directory",
+      "domains": [
+        "dhoehnayahoo907.onmicrosoft.com"
+      ],
+      "tenantCategory": "Home",
+      "defaultDomain": "dhoehnayahoo907.onmicrosoft.com",
+      "tenantType": "AAD"
+    }
+  ]
+}
+
+    var blah = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri("https://management.azure.com/tenants?api-version=2022-12-01"), developerId, HttpMethod.Get, null);
+     */
+
+    public static readonly string[] MyScopes = new string[] { "499b84ac-1321-427f-aa17-267ca6975798/.default" };
+
     /// <summary>
     /// Get repositories for the developer.
     /// </summary>
@@ -167,6 +208,40 @@ public class RepositoryProvider : IRepositoryProvider2
                     var exception = new NotSupportedException("Authenticated user is not the an azure developer id.");
                     return new RepositoriesResult(exception, $"{exception.Message} HResult: {exception.HResult}");
                 }
+
+                /*
+                AccountHttpClient accountService = await tenantConnection.GetClientAsync<AccountHttpClient>();
+                List<VsoAccount> vsoAccounts = await accountService.GetAccountsByMemberAsync(tenantConnection.AuthenticatedIdentity.Id, new[] { VssAccountUtils.TfsServiceUrlPropertyName }, cancellationToken: ct);
+                */
+
+                var accountConnection = AzureClientProvider.GetConnectionForLoggedInDeveloper(new Uri(@"https://app.vssps.visualstudio.com/"), azureDeveloperId);
+
+                var accountClient = accountConnection.GetClient<AccountHttpClient>();
+
+                var betterAuthResult = DeveloperIdProvider.GetInstance().GetTenants(azureDeveloperId, MyScopes);
+                if (betterAuthResult == null)
+                {
+                    var exception = new AuthenticationException($"Could not get authentication for user {developerId.LoginId}");
+                    return new RepositoriesResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
+                }
+
+                var connection = new VssConnection(new Uri(@"https://app.vssps.visualstudio.com/"), new VssAadCredential(new VssAadToken("Bearer", betterAuthResult.AccessToken)));
+                List<string> tenantIds = new() { "dd21365c-cafc-4991-8e95-c3e4d1b77897", "e8cf5e65-bb37-4597-a4c8-3e7d5d781678" };
+                foreach (var tenantId in tenantIds)
+                {
+#pragma warning disable CA1861 // Simplify collection initialization
+                    var vsoAccounts = accountClient.GetAccountsByMemberAsync(Guid.Parse(tenantId), new string[] { "Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48CA-87D9-7F5672854EF7" }).Result;
+#pragma warning restore CA1861 // Simplify collection initialization
+                }
+
+                var authResult = DeveloperIdProvider.GetInstance().GetAuthenticationResultForDeveloperId(azureDeveloperId);
+                if (authResult == null)
+                {
+                    var exception = new AuthenticationException($"Could not get authentication for user {developerId.LoginId}");
+                    return new RepositoriesResult(exception, $"Something went wrong.  HResult: {exception.HResult}");
+                }
+
+                var accessToken = authResult.AccessToken;
 
                 _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
@@ -237,7 +312,6 @@ public class RepositoryProvider : IRepositoryProvider2
                 }
 
                 var connection = new VssConnection(repoInformation.OrganizationLink, new VssAadCredential(new VssAadToken("Bearer", authResult.AccessToken)));
-
                 var gitClient = connection.GetClient<GitHttpClient>();
                 var repo = gitClient.GetRepositoryAsync(repoInformation.Project, repoInformation.Repository).Result;
                 if (repo == null)
@@ -381,6 +455,9 @@ public class RepositoryProvider : IRepositoryProvider2
                     var exception = new NotSupportedException("The DeveloperId is not valid.");
                     return new RepositoriesSearchResult(exception, $"{exception.Message} HResult: {exception.HResult}");
                 }
+
+                var myAuthenticationHelper = new AuthenticationHelper();
+                var resultForAccountsToFix = myAuthenticationHelper.AcquireAllDeveloperAccountTokens(myAuthenticationHelper.MicrosoftEntraIdSettings.ScopesArray);
 
                 var repos = GetRepos(azureDeveloperId, true);
                 var projects = await GetValuesForSearchFieldAsync(fieldValues, _project, developerId);
