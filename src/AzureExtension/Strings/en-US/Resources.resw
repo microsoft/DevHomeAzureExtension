@@ -511,4 +511,20 @@
     <value>Validation failed for configuration</value>
     <comment>Error message when validation fails for a configuration file.</comment>
   </data>
+  <data name="DevBox_AdaptiveCard_Description" xml:space="preserve">
+    <value>You have an action item to follow</value>
+    <comment>Text describing the purpose of the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_InnerDescription" xml:space="preserve">
+    <value>Please log in to the Dev Box to continue the set up. The page will automatically load once you are logged in.</value>
+    <comment>Warning description text in the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Text" xml:space="preserve">
+    <value>Log in required</value>
+    <comment>Warning text in the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Title" xml:space="preserve">
+    <value>Please logon to your Dev Box</value>
+    <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
+  </data>
 </root>
