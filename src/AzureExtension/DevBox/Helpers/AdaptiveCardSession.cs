@@ -16,6 +16,13 @@ public class AdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
 
     private string? _template;
 
+    private ManualResetEvent _resumeEvent;
+
+    public AdaptiveCardSession(ManualResetEvent resumeEvent)
+    {
+        this._resumeEvent = resumeEvent;
+    }
+
     public event TypedEventHandler<IExtensionAdaptiveCardSession2, ExtensionAdaptiveCardSessionStoppedEventArgs> Stopped = (s, e) => { };
 
     public void Dispose()
@@ -25,40 +32,31 @@ public class AdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
 
     public ProviderOperationResult Initialize(IExtensionAdaptiveCard extensionUI)
     {
-        _extensionAdaptiveCard = extensionUI;
-
-        var title = Resources.GetResource("DevBox_AdaptiveCard_Title");
-        var description = Resources.GetResource("DevBox_AdaptiveCard_Description");
-        var text = Resources.GetResource("DevBox_AdaptiveCard_Text");
-        var innerDescription = Resources.GetResource("DevBox_AdaptiveCard_InnerDescription");
-        var icon = ConvertIconToDataString("Caution.png");
-
         var dataJson = new JsonObject
         {
-            { "title", title },
-            { "description", description },
-            { "icon", icon },
-            { "loginRequiredText", text },
-            { "loginRequiredDescriptionText", innerDescription },
+            { "title", Resources.GetResource("DevBox_AdaptiveCard_Title") },
+            { "description", Resources.GetResource("DevBox_AdaptiveCard_Description") },
+            { "icon", ConvertIconToDataString("Caution.png") },
+            { "loginRequiredText", Resources.GetResource("DevBox_AdaptiveCard_Text") },
+            { "loginRequiredDescriptionText", Resources.GetResource("DevBox_AdaptiveCard_InnerDescription") },
+            { "ResumeText", Resources.GetResource("DevBox_AdaptiveCard_ResumeText") },
         };
 
-        var operationResult = _extensionAdaptiveCard.Update(
+        _extensionAdaptiveCard = extensionUI;
+        return _extensionAdaptiveCard.Update(
             LoadTemplate(),
             dataJson.ToJsonString(),
             "WaitingForUserSession");
-
-        return operationResult;
     }
 
     private string LoadTemplate()
     {
-        if (!string.IsNullOrEmpty(_template))
+        if (string.IsNullOrEmpty(_template))
         {
-            return _template;
+            var path = Path.Combine(AppContext.BaseDirectory, @"AzureExtension\DevBox\Templates\", "WaitingForUserSessionTemplate.json");
+            _template = File.ReadAllText(path, Encoding.Default) ?? throw new FileNotFoundException(path);
         }
 
-        var path = Path.Combine(AppContext.BaseDirectory, @"AzureExtension\DevBox\Templates\", "WaitingForUserSessionTemplate.json");
-        _template = File.ReadAllText(path, Encoding.Default) ?? throw new FileNotFoundException(path);
         return _template;
     }
 
@@ -69,5 +67,24 @@ public class AdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
         return imageData;
     }
 
-    public IAsyncOperation<ProviderOperationResult> OnAction(string action, string inputs) => throw new NotImplementedException();
+    public IAsyncOperation<ProviderOperationResult> OnAction(string action, string inputs)
+    {
+        return Task.Run(() =>
+        {
+            var state = _extensionAdaptiveCard?.State;
+            ProviderOperationResult operationResult;
+            if (state == "WaitingForUserSession")
+            {
+                operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
+                _resumeEvent.Set();
+                Stopped?.Invoke(this, new(operationResult, string.Empty));
+            }
+            else
+            {
+                operationResult = new ProviderOperationResult(ProviderOperationStatus.Failure, null, "Something went wrong", $"Unexpected state:{_extensionAdaptiveCard?.State}");
+            }
+
+            return operationResult;
+        }).AsAsyncOperation();
+    }
 }

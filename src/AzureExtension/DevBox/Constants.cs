@@ -199,7 +199,7 @@ public static class Constants
     /// <summary>
     /// Non localized display Name for Microsoft Dev Box.
     /// </summary>
-    public const string DevBoxProviderDisplayName = "Microsoft DevBox";
+    public const string DevBoxProviderDisplayName = "Microsoft Dev Box";
 
     /// <summary>
     /// Size of a GB in bytes

@@ -68,5 +68,15 @@
         }
       ]
     }
+  ],
+  "actions": [
+    {
+      "type": "Action.Execute",
+      "title": "${ResumeText}",
+      "id": "resumeAction",
+      "data": {
+        "id": "resumeAction"
+      }
+    }
   ]
 }

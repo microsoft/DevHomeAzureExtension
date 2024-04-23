@@ -12,7 +12,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace AzureExtension.DevBox.Helpers;
 
-public class WingetConfigWrapper : IApplyConfigurationOperation
+public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 {
     // Example of the JSON payload for the customization task
     //  {
@@ -71,6 +71,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
     private ConfigurationUnitState[] _oldUnitState = Array.Empty<ConfigurationUnitState>();
 
     private bool _pendingNotificationShown;
+
+    private ManualResetEvent _resumeEvent = new(false);
 
     public WingetConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
     {
@@ -166,10 +168,23 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
             case "Running":
                 for (var i = 0; i < _units.Count; i++)
                 {
-                    var task = _units[i];
-                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
-                    if (_oldUnitState[i] != unitState)
+                    var responseStatus = response.Tasks[i].Status;
+                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+
+                    // If the status is waiting for a user session, there is no need to check for other
+                    // individual task statuses. We add a wait since Winget takes time to start applying
+                    // the configuration and we don't want to show the same message immediately after.
+                    if (responseStatus == "WaitingForUserSession")
                     {
+                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new AdaptiveCardSession(_resumeEvent));
+                        ActionRequired?.Invoke(this, eventArgs);
+                        WaitHandle.WaitAny(new[] { _resumeEvent });
+                        Thread.Sleep(TimeSpan.FromSeconds(30));
+                        break;
+                    }
+                    else if (_oldUnitState[i] != unitState)
+                    {
+                        var task = _units[i];
                         ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
                         ConfigurationSetStateChanged?.Invoke(this, args);
                         _oldUnitState[i] = unitState;
@@ -189,11 +204,6 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 }
 
                 _applyConfigurationSetResult = new(null, unitResults);
-                break;
-
-            case "WaitingForUserSession":
-                ApplyConfigurationActionRequiredEventArgs eventArgs = new(new AdaptiveCardSession());
-                ActionRequired?.Invoke(this, eventArgs);
                 break;
 
             case "ValidationFailed":
@@ -243,5 +253,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
+    }
+
+    void IDisposable.Dispose()
+    {
+        _resumeEvent?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
