@@ -176,7 +176,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                     // the configuration and we don't want to show the same message immediately after.
                     if (responseStatus == "WaitingForUserSession")
                     {
-                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new AdaptiveCardSession(_resumeEvent));
+                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
                         ActionRequired?.Invoke(this, eventArgs);
                         WaitHandle.WaitAny(new[] { _resumeEvent });
                         Thread.Sleep(TimeSpan.FromSeconds(30));

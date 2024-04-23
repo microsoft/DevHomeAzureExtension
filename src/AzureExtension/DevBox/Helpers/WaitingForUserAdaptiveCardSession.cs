@@ -10,7 +10,7 @@ using Windows.Foundation;
 
 namespace AzureExtension.DevBox.Helpers;
 
-public class AdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
+public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
 {
     private IExtensionAdaptiveCard? _extensionAdaptiveCard;
 
@@ -18,7 +18,7 @@ public class AdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
 
     private ManualResetEvent _resumeEvent;
 
-    public AdaptiveCardSession(ManualResetEvent resumeEvent)
+    public WaitingForUserAdaptiveCardSession(ManualResetEvent resumeEvent)
     {
         this._resumeEvent = resumeEvent;
     }
