@@ -191,6 +191,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 _applyConfigurationSetResult = new(null, unitResults);
                 break;
 
+            case "WaitingForUserSession":
+                ApplyConfigurationActionRequiredEventArgs eventArgs = new(new AdaptiveCardSession());
+                ActionRequired?.Invoke(this, eventArgs);
+                break;
+
             case "ValidationFailed":
                 _openConfigurationSetResult = new(new FormatException(Resources.GetResource(ValidationFailedKey)), null, null, 0, 0);
                 break;
