@@ -89,7 +89,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                             break;
                         default:
                             _log.Information($"Dev Box operation monitoring stopped. {operation}, Uri: {operationUri}, Id: {operationId}");
-                            RemoveTimer(operationId);
+                            RemoveTimerIfBeingWatched(operationId);
                             break;
                     }
 
@@ -100,7 +100,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     _log.Error(ex, $"Dev Box operation monitoring stopped unexpectedly. Uri: {operationUri}, Id: {operationId}");
 
                     completionCallback(DevCenterOperationStatus.Failed);
-                    RemoveTimer(operationId);
+                    RemoveTimerIfBeingWatched(operationId);
                 }
             },
             interval);
@@ -147,7 +147,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                         _log.Information($"Dev Box provisioning now completed.");
                         devBoxInstance.ProvisioningMonitorCompleted(devBoxState, ProvisioningStatus.Succeeded);
                         completionCallback(devBoxInstance);
-                        RemoveTimer(devBoxId);
+                        RemoveTimerIfBeingWatched(devBoxId);
                     }
 
                     ThrowIfTimerPastDeadline(devBoxId);
@@ -157,7 +157,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     _log.Error(ex, $"Dev Box provisioning monitoring stopped unexpectedly.");
                     devBoxInstance.ProvisioningMonitorCompleted(null, ProvisioningStatus.Failed);
                     completionCallback(devBoxInstance);
-                    RemoveTimer(devBoxId);
+                    RemoveTimerIfBeingWatched(devBoxId);
                 }
             },
             interval);
@@ -176,7 +176,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
         }
     }
 
-    private void RemoveTimer(Guid id)
+    public void RemoveTimerIfBeingWatched(Guid id)
     {
         lock (_lock)
         {
@@ -220,6 +220,14 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
             }
 
             _operationWatcherTimers[id].Timer = timer;
+        }
+    }
+
+    public bool IsIdBeingWatched(Guid id)
+    {
+        lock (_lock)
+        {
+            return _operationWatcherTimers.ContainsKey(id);
         }
     }
 }

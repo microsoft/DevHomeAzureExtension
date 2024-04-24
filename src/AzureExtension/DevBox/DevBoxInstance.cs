@@ -248,6 +248,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     IsOperationInProgress = true;
                 }
 
+                // Remove any operation that's being watched by the operation watcher now that the user has chosen to delete
+                // the Dev Box.
+                if (action == DevBoxActionToPerform.Delete)
+                {
+                    _devBoxOperationWatcher.RemoveTimerIfBeingWatched(Guid.Parse(Id));
+                }
+
                 CurrentActionToPerform = action;
                 var operation = DevBoxOperationHelper.ActionToPerformToString(action);
 
