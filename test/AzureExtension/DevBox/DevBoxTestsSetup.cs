@@ -76,7 +76,7 @@ public partial class DevBoxTests : IDisposable
                     ""provisioningState"": ""Succeeded"",
                     ""actionState"": ""Stopped"",
                     ""powerState"": ""Deallocated"",
-                    ""uniqueId"": ""28feedaeb-996b-434b-bb57-4969cbeef8f0"",
+                    ""uniqueId"": ""28feedae-996b-434b-bb57-4969cbeef8f0"",
                     ""location"": ""westus2"",
                     ""osType"": ""Windows"",
                     ""user"": ""28feedaeb-996b-434b-bb57-4969cbeef8f0"",
