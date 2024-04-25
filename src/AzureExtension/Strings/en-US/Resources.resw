@@ -527,8 +527,8 @@
     <value>Please logon to your Dev Box</value>
     <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
   </data>
-  <data name="DevBox_AdaptiveCard_ResumeText" xml:space="preserve">
-    <value>Resume</value>
-    <comment>Text shown in button to resume operations while pending on user action.</comment>
+  <data name="DevBox_NoDefaultUserFailKey" xml:space="preserve">
+    <value>No default user logged in. Please login from the Settings page.</value>
+    <comment>Error shown when no user name is sent to the extension.</comment>
   </data>
 </root>

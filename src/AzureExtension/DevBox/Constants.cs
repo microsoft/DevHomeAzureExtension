@@ -222,6 +222,11 @@ public static class Constants
     public const string RetrivalFailKey = "DevBox_RetrivalFailKey";
 
     /// <summary>
+    /// Resource key for the error message when there is no default user logged in.
+    /// </summary>
+    public const string NoDefaultUserFailKey = "DevBox_NoDefaultUserFailKey";
+
+    /// <summary>
     /// Resource key for the error message when Dev Boxes retrival failed.
     /// </summary>
     public const string SessionExpiredKey = "DevBox_SessionExpired";

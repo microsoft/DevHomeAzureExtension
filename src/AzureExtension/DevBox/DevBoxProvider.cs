@@ -150,6 +150,7 @@ public class DevBoxProvider : IComputeSystemProvider
             try
             {
                 ArgumentNullException.ThrowIfNull(developerId);
+                ArgumentNullException.ThrowIfNullOrEmpty(developerId.LoginId);
 
                 _log.Information($"Attempting to retrieving all Dev Boxes for {developerId.LoginId}, at {DateTime.Now}");
 
@@ -168,6 +169,10 @@ public class DevBoxProvider : IComputeSystemProvider
                 else if (ex.Message.Contains("A passthrough token was detected without proper resource provider context"))
                 {
                     errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.UnconfiguredKey);
+                }
+                else if (ex is ArgumentException ae)
+                {
+                    errorMessage = Resources.GetResource(Constants.NoDefaultUserFailKey);
                 }
                 else
                 {
