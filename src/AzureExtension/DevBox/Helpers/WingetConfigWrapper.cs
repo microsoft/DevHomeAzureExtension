@@ -42,6 +42,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     public const string ValidationFailedKey = "DevBox_ValidationFailedKey";
 
+    public const string NotRunningFailedKey = "DevBox_NotRunningFailedKey";
+
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
@@ -74,13 +76,28 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private ManualResetEvent _resumeEvent = new(false);
 
-    public WingetConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
+    private ComputeSystemState _computeSystemState;
+
+    public WingetConfigWrapper(
+        string configuration,
+        string taskAPI,
+        IDevBoxManagementService devBoxManagementService,
+        IDeveloperId associatedDeveloperId,
+        Serilog.ILogger log,
+        ComputeSystemState computeSystemState)
     {
         _restAPI = taskAPI;
         _managementService = devBoxManagementService;
         _devId = associatedDeveloperId;
         _log = log;
-        Initialize(configuration);
+        _computeSystemState = computeSystemState;
+
+        // If the dev box isn't running, skip initialization
+        // Later this logic will be changed to start the dev box
+        if (_computeSystemState == ComputeSystemState.Running)
+        {
+            Initialize(configuration);
+        }
     }
 
     public void Initialize(string configuration)
@@ -225,6 +242,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         {
             try
             {
+                if (_computeSystemState != ComputeSystemState.Running)
+                {
+                    throw new InvalidOperationException(Resources.GetResource(NotRunningFailedKey));
+                }
+
                 _log.Information($"Applying config {_fullTaskJSON}");
 
                 HttpContent httpContent = new StringContent(_fullTaskJSON, Encoding.UTF8, "application/json");
