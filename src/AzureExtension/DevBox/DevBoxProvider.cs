@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -36,6 +37,8 @@ public class DevBoxProvider : IComputeSystemProvider
 
     private readonly Dictionary<string, List<IComputeSystem>> _cachedDevBoxesMap = new();
 
+    private ConcurrentBag<IComputeSystem> devBoxes = new();
+
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,
         CreateComputeSystemOperationFactory createComputeSystemOperationFactory,
@@ -63,7 +66,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <param name="devBoxProject">Object with the properties of the project</param>
     /// <param name="devId">DeveloperID to be used for the authentication token service</param>
     /// <param name="systems">List of valid dev box objects</param>
-    private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId, List<IComputeSystem> systems)
+    private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId)
     {
         var devCenterUri = devBoxProject.Properties.DevCenterUri;
         var baseUriStr = $"{devCenterUri}{Constants.Projects}/{devBoxProject.Name}{Constants.DevBoxAPI}";
@@ -83,7 +86,7 @@ public class DevBoxProvider : IComputeSystemProvider
                     // If the Dev Box's creation operation or its provisioning state are being tracked by us, then don't make a new instance.
                     // Add the one we're tracking. This is to avoid adding the same Dev Box twice. E.g User clicks Dev Homes refresh button while
                     // the Dev Box is being created.
-                    systems.Add(devBox!);
+                    devBoxes.Add(devBox!);
                     continue;
                 }
 
@@ -103,7 +106,7 @@ public class DevBoxProvider : IComputeSystemProvider
                     newDevBoxInstance.LoadWindowsAppParameters();
                 }
 
-                systems.Add(newDevBoxInstance);
+                devBoxes.Add(newDevBoxInstance);
             }
         }
     }
@@ -115,27 +118,31 @@ public class DevBoxProvider : IComputeSystemProvider
     public async Task<IEnumerable<IComputeSystem>> GetDevBoxesAsync(IDeveloperId developerId)
     {
         var devBoxProjects = await GetDevBoxProjectsAsync(developerId);
-        var computeSystems = new List<IComputeSystem>();
 
         if (devBoxProjects?.Data != null)
         {
             _log.Information($"Found {devBoxProjects.Data.Length} projects");
-            foreach (var project in devBoxProjects.Data)
+            devBoxes.Clear();
+            var cancellationTokenSource = new CancellationTokenSource();
+            cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(2));
+            var token = cancellationTokenSource.Token;
+
+            await Parallel.ForEachAsync(devBoxProjects.Data, async (project, token) =>
             {
                 try
                 {
-                    await ProcessAllDevBoxesInProjectAsync(project, developerId, computeSystems);
+                    await ProcessAllDevBoxesInProjectAsync(project, developerId);
                 }
                 catch (Exception ex)
                 {
                     _log.Error(ex, $"Error processing project {project.Name}");
                 }
-            }
+            });
         }
 
         // update the cache every time we retrieve new Dev Boxes. This is used so in the creation flow we don't need
         // to retrieve the Dev Boxes again if the user already retrieved them in the environments page in Dev Home
-        _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)] = computeSystems;
+        _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)] = devBoxes.ToList();
         return _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)];
     }
 
