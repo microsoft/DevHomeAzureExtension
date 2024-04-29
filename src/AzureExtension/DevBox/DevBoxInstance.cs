@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
@@ -14,6 +15,8 @@ using AzureExtension.DevBox.Helpers;
 using AzureExtension.DevBox.Models;
 using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Helpers;
+using Microsoft.TeamFoundation.Core.WebApi;
+using Microsoft.VisualStudio.Services.Common.CommandLine;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.ApplicationModel;
@@ -21,6 +24,10 @@ using Windows.Foundation;
 using Windows.Management.Deployment;
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using static System.Net.Mime.MediaTypeNames;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace AzureExtension.DevBox;
 
@@ -44,6 +51,22 @@ public enum DevBoxActionToPerform
 /// </summary>
 public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AllowSetForegroundWindow(int dwProcessId);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint uType);
+
+    public const uint MBOK = 0x00000000;
+
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
@@ -526,7 +549,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
                 _log.Information($"Launching DevBox '{DisplayName}' with connection data: {psi.FileName}. Windows App installed: {(isWindowsAppInstalled ? "True" : "False")}");
 
-                Process.Start(psi);
+                System.Diagnostics.Process.Start(psi);
                 return new ComputeSystemOperationResult();
             }
             catch (Exception ex)
@@ -677,10 +700,24 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
             psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
-            Process? p = Process.Start(psi);
+            System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
             if (p != null)
             {
+                // var first = GetForegroundWindow();
+                /*while (p.MainWindowHandle == IntPtr.Zero)
+                {
+                    Thread.Sleep(500);
+                }*/
+
+                var allowResult = AllowSetForegroundWindow(p.Id);
+
+                // SetForegroundWindow(p.MainWindowHandle);
+                // var second = GetForegroundWindow();
+                // var resultString = $"first={first}, second={second}";
                 p.WaitForExit();
+
+                // var mres = MessageBox(0, resultString, resultString, MBOK);
+                // mres++;
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodeSuccess)
                 {
@@ -729,9 +766,19 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
             psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
-            Process? p = Process.Start(psi);
+            System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
             if (p != null)
             {
+                var allowResult = AllowSetForegroundWindow(p.Id);
+
+                // var first = GetForegroundWindow();
+
+                // SetForegroundWindow(p.MainWindowHandle);
+                // var second = GetForegroundWindow();
+                // var resultString = $"first={first}, second={second}";
+
+                // var mres = MessageBox(0, resultString, resultString, MBOK);
+                // mres++;
                 p.WaitForExit();
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodePinned)
