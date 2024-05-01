@@ -275,6 +275,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     IsOperationInProgress = true;
                 }
 
+                // Remove any operation that's being watched by the operation watcher now that the user has chosen to delete
+                // the Dev Box.
+                if (action == DevBoxActionToPerform.Delete)
+                {
+                    _devBoxOperationWatcher.RemoveTimerIfBeingWatched(Guid.Parse(Id));
+                }
+
                 CurrentActionToPerform = action;
                 var operation = DevBoxOperationHelper.ActionToPerformToString(action);
 
@@ -617,7 +624,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
         var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
-        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log);
+        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log, GetState());
     }
 
     // Unsupported operations
