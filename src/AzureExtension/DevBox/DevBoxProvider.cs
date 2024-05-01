@@ -262,7 +262,7 @@ public class DevBoxProvider : IComputeSystemProvider
         if (!_devBoxProjectAndPoolsMap.TryGetValue(uniqueUserId, out var _))
         {
             _log.Information($"Found no cached pools for all projects for {developerId.LoginId}, retrieving pools");
-            _devBoxProjectAndPoolsMap[uniqueUserId] = await _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(devBoxProjects!, developerId);
+            _ = Task.Run(async () => _devBoxProjectAndPoolsMap[uniqueUserId] = await _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(devBoxProjects!, developerId));
         }
 
         _devBoxProjectsMap.Add(uniqueUserId, devBoxProjects!);
