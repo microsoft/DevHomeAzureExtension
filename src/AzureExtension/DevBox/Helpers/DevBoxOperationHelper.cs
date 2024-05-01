@@ -50,11 +50,11 @@ public static class DevBoxOperationHelper
             "Succeeded" => ConfigurationUnitState.Completed,
             "Failed" => ConfigurationUnitState.Unknown,
             "TimedOut" => ConfigurationUnitState.Unknown,
+            "WaitingForUserSession" => ConfigurationUnitState.Pending,
             _ => ConfigurationUnitState.Unknown,
 
             // Not implemented by the REST API
             // "WaitingForUserInputUac" => ConfigurationUnitState.Unknown,
-            // "WaitingForUserSession" => ConfigurationUnitState.Unknown,
         };
     }
 

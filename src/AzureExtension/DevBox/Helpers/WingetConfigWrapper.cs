@@ -12,7 +12,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace AzureExtension.DevBox.Helpers;
 
-public class WingetConfigWrapper : IApplyConfigurationOperation
+public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 {
     // Example of the JSON payload for the customization task
     //  {
@@ -41,6 +41,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
     public const string ConfigApplyFailedKey = "DevBox_ConfigApplyFailedKey";
 
     public const string ValidationFailedKey = "DevBox_ValidationFailedKey";
+
+    public const string NotRunningFailedKey = "DevBox_NotRunningFailedKey";
 
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
@@ -72,13 +74,30 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
 
     private bool _pendingNotificationShown;
 
-    public WingetConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
+    private ManualResetEvent _resumeEvent = new(false);
+
+    private ComputeSystemState _computeSystemState;
+
+    public WingetConfigWrapper(
+        string configuration,
+        string taskAPI,
+        IDevBoxManagementService devBoxManagementService,
+        IDeveloperId associatedDeveloperId,
+        Serilog.ILogger log,
+        ComputeSystemState computeSystemState)
     {
         _restAPI = taskAPI;
         _managementService = devBoxManagementService;
         _devId = associatedDeveloperId;
         _log = log;
-        Initialize(configuration);
+        _computeSystemState = computeSystemState;
+
+        // If the dev box isn't running, skip initialization
+        // Later this logic will be changed to start the dev box
+        if (_computeSystemState == ComputeSystemState.Running)
+        {
+            Initialize(configuration);
+        }
     }
 
     public void Initialize(string configuration)
@@ -166,10 +185,23 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
             case "Running":
                 for (var i = 0; i < _units.Count; i++)
                 {
-                    var task = _units[i];
-                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
-                    if (_oldUnitState[i] != unitState)
+                    var responseStatus = response.Tasks[i].Status;
+                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+
+                    // If the status is waiting for a user session, there is no need to check for other
+                    // individual task statuses. We add a wait since Winget takes time to start applying
+                    // the configuration and we don't want to show the same message immediately after.
+                    if (responseStatus == "WaitingForUserSession")
                     {
+                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
+                        ActionRequired?.Invoke(this, eventArgs);
+                        WaitHandle.WaitAny(new[] { _resumeEvent });
+                        Thread.Sleep(TimeSpan.FromSeconds(30));
+                        break;
+                    }
+                    else if (_oldUnitState[i] != unitState)
+                    {
+                        var task = _units[i];
                         ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
                         ConfigurationSetStateChanged?.Invoke(this, args);
                         _oldUnitState[i] = unitState;
@@ -210,6 +242,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
         {
             try
             {
+                if (_computeSystemState != ComputeSystemState.Running)
+                {
+                    throw new InvalidOperationException(Resources.GetResource(NotRunningFailedKey));
+                }
+
                 _log.Information($"Applying config {_fullTaskJSON}");
 
                 HttpContent httpContent = new StringContent(_fullTaskJSON, Encoding.UTF8, "application/json");
@@ -238,5 +275,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
+    }
+
+    void IDisposable.Dispose()
+    {
+        _resumeEvent?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
