@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
@@ -95,9 +96,8 @@ public class DevBoxCreationManager : IDevBoxCreationManager
                     case DevCenterOperationStatus.Succeeded:
                         RemoveDevBoxFromMap(devBox);
 
-                        // The Dev Box is now ready for use. No need to request a new Dev Box from the Dev Center. We can update the state for Dev Homes UI.
-                        devBox.DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Succeeded;
-                        devBox.UpdateStateForUI();
+                        // Update the Dev Box Machine state with the updated state from the Dev Center.
+                        devBox.OperationCallback(DevCenterOperationStatus.Succeeded);
                         break;
                     default:
                         RemoveDevBoxFromMap(devBox);
@@ -142,6 +142,14 @@ public class DevBoxCreationManager : IDevBoxCreationManager
 
         lock (_creationLock)
         {
+            // The user previously chose to delete the Dev Box while it was being created. So it is no longer being
+            // watched and we need to remove it from the creation map.
+            if (!_devBoxOperationWatcher.IsIdBeingWatched(Guid.Parse(id)) && _devBoxesBeingCreated.ContainsKey(id))
+            {
+                _devBoxesBeingCreated.Remove(id);
+                return false;
+            }
+
             if (_devBoxesBeingCreated.TryGetValue(id, out var value))
             {
                 devBox = value;

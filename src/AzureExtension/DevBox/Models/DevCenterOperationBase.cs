@@ -30,4 +30,9 @@ public class DevCenterOperationBase
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTime? EndTime { get; set; }
+
+    public override string ToString()
+    {
+        return $"Status: {Status}, StartTime: {StartTime}, EndTime: {EndTime}";
+    }
 }
