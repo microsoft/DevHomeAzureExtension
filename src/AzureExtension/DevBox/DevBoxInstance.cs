@@ -59,14 +59,18 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool AllowSetForegroundWindow(int dwProcessId);
 
+/*
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint uType);
 
-    public const uint MBOK = 0x00000000;
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
+    public const uint MBOK = 0x00000000;
+*/
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
@@ -700,6 +704,8 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
             psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
+
+            // psi.FileName = "centcoffee:";
             System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
             if (p != null)
             {
@@ -709,14 +715,24 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     Thread.Sleep(500);
                 }*/
 
-                var allowResult = AllowSetForegroundWindow(p.Id);
+                // var allowResult = AllowSetForegroundWindow(p.Id);
+                SetForegroundWindow(p.MainWindowHandle);
+                /*var second = GetForegroundWindow();
+                uint processId = 0;
+                var titlestr = string.Empty;
+                if (GetWindowThreadProcessId(second, out processId) != 0)
+                {
+                    titlestr = $"Process ID: {processId}";
+                }
+                else
+                {
+                    titlestr = "Failed to get pid";
+                }
 
-                // SetForegroundWindow(p.MainWindowHandle);
-                // var second = GetForegroundWindow();
-                // var resultString = $"first={first}, second={second}";
+                var resultString = $"Foreground pid {processId}";*/
                 p.WaitForExit();
 
-                // var mres = MessageBox(0, resultString, resultString, MBOK);
+                // var mres = MessageBox(0, titlestr, resultString, MBOK);
                 // mres++;
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodeSuccess)
@@ -769,11 +785,11 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             System.Diagnostics.Process? p = System.Diagnostics.Process.Start(psi);
             if (p != null)
             {
-                var allowResult = AllowSetForegroundWindow(p.Id);
+                // var allowResult = AllowSetForegroundWindow(p.Id);
 
                 // var first = GetForegroundWindow();
+                SetForegroundWindow(p.MainWindowHandle);
 
-                // SetForegroundWindow(p.MainWindowHandle);
                 // var second = GetForegroundWindow();
                 // var resultString = $"first={first}, second={second}";
 
