@@ -48,7 +48,7 @@ public static class DevBoxOperationHelper
             "Running" => ConfigurationUnitState.InProgress,
             "Skipped" => ConfigurationUnitState.Skipped,
             "Succeeded" => ConfigurationUnitState.Completed,
-            "Failed" => ConfigurationUnitState.Unknown,
+            "Failed" => ConfigurationUnitState.Completed,
             "TimedOut" => ConfigurationUnitState.Unknown,
             "WaitingForUserSession" => ConfigurationUnitState.Pending,
             _ => ConfigurationUnitState.Unknown,
