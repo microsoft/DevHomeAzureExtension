@@ -761,6 +761,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         return result;
     }
 
+    public IEnumerable<Repository> GetRepositories()
+    {
+        ValidateDataStore();
+        return Repository.GetAllWithReference(DataStore);
+    }
+
     public string GetMetaData(string key)
     {
         var metaData = MetaData.GetByKey(DataStore, key);

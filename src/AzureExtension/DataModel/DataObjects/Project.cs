@@ -195,6 +195,19 @@ public class Project
         return project;
     }
 
+    public static IEnumerable<Project> GetAllWithReference(DataStore dataStore)
+    {
+        var sql = @"SELECT * FROM Project AS P WHERE P.Id IN (SELECT ProjectId FROM ProjectReference)";
+        Log.Verbose(DataStore.GetSqlLogMessage(sql));
+        var projects = dataStore.Connection!.Query<Project>(sql, null, null) ?? [];
+        foreach (var project in projects)
+        {
+            project.DataStore = dataStore;
+        }
+
+        return projects;
+    }
+
     public static Project GetOrCreateByTeamProject(DataStore dataStore, TeamProject project, long organizationId)
     {
         var newProject = CreateFromTeamProject(project, organizationId);
@@ -205,5 +218,15 @@ public class Project
     {
         var newProject = CreateFromTeamProject(project, organizationId);
         return AddOrUpdateProject(dataStore, newProject);
+    }
+
+    public static void DeleteUnreferenced(DataStore dataStore)
+    {
+        // Delete any Projects that have no matching Organization.
+        var sql = @"DELETE FROM Project WHERE OrganizationId NOT IN (SELECT Id FROM Organization)";
+        var command = dataStore.Connection!.CreateCommand();
+        command.CommandText = sql;
+        Log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        command.ExecuteNonQuery();
     }
 }

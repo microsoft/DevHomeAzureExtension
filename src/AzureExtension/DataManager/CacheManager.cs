@@ -7,8 +7,10 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
+using DevHomeAzureExtension.Providers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 
@@ -126,6 +128,22 @@ public class CacheManager : IDisposable
 
         CancelUpdateInProgress();
         await Update(TimeSpan.MinValue);
+    }
+
+    public IEnumerable<IRepository> GetRepositories()
+    {
+        var devHomeRepositories = new List<IRepository>();
+        var repositories = DataManager.GetRepositories();
+        foreach (var repository in repositories)
+        {
+            // Convert data model repositories, which have datastore connections
+            // and table lookups as part of the data model, to a static snapshot
+            // of the repository data. This will be sent to DevHome, so this is
+            // needs to be detached data from our data store.
+            devHomeRepositories.Add(new DevHomeRepository(repository));
+        }
+
+        return devHomeRepositories;
     }
 
     private async Task PeriodicUpdate()

@@ -6,6 +6,7 @@ using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
+using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
@@ -44,7 +45,7 @@ public class Repository
 
     [Write(false)]
     [Computed]
-    public bool Private => IsPrivate != 0;
+    public bool Private => IsPrivate != 0L;
 
     [Write(false)]
     [Computed]
@@ -53,6 +54,23 @@ public class Repository
     [Write(false)]
     [Computed]
     public Project Project => Project.Get(DataStore, ProjectId);
+
+    [Write(false)]
+    [Computed]
+    public long ReferenceValue
+    {
+        get
+        {
+            if (DataStore is null)
+            {
+                return 0;
+            }
+            else
+            {
+                return RepositoryReference.Get(DataStore, Id)?.Value ?? 0;
+            }
+        }
+    }
 
     public override string ToString() => Name;
 
@@ -63,7 +81,7 @@ public class Repository
             InternalId = gitRepository.Id.ToString(),
             Name = gitRepository.Name,
             CloneUrl = gitRepository.WebUrl,
-            IsPrivate = gitRepository.ProjectReference.Visibility == Microsoft.TeamFoundation.Core.WebApi.ProjectVisibility.Private ? 1 : 0,
+            IsPrivate = gitRepository.ProjectReference.Visibility == Microsoft.TeamFoundation.Core.WebApi.ProjectVisibility.Private ? 1L : 0L,
             ProjectId = projectId,
             TimeUpdated = DateTime.Now.ToDataStoreInteger(),
         };
@@ -112,6 +130,18 @@ public class Repository
         return repository ?? new Repository();
     }
 
+    public static IEnumerable<Repository> GetAll(DataStore dataStore)
+    {
+        var repositories = dataStore.Connection!.GetAll<Repository>() ?? [];
+        foreach (var repository in repositories)
+        {
+            repository.DataStore = dataStore;
+        }
+
+        Log.Information("Getting all repositories.");
+        return repositories;
+    }
+
     // Internal id should be a GUID, which is by definition unique so is sufficient for lookup.
     public static Repository? GetByInternalId(DataStore dataStore, string internalId)
     {
@@ -128,5 +158,33 @@ public class Repository
         }
 
         return repository;
+    }
+
+    public static Repository? Get(DataStore dataStore, GitRepository repository)
+    {
+        return GetByInternalId(dataStore, repository.Id.ToString());
+    }
+
+    public static IEnumerable<Repository> GetAllWithReference(DataStore dataStore)
+    {
+        var sql = @"SELECT * FROM Repository AS R WHERE R.Id IN (SELECT RepositoryId FROM RepositoryReference)";
+        Log.Verbose(DataStore.GetSqlLogMessage(sql));
+        var repositories = dataStore.Connection!.Query<Repository>(sql) ?? [];
+        foreach (var repository in repositories)
+        {
+            repository.DataStore = dataStore;
+        }
+
+        return repositories;
+    }
+
+    public static void DeleteUnreferenced(DataStore dataStore)
+    {
+        // Delete any Repositories that have no matching Project.
+        var sql = @"DELETE FROM Repository WHERE ProjectId NOT IN (SELECT Id FROM Project)";
+        var command = dataStore.Connection!.CreateCommand();
+        command.CommandText = sql;
+        Log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        command.ExecuteNonQuery();
     }
 }

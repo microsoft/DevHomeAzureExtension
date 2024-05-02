@@ -30,6 +30,8 @@ public interface IAzureDataManager : IDisposable
 
     Query? GetQuery(AzureUri queryUri, string developerId);
 
+    IEnumerable<Repository> GetRepositories();
+
     // Repository name may not be unique across projects, and projects may not be unique across
     // organizations, so we need all three to identify the repository.
     PullRequests? GetPullRequests(string organization, string project, string repositoryName, string developerId, PullRequestView view);
