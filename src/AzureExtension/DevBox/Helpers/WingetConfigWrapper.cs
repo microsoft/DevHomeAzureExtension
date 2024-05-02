@@ -79,6 +79,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private ComputeSystemState _computeSystemState;
 
+    // Using a common failure result for all the tasks
+    // since we don't get any other information from the REST API
+    private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
+            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
+
     public WingetConfigWrapper(
         string configuration,
         string taskAPI,
@@ -168,9 +173,6 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     private void HandleEndState(TaskJSONToCSClasses.BaseClass response, bool isSetSuccessful = false)
     {
         List<ApplyConfigurationUnitResult> unitResults = new();
-        var failureResult = new ConfigurationUnitResultInformation(
-            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
-
         for (var i = 0; i < _units.Count; i++)
         {
             var task = _units[i];
@@ -180,7 +182,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
             }
             else
             {
-                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, failureResult));
+                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, _commonfailureResult));
             }
         }
 
@@ -190,7 +192,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
-        _log.Information($"Set Status: {response.Status}");
+        _log.Debug($"Set Status: {response.Status}");
 
         // No need to show the pending status more than once
         if (_pendingNotificationShown && setState == ConfigurationSetState.Pending)
@@ -230,7 +232,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                     {
                         var task = _units[i];
                         var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
-                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
+                        var resultInfo = responseStatus == "Failed" ? _commonfailureResult : null;
+                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, resultInfo, task));
                         ConfigurationSetStateChanged?.Invoke(this, args);
                         _oldUnitState[i] = responseStatus;
                     }
