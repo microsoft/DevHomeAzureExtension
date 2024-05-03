@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Web;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
@@ -22,6 +23,7 @@ using Windows.Foundation;
 
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.Win32;
 
 namespace AzureExtension.DevBox;
 
@@ -45,9 +47,14 @@ public enum DevBoxActionToPerform
 /// </summary>
 public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
-    [DllImport("user32.dll")]
+    [DllImport("user32")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetForegroundWindow(IntPtr hWnd);
+    internal static extern bool AllowSetForegroundWindow(int dwProcessId);
+
+    private const string WindowsAppEventName = "Global\\WA_SET_FOREGROUND";
+
+    // the time to wait in milliseconds for the DevHomeAzureExtension process to create its window
+    private const int PinningWaitForInputIdleTime = 2000;
 
     private readonly IDevBoxManagementService _devBoxManagementService;
 
@@ -693,7 +700,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             Process? p = Process.Start(psi);
             if (p != null)
             {
-                SetForegroundWindow(p.MainWindowHandle);
+                p.Refresh();
+                AllowSetForegroundWindow(p.Id);
+
+                // This signals to the WindowsApp that it has been given foreground rights
+                EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                signalForegroundSet.Set();
+
                 p.WaitForExit();
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodeSuccess)
@@ -746,7 +759,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             Process? p = Process.Start(psi);
             if (p != null)
             {
-                SetForegroundWindow(p.MainWindowHandle);
+                p.Refresh();
+                AllowSetForegroundWindow(p.Id);
+
+                // This signals to the WindowsApp that it has been given foreground rights
+                EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                signalForegroundSet.Set();
+
                 p.WaitForExit();
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodePinned)
