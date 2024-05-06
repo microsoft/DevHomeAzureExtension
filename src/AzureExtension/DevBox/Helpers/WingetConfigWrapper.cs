@@ -192,7 +192,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
-        _log.Debug($">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Set Status: {response.Status}");
+        _log.Debug($"Set Status: {response.Status}");
 
         // No need to show the pending status more than once
         if (_pendingNotificationShown && setState == ConfigurationSetState.Pending)
@@ -247,6 +247,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                     ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
                     ActionRequired?.Invoke(this, eventArgs);
                     WaitHandle.WaitAny(new[] { _resumeEvent });
+                    Thread.Sleep(TimeSpan.FromMinutes(2));
                 }
 
                 break;
@@ -284,7 +285,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 var setStatus = string.Empty;
                 while (setStatus != "Succeeded" && setStatus != "Failed" && setStatus != "ValidationFailed")
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(10));
+                    await Task.Delay(TimeSpan.FromSeconds(15));
                     var poll = await _managementService.HttpsRequestToDataPlane(new Uri(_restAPI), _devId, HttpMethod.Get, null);
                     var rawResponse = poll.JsonResponseRoot.ToString();
                     var response = JsonSerializer.Deserialize<TaskJSONToCSClasses.BaseClass>(rawResponse, _taskJsonSerializerOptions);

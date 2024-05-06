@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
@@ -118,12 +117,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
     public async Task<IEnumerable<IComputeSystem>> GetDevBoxesAsync(IDeveloperId developerId)
     {
-        var timer = new Stopwatch();
-        timer.Start();
-
         var devBoxProjects = await GetDevBoxProjectsAsync(developerId);
-
-        _log.Debug($"--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------> Total time for ARM function: {timer.ElapsedMilliseconds} ms");
 
         if (devBoxProjects?.Data != null)
         {
@@ -146,20 +140,9 @@ public class DevBoxProvider : IComputeSystemProvider
             });
         }
 
-        _log.Debug($"--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------> Total time for parallel projects: {timer.ElapsedMilliseconds} ms");
-
         // update the cache every time we retrieve new Dev Boxes. This is used so in the creation flow we don't need
         // to retrieve the Dev Boxes again if the user already retrieved them in the environments page in Dev Home
         _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)] = devBoxes.ToList();
-
-        // Get Associated pools the first time we get the projects
-        var uniqueUserId = GetUniqueDeveloperId(developerId);
-        if (!_devBoxProjectAndPoolsMap.TryGetValue(uniqueUserId, out var _))
-        {
-            _log.Information($"Found no cached pools for all projects for {developerId.LoginId}, retrieving pools");
-            _ = Task.Run(async () => _devBoxProjectAndPoolsMap[uniqueUserId] = await _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(devBoxProjects!, developerId));
-        }
-
         return _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)];
     }
 
@@ -261,9 +244,6 @@ public class DevBoxProvider : IComputeSystemProvider
     {
         _log.Information($"Attempting to get all projects for {developerId?.LoginId ?? "null"}");
 
-        var timer = new Stopwatch();
-        timer.Start();
-
         ArgumentNullException.ThrowIfNull(developerId);
 
         var uniqueUserId = GetUniqueDeveloperId(developerId);
@@ -274,13 +254,16 @@ public class DevBoxProvider : IComputeSystemProvider
             return projects;
         }
 
-        _log.Debug($"--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------> Time before ARM hit: {timer.ElapsedMilliseconds} ms");
-
         var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
         var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
         var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
 
-        _log.Debug($"--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------> Time after ARM: {timer.ElapsedMilliseconds} ms");
+        // Get Associated pools the first time we get the projects
+        if (!_devBoxProjectAndPoolsMap.TryGetValue(uniqueUserId, out var _))
+        {
+            _log.Information($"Found no cached pools for all projects for {developerId.LoginId}, retrieving pools");
+            _ = Task.Run(async () => _devBoxProjectAndPoolsMap[uniqueUserId] = await _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(devBoxProjects!, developerId));
+        }
 
         _devBoxProjectsMap.Add(uniqueUserId, devBoxProjects!);
         return devBoxProjects!;
