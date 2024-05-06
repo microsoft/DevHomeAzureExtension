@@ -240,14 +240,14 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 }
 
                 // If waiting for user session and no task is running, show the adaptive card
-                // We add a wait since Dev Boxes take at least 2 minutes to start applying
+                // We add a wait since Dev Boxes take a little over 2 minutes to start applying
                 // the configuration and we don't want to show the same message immediately after.
                 if (isWaitingForUserSession && !isAnyTaskRunning)
                 {
                     ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
                     ActionRequired?.Invoke(this, eventArgs);
                     WaitHandle.WaitAny(new[] { _resumeEvent });
-                    Thread.Sleep(TimeSpan.FromMinutes(2));
+                    Thread.Sleep(TimeSpan.FromSeconds(135));
                 }
 
                 break;
