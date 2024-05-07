@@ -142,16 +142,8 @@ public class DevBoxProvider : IComputeSystemProvider
 
         // update the cache every time we retrieve new Dev Boxes. This is used so in the creation flow we don't need
         // to retrieve the Dev Boxes again if the user already retrieved them in the environments page in Dev Home
-        _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)] = devBoxes.ToList();
-
-        // Get Associated pools the first time we get the projects
         var uniqueUserId = GetUniqueDeveloperId(developerId);
-        if (!_devBoxProjectAndPoolsMap.TryGetValue(uniqueUserId, out var _))
-        {
-            _log.Information($"Found no cached pools for all projects for {developerId.LoginId}, retrieving pools");
-            _ = Task.Run(async () => _devBoxProjectAndPoolsMap[uniqueUserId] = await _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(devBoxProjects!, developerId));
-        }
-
+        _cachedDevBoxesMap[uniqueUserId] = devBoxes.ToList();
         return _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)];
     }
 
@@ -231,6 +223,8 @@ public class DevBoxProvider : IComputeSystemProvider
                 {
                     _log.Information($"No cached Dev Boxes found for {developerId.LoginId}, getting new Dev Boxes");
                     await GetDevBoxesAsync(developerId);
+                    _devBoxProjectAndPoolsMap[uniqueId] = await
+                        _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(_devBoxProjectsMap[uniqueId]!, developerId);
                 }
 
                 return new ComputeSystemAdaptiveCardResult(new CreationAdaptiveCardSession(_devBoxProjectAndPoolsMap[uniqueId], _cachedDevBoxesMap[uniqueId]));
