@@ -144,7 +144,7 @@ public class DevBoxProvider : IComputeSystemProvider
         // to retrieve the Dev Boxes again if the user already retrieved them in the environments page in Dev Home
         var uniqueUserId = GetUniqueDeveloperId(developerId);
         _cachedDevBoxesMap[uniqueUserId] = devBoxes.ToList();
-        return _cachedDevBoxesMap[GetUniqueDeveloperId(developerId)];
+        return _cachedDevBoxesMap[uniqueUserId];
     }
 
     /// <summary>
