@@ -480,7 +480,7 @@
     <comment>Error text to show the user when the was an error getting the review page for dev box creation wizard</comment>
   </data>
   <data name="DevBox_TextBoxErrorMessage" xml:space="preserve">
-    <value>Please enter a name that contains more than three characters, uses only alphanumeric characters and hyphens, and does not start with a hypen</value>
+    <value>Please enter a name that contains more than three characters, uses only alphanumeric characters and hyphens, and does not start with a hyphen</value>
     <comment>Error text to show the user when the name of the new Dev Box they've entered does not match the criteria</comment>
   </data>
   <data name="DevBox_ProjectComboBoxErrorMessage" xml:space="preserve">
@@ -510,5 +510,33 @@
   <data name="DevBox_ValidationFailedKey" xml:space="preserve">
     <value>Validation failed for configuration</value>
     <comment>Error message when validation fails for a configuration file.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Description" xml:space="preserve">
+    <value>You have an action item to follow</value>
+    <comment>Text describing the purpose of the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_InnerDescription" xml:space="preserve">
+    <value>Please log in to the Dev Box to continue the set up.</value>
+    <comment>Warning description text in the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Text" xml:space="preserve">
+    <value>Log in required</value>
+    <comment>Warning text in the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Title" xml:space="preserve">
+    <value>Please logon to your Dev Box</value>
+    <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_NoDefaultUserFailKey" xml:space="preserve">
+    <value>No default user logged in. Please login from the Settings page.</value>
+    <comment>Error shown when no user name is sent to the extension.</comment>
+  </data>
+  <data name="DevBox_NotRunningFailedKey" xml:space="preserve">
+    <value>The Dev Box isn't running. Please start the Dev Box and try again.</value>
+    <comment>Error shown when the operation fails due to the Dev Box not currently running.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_ResumeText" xml:space="preserve">
+    <value>Resume</value>
+    <comment>Text shown in the button to resume operations.</comment>
   </data>
 </root>

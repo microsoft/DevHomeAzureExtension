@@ -4,9 +4,11 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Web;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
@@ -18,9 +20,10 @@ using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.ApplicationModel;
 using Windows.Foundation;
-using Windows.Management.Deployment;
+
 using Windows.Storage;
 using Windows.Storage.Streams;
+using Windows.Win32;
 
 namespace AzureExtension.DevBox;
 
@@ -44,6 +47,15 @@ public enum DevBoxActionToPerform
 /// </summary>
 public class DevBoxInstance : IComputeSystem, IComputeSystem2
 {
+    [DllImport("user32")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool AllowSetForegroundWindow(int dwProcessId);
+
+    private const string WindowsAppEventName = "Global\\WA_SET_FOREGROUND";
+
+    // the time to wait in milliseconds for the DevHomeAzureExtension process to create its window
+    private const int PinningWaitForInputIdleTime = 2000;
+
     private readonly IDevBoxManagementService _devBoxManagementService;
 
     private readonly IDevBoxOperationWatcher _devBoxOperationWatcher;
@@ -246,6 +258,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     }
 
                     IsOperationInProgress = true;
+                }
+
+                // Remove any operation that's being watched by the operation watcher now that the user has chosen to delete
+                // the Dev Box.
+                if (action == DevBoxActionToPerform.Delete)
+                {
+                    _devBoxOperationWatcher.RemoveTimerIfBeingWatched(Guid.Parse(Id));
                 }
 
                 CurrentActionToPerform = action;
@@ -590,7 +609,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
         var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
-        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log);
+        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log, GetState());
     }
 
     // Unsupported operations
@@ -677,9 +696,17 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             var psi = new ProcessStartInfo();
             psi.UseShellExecute = true;
             psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
+
             Process? p = Process.Start(psi);
             if (p != null)
             {
+                p.Refresh();
+                AllowSetForegroundWindow(p.Id);
+
+                // This signals to the WindowsApp that it has been given foreground rights
+                EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                signalForegroundSet.Set();
+
                 p.WaitForExit();
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodeSuccess)
@@ -732,6 +759,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             Process? p = Process.Start(psi);
             if (p != null)
             {
+                p.Refresh();
+                AllowSetForegroundWindow(p.Id);
+
+                // This signals to the WindowsApp that it has been given foreground rights
+                EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                signalForegroundSet.Set();
+
                 p.WaitForExit();
                 exitcode = p.ExitCode;
                 if (exitcode == ExitCodePinned)
