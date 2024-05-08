@@ -132,8 +132,8 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-						  <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="Dev Home icon" />
-						</Screenshots>
+                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="Dev Home icon" />
+                        </Screenshots>
                       </DarkMode>
                       <LightMode>
                         <Icons>
