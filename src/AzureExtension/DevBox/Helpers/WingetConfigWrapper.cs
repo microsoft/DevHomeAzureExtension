@@ -192,7 +192,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
-        _log.Debug($"Set Status: {response.Status}");
+        _log.Information($"Set Status: {response.Status}");
 
         // No need to show the pending status more than once
         if (_pendingNotificationShown && setState == ConfigurationSetState.Pending)
@@ -213,7 +213,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 for (var i = 0; i < _units.Count; i++)
                 {
                     var responseStatus = response.Tasks[i].Status;
-                    _log.Debug($"Unit Response Status: {responseStatus}");
+                    _log.Information($"Unit Response Status: {responseStatus}");
 
                     // If the status is waiting for a user session, there is no need to check for other
                     // individual task statuses.
