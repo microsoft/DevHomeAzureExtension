@@ -112,7 +112,7 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_Done"), 100, dockerProgressUIController);
 
-                    var sampleDirectory = Path.Combine(Windows.ApplicationModel.Package.Current.InstalledPath, "AzureExtension\\Assets\\QuickstartPlayground\\Samples", topDocFavoredLanguage.Name);
+                    var sampleDirectory = Path.Combine(AppContext.BaseDirectory, "AzureExtension\\Assets\\QuickstartPlayground\\Samples", topDocFavoredLanguage.Name);
                     var sampleUri = new Uri(sampleDirectory);
                     _log.Information($"Using {sampleUri.AbsoluteUri} as sample reference.");
 
