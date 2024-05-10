@@ -82,7 +82,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     // Using a common failure result for all the tasks
     // since we don't get any other information from the REST API
     private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
-            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
+            new WingetConfigurationException("Runtime Failure"), "Runtime Failure", "Runtime Failure", ConfigurationUnitResultSource.UnitProcessing);
 
     public WingetConfigWrapper(
         string configuration,
@@ -190,7 +190,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         _applyConfigurationSetResult = new(null, unitResults);
     }
 
-    private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
+    private void SetStateForCustomizationTaskAsync(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
         _log.Information($"Set Status: {response.Status}");
@@ -232,10 +232,35 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                     if (_oldUnitState[i] != responseStatus)
                     {
                         var task = _units[i];
-                        var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
-                        var resultInfo = responseStatus == "Failed" ? _commonfailureResult : null;
-                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, resultInfo, task));
-                        ConfigurationSetStateChanged?.Invoke(this, args);
+                        if (responseStatus == "Failed")
+                        {
+                            Thread.Sleep(TimeSpan.FromSeconds(15));
+                            var id = response.Tasks[i].Id;
+
+                            // Remove the API version from the URI and add 'logs'
+                            var logURI = _restAPI.Substring(0, _restAPI.LastIndexOf('?'));
+                            logURI += $"/logs/{id}?{Constants.APIVersion}";
+                            var log = _managementService.HttpsRequestToDataPlaneWithRawResponse(new Uri(logURI), _devId, HttpMethod.Get).GetAwaiter().GetResult();
+
+                            // Split the log into lines
+                            var logLines = log.Split('\n');
+
+                            // Find index of line with "Result" in it
+                            // The message is in the next line
+                            var errorIndex = Array.FindIndex(logLines, x => x.Contains("Result")) + 1;
+
+                            var resultInfo = new ConfigurationUnitResultInformation(
+                                new WingetConfigurationException("Runtime Failure"), logLines[errorIndex], string.Empty, ConfigurationUnitResultSource.UnitProcessing);
+                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, ConfigurationUnitState.Completed, resultInfo, task));
+                            ConfigurationSetStateChanged?.Invoke(this, args);
+                        }
+                        else
+                        {
+                            var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
+                            ConfigurationSetStateChanged?.Invoke(this, args);
+                        }
+
                         _oldUnitState[i] = responseStatus;
                     }
                 }
@@ -294,7 +319,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
                     if (response is not null)
                     {
-                        SetStateForCustomizationTask(response);
+                        SetStateForCustomizationTaskAsync(response);
                     }
                 }
 
