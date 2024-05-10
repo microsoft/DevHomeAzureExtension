@@ -112,6 +112,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
             .Build();
         var baseDSC = deserializer.Deserialize<TaskYAMLToCSClasses.BasePackage>(configuration);
 
