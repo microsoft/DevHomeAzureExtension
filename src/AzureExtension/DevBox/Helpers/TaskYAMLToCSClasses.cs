@@ -73,7 +73,7 @@ public class TaskYAMLToCSClasses
 
         public bool? AllowPrerelease { get; set; }
 
-        public string SecurityContext { get; set; } = string.Empty;
+        public string SecurityContext { get; set; } = "current";
     }
 
     public class Settings
