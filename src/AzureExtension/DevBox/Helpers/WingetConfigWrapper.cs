@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
+using AzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
@@ -70,13 +71,18 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private Serilog.ILogger _log;
 
-    private ConfigurationUnitState[] _oldUnitState = Array.Empty<ConfigurationUnitState>();
+    private string[] _oldUnitState = Array.Empty<string>();
 
     private bool _pendingNotificationShown;
 
     private ManualResetEvent _resumeEvent = new(false);
 
     private ComputeSystemState _computeSystemState;
+
+    // Using a common failure result for all the tasks
+    // since we don't get any other information from the REST API
+    private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
+            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
 
     public WingetConfigWrapper(
         string configuration,
@@ -160,8 +166,27 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
             _fullTaskJSON = fullTask.ToString();
 
             _units = units;
-            _oldUnitState = Enumerable.Repeat(ConfigurationUnitState.Unknown, units.Count).ToArray();
+            _oldUnitState = Enumerable.Repeat(string.Empty, units.Count).ToArray();
         }
+    }
+
+    private void HandleEndState(TaskJSONToCSClasses.BaseClass response, bool isSetSuccessful = false)
+    {
+        List<ApplyConfigurationUnitResult> unitResults = new();
+        for (var i = 0; i < _units.Count; i++)
+        {
+            var task = _units[i];
+            if (isSetSuccessful || response.Tasks[i].Status == "Succeeded")
+            {
+                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
+            }
+            else
+            {
+                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, _commonfailureResult));
+            }
+        }
+
+        _applyConfigurationSetResult = new(null, unitResults);
     }
 
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
@@ -183,55 +208,60 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 break;
 
             case "Running":
+                bool isAnyTaskRunning = false;
+                bool isWaitingForUserSession = false;
                 for (var i = 0; i < _units.Count; i++)
                 {
                     var responseStatus = response.Tasks[i].Status;
-                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+                    _log.Information($"Unit Response Status: {responseStatus}");
 
                     // If the status is waiting for a user session, there is no need to check for other
-                    // individual task statuses. We add a wait since Winget takes time to start applying
-                    // the configuration and we don't want to show the same message immediately after.
+                    // individual task statuses.
                     if (responseStatus == "WaitingForUserSession")
                     {
-                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
-                        ActionRequired?.Invoke(this, eventArgs);
-                        WaitHandle.WaitAny(new[] { _resumeEvent });
-                        Thread.Sleep(TimeSpan.FromSeconds(30));
-                        break;
+                        isWaitingForUserSession = true;
+                        continue;
                     }
-                    else if (_oldUnitState[i] != unitState)
+
+                    if (responseStatus == "Running")
+                    {
+                        isAnyTaskRunning = true;
+                    }
+
+                    if (_oldUnitState[i] != responseStatus)
                     {
                         var task = _units[i];
-                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
+                        var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+                        var resultInfo = responseStatus == "Failed" ? _commonfailureResult : null;
+                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, resultInfo, task));
                         ConfigurationSetStateChanged?.Invoke(this, args);
-                        _oldUnitState[i] = unitState;
+                        _oldUnitState[i] = responseStatus;
                     }
-
-                    _log.Information($"Unit Status: {unitState}");
                 }
 
-                break;
-
-            case "Succeeded":
-                List<ApplyConfigurationUnitResult> unitResults = new();
-                for (var i = 0; i < _units.Count; i++)
+                // If waiting for user session and no task is running, show the adaptive card
+                // We add a wait since Dev Boxes take a little over 2 minutes to start applying
+                // the configuration and we don't want to show the same message immediately after.
+                if (isWaitingForUserSession && !isAnyTaskRunning)
                 {
-                    var task = _units[i];
-                    unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
+                    ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
+                    ActionRequired?.Invoke(this, eventArgs);
+                    WaitHandle.WaitAny(new[] { _resumeEvent });
+                    Thread.Sleep(TimeSpan.FromSeconds(135));
                 }
 
-                _applyConfigurationSetResult = new(null, unitResults);
                 break;
 
             case "ValidationFailed":
                 _openConfigurationSetResult = new(new FormatException(Resources.GetResource(ValidationFailedKey)), null, null, 0, 0);
                 break;
 
+            case "Succeeded":
+                HandleEndState(response);
+                break;
+
             case "Failed":
-                // To Do: Add case. Currently the API only checks if Winget started the task.
-                // Does not check if the task failed.
-                // Send UnitStateChanged event for the failed task with ResultInfo and ResultSource as UnitProcessing
-                // _applyConfigurationSetResult = new(new ApplicationException(Resources.GetResource(ConfigApplyFailedKey)), null);
+                HandleEndState(response);
                 break;
         }
     }

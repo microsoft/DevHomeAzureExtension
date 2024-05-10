@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -79,9 +80,13 @@ public class DevBoxManagementService : IDevBoxManagementService
             return devBoxProjectAndPools;
         }
 
-        var projectsToPoolsMapping = new List<DevBoxProjectAndPoolContainer>();
+        var projectsToPoolsMapping = new ConcurrentBag<DevBoxProjectAndPoolContainer>();
 
-        foreach (var project in projects.Data!)
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(2));
+        var token = cancellationTokenSource.Token;
+
+        await Parallel.ForEachAsync(projects.Data!, async (project, token) =>
         {
             try
             {
@@ -97,10 +102,10 @@ public class DevBoxManagementService : IDevBoxManagementService
             {
                 _log.Error(ex, $"unable to get pools for {project.Name}");
             }
-        }
+        });
 
-        _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping);
-        return projectsToPoolsMapping;
+        _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
+        return projectsToPoolsMapping.ToList();
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.CreateDevBox"/>
