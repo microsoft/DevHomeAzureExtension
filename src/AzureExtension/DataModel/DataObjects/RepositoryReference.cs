@@ -27,63 +27,82 @@ public class RepositoryReference
     // Repository table
     public long RepositoryId { get; set; } = DataStore.NoForeignKey;
 
+    public long DeveloperId { get; set; } = DataStore.NoForeignKey;
+
     public long PullRequestCount { get; set; } = DataStore.NoForeignKey;
 
     [Write(false)]
     [Computed]
     public long Value => PullRequestCount * WeightPullRequest;
 
-    private static RepositoryReference Create(long repositoryId, long pullRequestCount)
+    [Write(false)]
+    [Computed]
+    public Identity Developer => Identity.Get(DataStore, DeveloperId);
+
+    [Write(false)]
+    private DataStore? DataStore { get; set; }
+
+    public static long GetRepositoryValue(DataStore dataStore, long repositoryId)
+    {
+        // TODO: Sum up values of all references to this repository across users.
+        return 0;
+    }
+
+    private static RepositoryReference Create(long repositoryId, long developerId, long pullRequestCount)
     {
         return new RepositoryReference
         {
             RepositoryId = repositoryId,
+            DeveloperId = developerId,
             PullRequestCount = pullRequestCount,
         };
     }
 
     public static RepositoryReference AddOrUpdate(DataStore dataStore, RepositoryReference repositoryReference)
     {
-        var existing = Get(dataStore, repositoryReference.RepositoryId);
+        var existing = Get(dataStore, repositoryReference.RepositoryId, repositoryReference.DeveloperId);
         if (existing is not null)
         {
             repositoryReference.Id = existing.Id;
             dataStore.Connection!.Update(repositoryReference);
+            repositoryReference.DataStore = dataStore;
             return repositoryReference;
         }
 
         repositoryReference.Id = dataStore.Connection!.Insert(repositoryReference);
+        repositoryReference.DataStore = dataStore;
         return repositoryReference;
     }
 
-    public static RepositoryReference GetOrCreate(DataStore dataStore, long repositoryId, long pullRequestCount)
+    public static RepositoryReference GetOrCreate(DataStore dataStore, long repositoryId, long developerId, long pullRequestCount)
     {
-        var repositoryReference = Create(repositoryId, pullRequestCount);
+        var repositoryReference = Create(repositoryId, developerId, pullRequestCount);
         return AddOrUpdate(dataStore, repositoryReference);
     }
 
     // Get by Repository row Id
-    public static RepositoryReference? Get(DataStore dataStore, long repositoryId)
+    public static RepositoryReference? Get(DataStore dataStore, long repositoryId, long developerId)
     {
-        var sql = @"SELECT * FROM RepositoryReference WHERE RepositoryId = @RepositoryId";
+        var sql = @"SELECT * FROM RepositoryReference WHERE RepositoryId = @RepositoryId AND DeveloperId = @DeveloperId";
         var param = new
         {
             RepositoryId = repositoryId,
+            DeveloperId = developerId,
         };
 
-        return dataStore.Connection!.QueryFirstOrDefault<RepositoryReference>(sql, param, null);
-    }
+        var repositoryReference = dataStore.Connection!.QueryFirstOrDefault<RepositoryReference>(sql, param, null);
+        if (repositoryReference != null)
+        {
+            repositoryReference.DataStore = dataStore;
+        }
 
-    // Get by Repository object
-    public static RepositoryReference? Get(DataStore dataStore, Repository repository)
-    {
-        return Get(dataStore, repository.Id);
+        return repositoryReference;
     }
 
     public static void DeleteUnreferenced(DataStore dataStore)
     {
         // Delete any RepositoryReferences for repositories that do not exist.
-        var sql = @"DELETE FROM RepositoryReference WHERE RepositoryId NOT IN (SELECT Id FROM Repository)";
+        var sql = @"DELETE FROM RepositoryReference WHERE (RepositoryId NOT IN (SELECT Id FROM Repository)) OR (DeveloperId NOT IN (SELECT Id FROM Identity))";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         Log.Verbose(DataStore.GetCommandLogMessage(sql, command));

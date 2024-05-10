@@ -72,7 +72,7 @@ public partial class AzureDataManager
                 {
                     if ((DateTime.Now - org.LastSyncAt) < olderThan)
                     {
-                        _log.Information($"Organization: {org.Name} has recently been updated, skipping.");
+                        _log.Debug($"Organization: {org.Name} has recently been updated, skipping.");
                         ++accountsSkipped;
                         continue;
                     }
@@ -85,6 +85,10 @@ public partial class AzureDataManager
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(account.AccountUri, developerId);
+
+                    // Update account identity information:
+                    var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, true);
+
                     _log.Verbose($"Updating organization: {account.AccountName}");
                     var organization = Organization.GetOrCreate(DataStore, account.AccountUri);
                     var projects = GetProjects(account, connection);
@@ -98,7 +102,7 @@ public partial class AzureDataManager
                         var projectPullRequestCount = GetPullRequestsForProject(project, connection, developerId, cancellationToken).Count;
                         if (projectPullRequestCount > 0)
                         {
-                            ProjectReference.GetOrCreate(DataStore, dsProject.Id, projectPullRequestCount);
+                            ProjectReference.GetOrCreate(DataStore, dsProject.Id, identity.Id, projectPullRequestCount);
                         }
 
                         var repositories = GetGitRepositories(project, connection, cancellationToken);
@@ -116,7 +120,7 @@ public partial class AzureDataManager
                                 if (repositoryPullRequestCount > 0)
                                 {
                                     // If non-zero, add a repository reference.
-                                    RepositoryReference.GetOrCreate(DataStore, dsRepository.Id, repositoryPullRequestCount);
+                                    RepositoryReference.GetOrCreate(DataStore, dsRepository.Id, identity.Id, repositoryPullRequestCount);
                                 }
                             }
                         }
@@ -184,7 +188,7 @@ public partial class AzureDataManager
             // If the organization is disabled the connection will be null.
             if (connection is null)
             {
-                _log.Information($"Account {account.AccountName} had a null connection, treating as disabled.");
+                _log.Debug($"Account {account.AccountName} had a null connection, treating as disabled.");
                 return [];
             }
 
@@ -268,9 +272,14 @@ public partial class AzureDataManager
             var pullRequests = gitClient.GetPullRequestsAsync(repository.Id, searchCriteria, null, null, PullRequestRepositoryLimit, null, cancellationToken).Result;
             return [.. pullRequests];
         }
-        catch (VssServiceException vssEx)
+        catch (AggregateException aggEx) when (aggEx.InnerException is VssServiceException)
         {
-            _log.Debug($"Unable to access repositoryp pull requests: {repository.Name}: {vssEx.Message}");
+            // There are likely many repositories to which the user does not have access.
+            // This is expected, and if the user does not have access then it is a safe
+            // assumption that they do not have any pull requests there, so we will not
+            // treat this as an error.
+            // Specific error is: TF401019
+            _log.Debug($"Unable to access repository pull requests: {repository.Name}: {aggEx.InnerException?.Message}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

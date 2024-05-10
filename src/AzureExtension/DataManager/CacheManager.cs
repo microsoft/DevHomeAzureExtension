@@ -21,9 +21,9 @@ public class CacheManager : IDisposable
     private static readonly string CacheManagerLastUpdatedMetaDataKey = "CacheManagerLastUpdated";
 
     // Frequency the CacheManager checks for an update.
-    private static readonly TimeSpan UpdateInterval = TimeSpan.FromMinutes(3);
+    private static readonly TimeSpan UpdateInterval = TimeSpan.FromHours(4);
 
-    private static readonly TimeSpan DefaultAccountUpdateFrequency = TimeSpan.FromDays(1);
+    private static readonly TimeSpan DefaultAccountUpdateFrequency = TimeSpan.FromDays(3);
 
     private static readonly object _instanceLock = new();
 

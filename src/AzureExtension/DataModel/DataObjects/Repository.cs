@@ -67,7 +67,7 @@ public class Repository
             }
             else
             {
-                return RepositoryReference.Get(DataStore, Id)?.Value ?? 0;
+                return RepositoryReference.GetRepositoryValue(DataStore, Id);
             }
         }
     }

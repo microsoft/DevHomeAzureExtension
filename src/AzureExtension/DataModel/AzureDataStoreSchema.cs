@@ -14,7 +14,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     }
 
     // Update this anytime incompatible changes happen with a released version.
-    private const long SchemaVersionValue = 0x0005;
+    private const long SchemaVersionValue = 0x0006;
 
     private static readonly string Metadata =
     @"CREATE TABLE Metadata (" +
@@ -30,6 +30,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "Name TEXT NOT NULL COLLATE NOCASE," +
         "InternalId TEXT NOT NULL," +
         "Avatar TEXT NOT NULL COLLATE NOCASE," +
+        "IsDeveloper INTEGER NOT NULL," +
         "TimeUpdated INTEGER NOT NULL" +
     ");" +
 
@@ -54,11 +55,12 @@ public class AzureDataStoreSchema : IDataStoreSchema
     @"CREATE TABLE ProjectReference (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "ProjectId INTEGER NOT NULL," +
+        "DeveloperId INTEGER NOT NULL," +
         "PullRequestCount INTEGER NOT NULL" +
     ");" +
 
-    // Repository references are 1:1 with Repository.
-    "CREATE UNIQUE INDEX IDX_ProjectReference_ProjectId ON ProjectReference (ProjectId);";
+    // Project references are unique by DeveloperId and ProjectId
+    "CREATE UNIQUE INDEX IDX_ProjectReference_ProjectIdDeveloperId ON ProjectReference (ProjectId, DeveloperId);";
 
     private static readonly string Organization =
     @"CREATE TABLE Organization (" +
@@ -94,11 +96,12 @@ public class AzureDataStoreSchema : IDataStoreSchema
     @"CREATE TABLE RepositoryReference (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "RepositoryId INTEGER NOT NULL," +
+        "DeveloperId INTEGER NOT NULL," +
         "PullRequestCount INTEGER NOT NULL" +
     ");" +
 
-    // Repository references are 1:1 with Repository.
-    "CREATE UNIQUE INDEX IDX_RepositoryReference_RepositoryId ON RepositoryReference (RepositoryId);";
+    // Repository references are unique by DeveloperId and ProjectId
+    "CREATE UNIQUE INDEX IDX_RepositoryReference_RepositoryIdDeveloperId ON RepositoryReference (RepositoryId, DeveloperId);";
 
     private static readonly string Query =
     @"CREATE TABLE Query (" +

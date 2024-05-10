@@ -3,7 +3,6 @@
 
 using Dapper;
 using Dapper.Contrib.Extensions;
-using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
@@ -27,63 +26,75 @@ public class ProjectReference
     // Project table
     public long ProjectId { get; set; } = DataStore.NoForeignKey;
 
+    public long DeveloperId { get; set; } = DataStore.NoForeignKey;
+
     public long PullRequestCount { get; set; } = DataStore.NoForeignKey;
 
     [Write(false)]
     [Computed]
     public long Value => PullRequestCount * WeightPullRequest;
 
-    private static ProjectReference Create(long projectId, long pullRequestCount)
+    [Write(false)]
+    [Computed]
+    public Identity Developer => Identity.Get(DataStore, DeveloperId);
+
+    [Write(false)]
+    private DataStore? DataStore { get; set; }
+
+    private static ProjectReference Create(long projectId, long developerId, long pullRequestCount)
     {
         return new ProjectReference
         {
             ProjectId = projectId,
+            DeveloperId = developerId,
             PullRequestCount = pullRequestCount,
         };
     }
 
     public static ProjectReference AddOrUpdate(DataStore dataStore, ProjectReference projectReference)
     {
-        var existing = Get(dataStore, projectReference.ProjectId);
+        var existing = Get(dataStore, projectReference.ProjectId, projectReference.DeveloperId);
         if (existing is not null)
         {
             projectReference.Id = existing.Id;
             dataStore.Connection!.Update(projectReference);
+            projectReference.DataStore = dataStore;
             return projectReference;
         }
 
         projectReference.Id = dataStore.Connection!.Insert(projectReference);
+        projectReference.DataStore = dataStore;
         return projectReference;
     }
 
-    public static ProjectReference GetOrCreate(DataStore dataStore, long projectId, long pullRequestCount)
+    public static ProjectReference GetOrCreate(DataStore dataStore, long projectId, long developerId, long pullRequestCount)
     {
-        var projectReference = Create(projectId, pullRequestCount);
+        var projectReference = Create(projectId, developerId, pullRequestCount);
         return AddOrUpdate(dataStore, projectReference);
     }
 
-    // Get by Repository row Id
-    public static ProjectReference? Get(DataStore dataStore, long projectId)
+    public static ProjectReference? Get(DataStore dataStore, long projectId, long developerId)
     {
-        var sql = @"SELECT * FROM ProjectReference WHERE ProjectId = @ProjectId";
+        var sql = @"SELECT * FROM ProjectReference WHERE ProjectId = @ProjectId AND DeveloperId = @DeveloperId";
         var param = new
         {
             ProjectId = projectId,
+            DeveloperId = developerId,
         };
 
-        return dataStore.Connection!.QueryFirstOrDefault<ProjectReference>(sql, param, null);
-    }
+        var projectReference = dataStore.Connection!.QueryFirstOrDefault<ProjectReference>(sql, param, null);
+        if (projectReference != null)
+        {
+            projectReference.DataStore = dataStore;
+        }
 
-    // Get by Repository object
-    public static ProjectReference? Get(DataStore dataStore, Project project)
-    {
-        return Get(dataStore, project.Id);
+        return projectReference;
     }
 
     public static void DeleteUnreferenced(DataStore dataStore)
     {
         // Delete any ProjectReferences for projects that do not exist.
-        var sql = @"DELETE FROM ProjectReference WHERE ProjectId NOT IN (SELECT Id FROM Project)";
+        var sql = @"DELETE FROM ProjectReference WHERE (ProjectId NOT IN (SELECT Id FROM Project)) OR (DeveloperId NOT IN (SELECT Id FROM Identity))";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         Log.Verbose(DataStore.GetCommandLogMessage(sql, command));

@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Helpers;
+using Microsoft.VisualStudio.Services;
 using Microsoft.VisualStudio.Services.Profile;
 using Microsoft.VisualStudio.Services.Profile.Client;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -42,6 +43,8 @@ public class Identity
 
     public string Avatar { get; set; } = string.Empty;
 
+    public long IsDeveloper { get; set; } = DataStore.NoForeignKey;
+
     [JsonIgnore]
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
 
@@ -49,6 +52,11 @@ public class Identity
     [Computed]
     [JsonIgnore]
     public DateTime UpdatedAt => TimeUpdated.ToDateTime();
+
+    [Write(false)]
+    [Computed]
+    [JsonIgnore]
+    public bool Developer => IsDeveloper != 0L;
 
     public string ToJson() => JsonSerializer.Serialize(this);
 
@@ -125,13 +133,32 @@ public class Identity
         };
     }
 
-    public static Identity AddOrUpdateIdentity(DataStore dataStore, Identity identity)
+    private static Identity CreateFromIdentity(Microsoft.VisualStudio.Services.Identity.Identity identity, VssConnection connection)
+    {
+        return new Identity
+        {
+            InternalId = identity.Id.ToString(),
+            Name = identity.DisplayName,
+            Avatar = GetAvatar(connection, identity.Id),
+            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+        };
+    }
+
+    public static Identity AddOrUpdateIdentity(DataStore dataStore, Identity identity, bool isDeveloper = false)
     {
         // Check for existing Identity data.
         var existingIdentity = GetByInternalId(dataStore, identity.InternalId);
         if (existingIdentity is not null)
         {
             identity.Id = existingIdentity.Id;
+
+            // If this is a developer, set to developer, but do not set to false.
+            // We presume not a developer unless it is explicitly set.
+            if (isDeveloper)
+            {
+                identity.IsDeveloper = 1;
+            }
+
             dataStore.Connection!.Update(identity);
             return identity;
         }
@@ -163,7 +190,8 @@ public class Identity
         return dataStore.Connection!.QueryFirstOrDefault<Identity>(sql, param, null);
     }
 
-    public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef, VssConnection connection)
+    // Creation from an Azure IdentityRef object.
+    public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef, VssConnection connection, bool isDeveloper = false)
     {
         ArgumentNullException.ThrowIfNull(identityRef);
 
@@ -181,11 +209,33 @@ public class Identity
         // We don't want to create an identity object and download a new avatar unlesss it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
-        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
+        if (existing is null || isDeveloper || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
             || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
-            return AddOrUpdateIdentity(dataStore, newIdentity);
+            return AddOrUpdateIdentity(dataStore, newIdentity, isDeveloper);
+        }
+
+        return existing;
+    }
+
+    // Creation from an Azure Identity object.
+    public static Identity GetOrCreateIdentity(DataStore dataStore, Microsoft.VisualStudio.Services.Identity.Identity? identity, VssConnection connection, bool isDeveloper = false)
+    {
+        ArgumentNullException.ThrowIfNull(identity);
+
+        Identity? existing;
+        existing = GetByInternalId(dataStore, identity.Id.ToString());
+
+        // Check for whether we need to update the record.
+        // We don't want to create an identity object and download a new avatar unlesss it needs to
+        // be updated. In the event of an empty avatar we will retry more frequently to update it,
+        // but not every time.
+        if (existing is null || isDeveloper || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
+            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
+        {
+            var newIdentity = CreateFromIdentity(identity, connection);
+            return AddOrUpdateIdentity(dataStore, newIdentity, isDeveloper);
         }
 
         return existing;

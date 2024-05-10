@@ -112,7 +112,7 @@ public class PullRequests
 
     public static PullRequests? Get(DataStore dataStore, long projectId, string repositoryName, string developerLogin, PullRequestView view)
     {
-        var sql = @"SELECT * FROM PullRequests WHERE ProjectId = @ProjectId AND RepositoryName = @RepositoryName AND DeveloperLogin = @DeveloperLogin AND ViewId = CViewId;";
+        var sql = @"SELECT * FROM PullRequests WHERE ProjectId = @ProjectId AND RepositoryName = @RepositoryName AND DeveloperLogin = @DeveloperLogin AND ViewId = @ViewId;";
         var param = new
         {
             ProjectId = projectId,
