@@ -1,0 +1,17 @@
+{
+    "name": "Rust Linked List",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "rust-lang.rust-analyzer"
+            ]
+        }
+    },
+    "postCreateCommand": "rustup update && rustup component add rustfmt",
+    "remoteUser": "root"
+}

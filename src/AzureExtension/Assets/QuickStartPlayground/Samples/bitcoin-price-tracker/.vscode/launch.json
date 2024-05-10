@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Bitcoin Price Tracker",
+            "type": "python",
+            "request": "launch",
+            "program": "price_tracker.py"
+        }
+    ]
+}
