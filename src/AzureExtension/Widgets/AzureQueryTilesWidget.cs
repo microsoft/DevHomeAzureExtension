@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Globalization;
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DataManager;
@@ -271,16 +270,10 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                             workItemCount = (int)queryInfo.QueryResultCount;
                         }
 
-                        var workItemCountDisplay = workItemCount.ToString(CultureInfo.InvariantCulture);
-                        if (workItemCount > 25)
-                        {
-                            workItemCountDisplay = $">25";
-                        }
-
                         var tile = new JsonObject
                         {
                             { "title", tiles[pos].Title },
-                            { "counter", workItemCountDisplay },
+                            { "counter", workItemCount },
                             { "backgroundImage", IconLoader.GetIconAsBase64("BlueBackground.png") },
                             { "url", tiles[pos].AzureUri.ToString() },
                         };
