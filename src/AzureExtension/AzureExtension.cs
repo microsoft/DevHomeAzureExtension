@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using AzureExtension.DevBox;
+using AzureExtension.Providers;
 using AzureExtension.QuickStartPlayground;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Providers;
@@ -42,6 +43,8 @@ public sealed class AzureExtension : IExtension
                 return _host.Services.GetService<DevBoxProvider>();
             case ProviderType.QuickStartProject:
                 return _host.Services.GetQuickStartProjectProviders();
+            case ProviderType.Settings:
+                return _host.Services.GetService<SettingsProvider>();
             default:
                 _log.Information($"Invalid provider: {providerType}");
                 return null;

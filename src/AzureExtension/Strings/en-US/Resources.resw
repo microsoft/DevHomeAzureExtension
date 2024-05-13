@@ -670,5 +670,9 @@
   <data name="QuickstartPlayground_APIKeyFailureDuringProjectGeneration" xml:space="preserve">
     <value>Failure to authenticate with API Key when '{0}'</value>
     <comment>Locked="{0}" Error message shown when we failed with an API key error when generating the project where {0} mentions the step that failed.</comment>
-  </data>	
+  </data>
+  <data name="QuickstartPlayground_OpenAI_ClearKey" xml:space="preserve">
+    <value>Clear OpenAI key</value>
+    <comment>>{Locked="OpenAI"} Text of button to clear OpenAI key.</comment>
+  </data>
 </root>
