@@ -47,7 +47,6 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
             try
             {
-                // TelemetryProviderSingleton.Instance.LogPrompt(userPrompt);
                 ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetRecommendedLanguage"), 0);
                 var recommendedLanguage = await Completions.GetRecommendedLanguageAsync(_azureOpenAIService, _prompt);
 
@@ -56,11 +55,9 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                     throw new InvalidDataException(recommendedLanguage);
                 }
 
-                // TelemetryProviderSingleton.Instance.LogGeneratedData("GetRecommendedLanguage", recommendedLanguage);
                 ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetEnrichedPrompt"), 8);
                 var enrichedPrompt = await Completions.GetEnrichedPromptAsync(_azureOpenAIService, _prompt, recommendedLanguage);
 
-                // TelemetryProviderSingleton.Instance.LogGeneratedData("GetEnrichedPrompt", enrichedPrompt);
                 ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetSamples"), 10);
                 var samples = await GetSamplesAsync();
 
@@ -72,7 +69,6 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                 var topDocFavoredLanguage = favoredLanguageCosineSortedSamples.First().Sample;
                 if (topDocFavoredLanguage != null && topDocFavoredLanguage.Name != null)
                 {
-                    // TelemetryProviderSingleton.Instance.LogGeneratedData("GetTopDocFavoredLanguage", topDocFavoredLanguage.Name);
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetContainerFiles"), 50);
                     var codeSpacesCompletion = await Completions.GetDevContainerFilesAsync(_azureOpenAIService, enrichedPrompt, topDocFavoredLanguage);
 
@@ -83,7 +79,6 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                     var readmeCompletion = await Completions.GetProjectReadmeAsync(_azureOpenAIService, enrichedPrompt, codeSpacesCompletion, codeCompletion);
                     var codeSpaceDefinitionString = codeSpacesCompletion + "\r\n" + codeCompletion + "\r\n" + readmeCompletion;
 
-                    // TelemetryProviderSingleton.Instance.LogGeneratedData("GetDefinition", codeSpaceDefinitionString);
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_WriteOutput"), 85);
                     CreateFilesInOutputFolder(codeSpaceDefinitionString, _outputFolder);
 
