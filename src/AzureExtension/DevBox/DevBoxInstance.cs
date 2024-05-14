@@ -681,11 +681,8 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IAsyncOperation<ComputeSystemOperationResult> ResumeAsync(string options)
     {
-        return Task.Run(() =>
-        {
-            StateChanged?.Invoke(this, ComputeSystemState.Starting);
-            return PerformRESTOperation(DevBoxActionToPerform.Start, HttpMethod.Post);
-        }).AsAsyncOperation();
+        StateChanged?.Invoke(this, ComputeSystemState.Starting);
+        return PerformRESTOperation(DevBoxActionToPerform.Start, HttpMethod.Post);
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> SaveAsync(string options)
@@ -759,7 +756,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             {
                 _log.Error(ex, $"Unable to perform the pinning action for DevBox: {DisplayName}");
                 UpdateStateForUI();
-                return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "Pinning action failed");
+                return new ComputeSystemOperationResult(ex, Constants.OperationsDefaultErrorMsg, "Pinning action failed");
             }
         }).AsAsyncOperation();
     }

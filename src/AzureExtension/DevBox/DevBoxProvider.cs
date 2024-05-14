@@ -168,7 +168,7 @@ public class DevBoxProvider : IComputeSystemProvider
             }
             catch (Exception ex)
             {
-                var errorMessage = string.Empty;
+                var errorMessage = Constants.OperationsDefaultErrorMsg;
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
                 {
                     errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.SessionExpiredKey);
@@ -231,7 +231,7 @@ public class DevBoxProvider : IComputeSystemProvider
             catch (Exception ex)
             {
                 _log.Error(ex, "Unable to get the adaptive card session for the provided developerId");
-                return new ComputeSystemAdaptiveCardResult(ex, ex.Message, ex.Message);
+                return new ComputeSystemAdaptiveCardResult(ex, Constants.OperationsDefaultErrorMsg, ex.Message);
             }
         }).GetAwaiter().GetResult();
     }
@@ -239,7 +239,7 @@ public class DevBoxProvider : IComputeSystemProvider
     public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForComputeSystem(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind)
     {
         var exception = new NotImplementedException();
-        return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
+        return new ComputeSystemAdaptiveCardResult(exception, Constants.OperationsDefaultErrorMsg, exception.Message);
     }
 
     private async Task<DevBoxProjects> GetDevBoxProjectsAsync(IDeveloperId developerId)
