@@ -670,5 +670,9 @@
   <data name="QuickstartPlayground_APIKeyFailureDuringProjectGeneration" xml:space="preserve">
     <value>Failure to authenticate with API Key when '{0}'</value>
     <comment>Locked="{0}" Error message shown when we failed with an API key error when generating the project where {0} mentions the step that failed.</comment>
-  </data>	
+  </data>
+  <data name="DevBox_CheckLogs" xml:space="preserve">
+    <value>Please check logs at C:\ProgramData\Microsoft\DevBoxAgent\Logs</value>
+    <comment>Shown for errors in config flow for Dev Boxes which don't have additional info</comment>
+  </data>
 </root>
