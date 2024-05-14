@@ -38,7 +38,15 @@ public class DevBoxManagementService : IDevBoxManagementService
     {
         var httpManagementClient = _authService.GetManagementClient(developerId);
         var result = await DevBoxHttpRequest(httpManagementClient, webUri, developerId, method, requestContent);
-        return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        try
+        {
+            return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"HttpsRequestToManagementPlane failed: Exception");
+            throw;
+        }
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
@@ -46,7 +54,15 @@ public class DevBoxManagementService : IDevBoxManagementService
     {
         var httpDataClient = _authService.GetDataPlaneClient(developerId);
         var result = await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
-        return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        try
+        {
+            return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"HttpsRequestToDataPlane failed: Exception");
+            throw;
+        }
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
