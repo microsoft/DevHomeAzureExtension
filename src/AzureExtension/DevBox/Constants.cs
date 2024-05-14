@@ -4,6 +4,8 @@
 using System.Text.Json;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
+using DevHomeAzureExtension.Helpers;
+using Windows.Storage;
 
 namespace AzureExtension.DevBox;
 
@@ -216,6 +218,10 @@ public static class Constants
     /// </summary>
     public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
 
+    public const string DevBoxUnableToCheckStartMenuPinning = "DevBox_UnableToCheckStartMenuPinningStatus";
+
+    public const string DevBoxUnableToCheckTaskbarPinning = "DevBox_UnableToCheckTaskbarPinningStatus";
+
     /// <summary>
     /// Resource key for the error message when Dev Boxes retrival failed.
     /// </summary>
@@ -240,4 +246,16 @@ public static class Constants
     /// Windows App, used for remote connections, Package Family Name
     /// </summary>
     public const string WindowsAppPackageFamilyName = "MicrosoftCorporationII.Windows365_8wekyb3d8bbwe";
+
+    public static readonly string LogFolderName = "Logs";
+
+    private static readonly Lazy<string> _logFolderRoot = new(() => Path.Combine(ApplicationData.Current.TemporaryFolder.Path, LogFolderName));
+
+    public static readonly string LogFolderRoot = _logFolderRoot.Value;
+
+    public static readonly string OperationsDefaultErrorMsg = Resources.GetResource(DevBoxUnableToPerformOperationKey, LogFolderRoot);
+
+    public static readonly string StartMenuPinnedStatusErrorMsg = Resources.GetResource(DevBoxUnableToCheckStartMenuPinning, LogFolderRoot);
+
+    public static readonly string TaskbarPinnedStatusErrorMsg = Resources.GetResource(DevBoxUnableToCheckTaskbarPinning, LogFolderRoot);
 }

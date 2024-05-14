@@ -65,7 +65,6 @@ public class DevBoxProvider : IComputeSystemProvider
     /// </summary>
     /// <param name="devBoxProject">Object with the properties of the project</param>
     /// <param name="devId">DeveloperID to be used for the authentication token service</param>
-    /// <param name="systems">List of valid dev box objects</param>
     private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId)
     {
         var devCenterUri = devBoxProject.Properties.DevCenterUri;
@@ -103,7 +102,7 @@ public class DevBoxProvider : IComputeSystemProvider
                 }
                 else
                 {
-                    newDevBoxInstance.LoadWindowsAppParameters();
+                    await newDevBoxInstance.LoadWindowsAppParameters();
                 }
 
                 devBoxes.Add(newDevBoxInstance);

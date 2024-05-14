@@ -204,18 +204,41 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     private ComputeSystemOperations GetOperations()
     {
         var state = GetState();
-        if (state == ComputeSystemState.Creating)
+        if ((state == ComputeSystemState.Creating) || (CurrentActionToPerform != DevBoxActionToPerform.None))
         {
-            return ComputeSystemOperations.Delete | ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
+            return ComputeSystemOperations.Delete;
         }
 
-        if ((state == ComputeSystemState.Deleting) || (state == ComputeSystemState.Deleted))
-        {
-            return ComputeSystemOperations.None;
-        }
+        ComputeSystemOperations operations = ComputeSystemOperations.Delete;
 
-        ComputeSystemOperations operations = ComputeSystemOperations.Start | ComputeSystemOperations.ShutDown | ComputeSystemOperations.Delete |
-            ComputeSystemOperations.Restart | ComputeSystemOperations.ApplyConfiguration;
+        switch (state)
+        {
+            // Dev Box in process of being deleted
+            case ComputeSystemState.Deleting:
+            case ComputeSystemState.Deleted:
+                return ComputeSystemOperations.None;
+            case ComputeSystemState.Saved:
+                // Dev Box in hibernation
+                operations |= ComputeSystemOperations.Resume |
+                    ComputeSystemOperations.ShutDown |
+                    ComputeSystemOperations.ApplyConfiguration |
+                    ComputeSystemOperations.Restart;
+                break;
+            case ComputeSystemState.Running:
+                // Dev Box is running
+                operations |= ComputeSystemOperations.ShutDown |
+                    ComputeSystemOperations.ApplyConfiguration |
+                    ComputeSystemOperations.Restart;
+                break;
+            case ComputeSystemState.Stopped:
+                // Dev Box is stopped
+                operations |= ComputeSystemOperations.Start |
+                    ComputeSystemOperations.ApplyConfiguration;
+                break;
+            default:
+                // All other states should return the delete operation only
+                return ComputeSystemOperations.Delete;
+        }
 
         if (_packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName))
         {
@@ -294,7 +317,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             {
                 UpdateStateForUI();
                 _log.Error(ex, $"Unable to process DevBox operation '{nameof(DevBoxOperation)}'");
-                return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
+                return new ComputeSystemOperationResult(ex, Constants.OperationsDefaultErrorMsg, ex.Message);
             }
         }).AsAsyncOperation();
     }
@@ -336,6 +359,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
         RemoveOperationInProgressFlag();
         UpdateStateForUI();
+        CurrentActionToPerform = DevBoxActionToPerform.None;
     }
 
     /// <summary>
@@ -356,6 +380,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             default:
                 RemoveOperationInProgressFlag();
                 UpdateStateForUI();
+                CurrentActionToPerform = DevBoxActionToPerform.None;
                 _log.Error($"Dev Box operation stopped unexpectedly with status '{status}'");
                 break;
         }
@@ -397,12 +422,21 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                 RemoveOperationInProgressFlag();
                 UpdateStateForUI();
             }
+
+            CurrentActionToPerform = DevBoxActionToPerform.None;
         });
     }
 
     public void UpdateStateForUI()
     {
-        StateChanged?.Invoke(this, GetState());
+        try
+        {
+            StateChanged?.Invoke(this, GetState());
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"Unable to invoke state changed event for {DisplayName}");
+        }
     }
 
     // Check if it is a final provisioning state
@@ -551,7 +585,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             catch (Exception ex)
             {
                 _log.Error(ex, $"Error connecting to '{DisplayName}'");
-                return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), string.Empty);
+                return new ComputeSystemOperationResult(ex, Constants.OperationsDefaultErrorMsg, string.Empty);
             }
         }).AsAsyncOperation();
     }
@@ -593,7 +627,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             catch (Exception ex)
             {
                 _log.Error(ex, $"Error getting thumbnail for '{DisplayName}'");
-                return new ComputeSystemThumbnailResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
+                return new ComputeSystemThumbnailResult(ex, Constants.OperationsDefaultErrorMsg, ex.Message);
             }
         }).AsAsyncOperation();
     }
@@ -649,7 +683,8 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
-            return new ComputeSystemOperationResult(new NotImplementedException(), Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), "Method not implemented");
+            StateChanged?.Invoke(this, ComputeSystemState.Starting);
+            return PerformRESTOperation(DevBoxActionToPerform.Start, HttpMethod.Post);
         }).AsAsyncOperation();
     }
 
@@ -685,116 +720,138 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
-            var validationString = ValidateWindowsAppParameters();
-            if (!string.IsNullOrEmpty(validationString))
+            try
             {
-                _log.Error(validationString);
-                return new ComputeSystemOperationResult(new InvalidDataException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
-            }
-
-            var exitcode = ExitCodeInvalid;
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
-
-            Process? p = Process.Start(psi);
-            if (p != null)
-            {
-                p.Refresh();
-                AllowSetForegroundWindow(p.Id);
-
-                // This signals to the WindowsApp that it has been given foreground rights
-                EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
-                signalForegroundSet.Set();
-
-                p.WaitForExit();
-                exitcode = p.ExitCode;
-                if (exitcode == ExitCodeSuccess)
+                var validationString = ValidateWindowsAppParameters();
+                if (!string.IsNullOrEmpty(validationString))
                 {
-                    return new ComputeSystemOperationResult();
+                    throw new InvalidDataException(validationString);
                 }
-            }
 
-            var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
-            _log.Error(errorString);
-            return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
+                var exitcode = ExitCodeInvalid;
+                var psi = new ProcessStartInfo();
+                psi.UseShellExecute = true;
+                psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
+
+                Process? process = Process.Start(psi);
+                if (process != null)
+                {
+                    process.Refresh();
+                    AllowSetForegroundWindow(process.Id);
+
+                    // This signals to the WindowsApp that it has been given foreground rights
+                    EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                    signalForegroundSet.Set();
+
+                    process.WaitForExit();
+                    exitcode = process.ExitCode;
+                    if (exitcode == ExitCodeSuccess)
+                    {
+                        UpdateStateForUI();
+                        return new ComputeSystemOperationResult();
+                    }
+                }
+
+                var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
+                throw new NotSupportedException(errorString);
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, $"Unable to perform the pinning action for DevBox: {DisplayName}");
+                UpdateStateForUI();
+                return new ComputeSystemOperationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), "Pinning action failed");
+            }
         }).AsAsyncOperation();
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> PinToStartMenuAsync()
     {
+        // Since there is no 'Pinning' state we'll say that the state is saving
+        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("startMenu", "pin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> UnpinFromStartMenuAsync()
     {
+        // Since there is no 'Unpinning' state we'll say that the state is saving
+        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("startMenu", "unpin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> PinToTaskbarAsync()
     {
+        // Since there is no 'Pinning' state we'll say that the state is saving
+        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("taskbar", "pin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> UnpinFromTaskbarAsync()
     {
+        // Since there is no 'Unpinning' state we'll say that the state is saving
+        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("taskbar", "unpin");
     }
 
-    public IAsyncOperation<ComputeSystemPinnedResult> GetPinStatusAsync(string location)
+    public IAsyncOperation<ComputeSystemPinnedResult> GetPinStatusAsync(string location, string errorMessage)
     {
         return Task.Run(() =>
         {
-            var validationString = ValidateWindowsAppParameters();
-            if (!string.IsNullOrEmpty(validationString))
+            try
             {
-                _log.Error(validationString);
-                return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
-            }
+                var validationString = ValidateWindowsAppParameters();
+                if (!string.IsNullOrEmpty(validationString))
+                {
+                    throw new NotSupportedException(validationString);
+                }
 
-            var exitcode = ExitCodeInvalid;
-            var psi = new ProcessStartInfo();
-            psi.UseShellExecute = true;
-            psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
-            Process? p = Process.Start(psi);
-            if (p != null)
+                var exitcode = ExitCodeInvalid;
+                var psi = new ProcessStartInfo();
+                psi.UseShellExecute = true;
+                psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
+                Process? process = Process.Start(psi);
+                if (process != null)
+                {
+                    process.Refresh();
+                    AllowSetForegroundWindow(process.Id);
+
+                    // This signals to the WindowsApp that it has been given foreground rights
+                    EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                    signalForegroundSet.Set();
+
+                    process.WaitForExit();
+                    exitcode = process.ExitCode;
+                    if (exitcode == ExitCodePinned)
+                    {
+                        return new ComputeSystemPinnedResult(true);
+                    }
+                    else if (exitcode == ExitCodeUnpinned)
+                    {
+                        return new ComputeSystemPinnedResult(false);
+                    }
+                }
+
+                var errorString = $"GetPinStatusAsync from location {location} failed with exitcode: {exitcode}";
+                throw new NotSupportedException(errorString);
+            }
+            catch (Exception ex)
             {
-                p.Refresh();
-                AllowSetForegroundWindow(p.Id);
-
-                // This signals to the WindowsApp that it has been given foreground rights
-                EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
-                signalForegroundSet.Set();
-
-                p.WaitForExit();
-                exitcode = p.ExitCode;
-                if (exitcode == ExitCodePinned)
-                {
-                    return new ComputeSystemPinnedResult(true);
-                }
-                else if (exitcode == ExitCodeUnpinned)
-                {
-                    return new ComputeSystemPinnedResult(false);
-                }
+                _log.Error(ex, $"Unable to get pinning status for DevBox: {DisplayName}");
+                return new ComputeSystemPinnedResult(ex, errorMessage, "Pinning status check failed");
             }
-
-            var errorString = $"GetPinStatusAsync from location {location} failed with exitcode: {exitcode}";
-            _log.Error(errorString);
-            return new ComputeSystemPinnedResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
         }).AsAsyncOperation();
     }
 
     public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToStartMenuAsync()
     {
-        return GetPinStatusAsync("startmenu");
+        return GetPinStatusAsync("startmenu", Constants.StartMenuPinnedStatusErrorMsg);
     }
 
     public IAsyncOperation<ComputeSystemPinnedResult> GetIsPinnedToTaskbarAsync()
     {
-        return GetPinStatusAsync("taskbar");
+        return GetPinStatusAsync("taskbar", Constants.TaskbarPinnedStatusErrorMsg);
     }
 
-    public async void LoadWindowsAppParameters()
+    public async Task LoadWindowsAppParameters()
     {
         try
         {
@@ -806,6 +863,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             var uriString = RemoteConnectionData?.CloudPcConnectionUrl;
             if (string.IsNullOrEmpty(uriString))
             {
+                _log.Information($"CloudPcConnectionUrl was empty of null or empty for Dev Box: '{DisplayName}'");
                 return;
             }
 

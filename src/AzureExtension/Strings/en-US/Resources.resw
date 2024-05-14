@@ -412,8 +412,16 @@
     <comment>Error text to show the user when multiple operations are requested of the Dev Box provider without letting previous operations complete first.</comment>
   </data>
   <data name="DevBox_UnableToPerformRequestedOperation" xml:space="preserve">
-    <value>There was an error performing the requested operation. Error {0}</value>
-    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to performa user requested action. {0} is the error information received after attempting the call.</comment>
+    <value>There was an error performing the requested operation. For more information please view the log file {0}</value>
+    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to perform a user requested action. {0} is the location of the log file.</comment>
+  </data>
+  <data name="DevBox_UnableToCheckStartMenuPinningStatus" xml:space="preserve">
+    <value>Unable to confirm if the Dev Box is currently pinned to the start menu. For more information please view the log file {0}</value>
+    <comment>Error text that we present the user when the Dev Box provider is unable check whether or not the dev box is pinned to the start menu</comment>
+  </data>
+  <data name="DevBox_UnableToCheckTaskbarPinningStatus" xml:space="preserve">
+    <value>Unable to confirm if the Dev Box is currently pinned to the taskbar. For more information please view the log file {0}</value>
+    <comment>Error text that we present the user when the Dev Box provider is unable check whether or not the dev box is pinned to the taskbar</comment>
   </data>
   <data name="SelectionOptionsPrompt" xml:space="preserve">
     <value>Change Path</value>
