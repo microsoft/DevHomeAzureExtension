@@ -209,7 +209,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             return ComputeSystemOperations.Delete;
         }
 
-        ComputeSystemOperations operations = ComputeSystemOperations.Delete;
+        var operations = ComputeSystemOperations.Delete;
 
         switch (state)
         {
