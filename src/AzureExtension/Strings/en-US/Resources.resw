@@ -677,6 +677,10 @@
   </data>
   <data name="QuickstartPlayground_OpenAI_ClearKey" xml:space="preserve">
     <value>Clear OpenAI key</value>
-    <comment>>{Locked="OpenAI"} Text of button to clear OpenAI key.</comment>
+    <comment>{Locked="OpenAI"} Text of button to clear OpenAI key.</comment>
+  </data>
+  <data name="SettingsProviderDisplayName" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Display name for settings page.</comment>
   </data>
 </root>

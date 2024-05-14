@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using AzureExtension.Contracts;
+using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace AzureExtension.Providers;
@@ -10,7 +11,7 @@ public sealed class SettingsProvider : ISettingsProvider
 {
     private readonly IAICredentialService _aiCredentialService;
 
-    public string DisplayName => "Test Settings";
+    public string DisplayName => Resources.GetResource(@"SettingsProviderDisplayName");
 
     public SettingsProvider(IAICredentialService aiCredentialService)
     {
