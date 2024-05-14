@@ -249,7 +249,7 @@ public static class Constants
 
     public static readonly string LogFolderName = "Logs";
 
-    private static readonly Lazy<string> _logFolderRoot = new(() => Path.Combine(ApplicationData.Current.TemporaryFolder.Path, LogFolderName));
+    private static readonly Lazy<string> _logFolderRoot = new(GetLoggingPath);
 
     public static readonly string LogFolderRoot = _logFolderRoot.Value;
 
@@ -258,4 +258,17 @@ public static class Constants
     public static readonly string StartMenuPinnedStatusErrorMsg = Resources.GetResource(DevBoxUnableToCheckStartMenuPinning, LogFolderRoot);
 
     public static readonly string TaskbarPinnedStatusErrorMsg = Resources.GetResource(DevBoxUnableToCheckTaskbarPinning, LogFolderRoot);
+
+    private static string GetLoggingPath()
+    {
+        try
+        {
+            // This will always result in a returned value in non test scenarios. But will throw when run in a unit test as ApplicationData does not exist.
+            return Path.Combine(ApplicationData.Current.TemporaryFolder.Path, LogFolderName);
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
 }
