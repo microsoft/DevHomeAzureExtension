@@ -252,7 +252,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                             // Find index of line with "Result" in it
                             // The error message is in the next line
                             var errorIndex = Array.FindIndex(logLines, x => x.Contains("Result")) + 1;
-                            var errorMessage = errorIndex > 0 ? logLines[errorIndex] : Resources.GetResource(Constants.DevBoxCheckLogsKey);
+                            var errorMessage = errorIndex >= 0 ? logLines[errorIndex] : Resources.GetResource(Constants.DevBoxCheckLogsKey);
+
 
                             // Make the result info to show in the UI
                             var resultInfo = new ConfigurationUnitResultInformation(
