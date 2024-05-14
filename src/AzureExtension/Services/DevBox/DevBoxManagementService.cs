@@ -50,7 +50,7 @@ public class DevBoxManagementService : IDevBoxManagementService
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
-    public async Task<string> HttpsRequestToDataPlaneWithRawResponse(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    public async Task<string> HttpsRequestToDataPlaneRawResponse(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpDataClient = _authService.GetDataPlaneClient(developerId);
         var result = await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);

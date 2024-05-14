@@ -190,7 +190,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         _applyConfigurationSetResult = new(null, unitResults);
     }
 
-    private void SetStateForCustomizationTaskAsync(TaskJSONToCSClasses.BaseClass response)
+    private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
     {
         var setState = DevBoxOperationHelper.JSONStatusToSetStatus(response.Status);
         _log.Information($"Set Status: {response.Status}");
@@ -234,19 +234,21 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                         var task = _units[i];
                         if (responseStatus == "Failed")
                         {
+                            // Wait for a few seconds before fetching the logs
+                            // otherwise the logs might not be available
                             Thread.Sleep(TimeSpan.FromSeconds(15));
                             var id = response.Tasks[i].Id;
 
                             // Remove the API version from the URI and add 'logs'
                             var logURI = _restAPI.Substring(0, _restAPI.LastIndexOf('?'));
                             logURI += $"/logs/{id}?{Constants.APIVersion}";
-                            var log = _managementService.HttpsRequestToDataPlaneWithRawResponse(new Uri(logURI), _devId, HttpMethod.Get).GetAwaiter().GetResult();
+                            var log = _managementService.HttpsRequestToDataPlaneRawResponse(new Uri(logURI), _devId, HttpMethod.Get).GetAwaiter().GetResult();
 
                             // Split the log into lines
                             var logLines = log.Split('\n');
 
                             // Find index of line with "Result" in it
-                            // The message is in the next line
+                            // The error message is in the next line
                             var errorIndex = Array.FindIndex(logLines, x => x.Contains("Result")) + 1;
 
                             var resultInfo = new ConfigurationUnitResultInformation(
@@ -319,7 +321,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
                     if (response is not null)
                     {
-                        SetStateForCustomizationTaskAsync(response);
+                        SetStateForCustomizationTask(response);
                     }
                 }
 
