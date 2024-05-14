@@ -82,7 +82,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     // Using a common failure result for all the tasks
     // since we don't get any other information from the REST API
     private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
-            new WingetConfigurationException("Runtime Failure"), "Runtime Failure", "Runtime Failure", ConfigurationUnitResultSource.UnitProcessing);
+            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
 
     public WingetConfigWrapper(
         string configuration,
@@ -237,11 +237,13 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                             // Wait for a few seconds before fetching the logs
                             // otherwise the logs might not be available
                             Thread.Sleep(TimeSpan.FromSeconds(15));
-                            var id = response.Tasks[i].Id;
 
-                            // Remove the API version from the URI and add 'logs'
+                            // Make the log API string : Remove the API version from the URI and add 'logs'
                             var logURI = _restAPI.Substring(0, _restAPI.LastIndexOf('?'));
+                            var id = response.Tasks[i].Id;
                             logURI += $"/logs/{id}?{Constants.APIVersion}";
+
+                            // Fetch the logs
                             var log = _managementService.HttpsRequestToDataPlaneRawResponse(new Uri(logURI), _devId, HttpMethod.Get).GetAwaiter().GetResult();
 
                             // Split the log into lines
@@ -251,6 +253,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                             // The error message is in the next line
                             var errorIndex = Array.FindIndex(logLines, x => x.Contains("Result")) + 1;
 
+                            // Make the result info to show in the UI
                             var resultInfo = new ConfigurationUnitResultInformation(
                                 new WingetConfigurationException("Runtime Failure"), logLines[errorIndex], string.Empty, ConfigurationUnitResultSource.UnitProcessing);
                             ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, ConfigurationUnitState.Completed, resultInfo, task));
