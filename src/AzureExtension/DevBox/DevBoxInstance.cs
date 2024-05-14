@@ -677,6 +677,13 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         {
             return "Windows App is not installed on the system";
         }
+
+        PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
+
+        if (!IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+        {
+            return "Older version of Windows App installed on the system";
+        }
         else if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
         {
             return $"ValidateWindowsAppParameters failed with workspaceid={WorkspaceId} displayname={DisplayName} environment={Environment} username={Username}";
