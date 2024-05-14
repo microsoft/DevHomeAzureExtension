@@ -671,7 +671,12 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     private string ValidateWindowsAppParameters()
     {
-        if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
+        var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
+        if (!isWindowsAppInstalled)
+        {
+            return "Windows App is not installed on the system";
+        }
+        else if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
         {
             return $"ValidateWindowsAppParameters failed with workspaceid={WorkspaceId} displayname={DisplayName} environment={Environment} username={Username}";
         }
