@@ -50,7 +50,10 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
                 if (recommendedLanguage.Contains("Rejected", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidDataException(recommendedLanguage);
+                    return new QuickStartProjectResult(
+                        new InvalidDataException(recommendedLanguage),
+                        recommendedLanguage,
+                        $"Requested rejected: '{recommendedLanguage}'");
                 }
 
                 // TelemetryProviderSingleton.Instance.LogGeneratedData("GetRecommendedLanguage", recommendedLanguage);
@@ -116,7 +119,10 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                 }
                 else
                 {
-                    throw new InvalidDataException(nameof(topDocFavoredLanguage));
+                    return new QuickStartProjectResult(
+                        new InvalidDataException(nameof(topDocFavoredLanguage)),
+                        Resources.GetResource(@"QuickstartPlayground_SampleFailureDuringProjectGeneration", recommendedLanguage),
+                        $"Failed to find similar sample for '{recommendedLanguage}'");
                 }
             }
             catch (Azure.RequestFailedException ex) when (string.Equals(ex.ErrorCode, "invalid_api_key", StringComparison.Ordinal))
@@ -128,7 +134,7 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
             }
             catch (Exception ex)
             {
-                return new QuickStartProjectResult(ex, Resources.GetResource(@"QuickstartPlayground_FailureDuringProjectGeneration", currentStep), ex.Message);
+                return new QuickStartProjectResult(ex, Resources.GetResource(@"QuickstartPlayground_FailureDuringProjectGeneration", currentStep, ex.Message), ex.Message);
             }
 
             void ReportProgress(string step, uint progressValue, IExtensionAdaptiveCardSession2? dockerProgressAdapativeCardSession = null)

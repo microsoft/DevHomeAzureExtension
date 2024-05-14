@@ -664,12 +664,16 @@
     <comment>Locked="{0}" Error message shown when we failed to launch the {0} application for the generated Quickstart project.</comment>
   </data>
   <data name="QuickstartPlayground_FailureDuringProjectGeneration" xml:space="preserve">
-    <value>Failure when '{0}'</value>
-    <comment>Locked="{0}" Error message shown when we failed to generate the project where {0} mentions the step that failed.</comment>
+    <value>Failure when '{0}' with message '{1}'</value>
+    <comment>{Locked="{0}", "{1}"} Error message shown when we failed to generate the project where {0} mentions the step that failed and {1} mentions the exception message.</comment>
   </data>
   <data name="QuickstartPlayground_APIKeyFailureDuringProjectGeneration" xml:space="preserve">
     <value>Failure to authenticate with API Key when '{0}'</value>
     <comment>Locked="{0}" Error message shown when we failed with an API key error when generating the project where {0} mentions the step that failed.</comment>
+  </data>
+  <data name="QuickstartPlayground_SampleFailureDuringProjectGeneration" xml:space="preserve">
+    <value>Failed to find reference sample for '{0}'</value>
+    <comment>Locked="{0}" Error message shown when we failed to find the reference sample for the language mentioned by {0}</comment>
   </data>
   <data name="QuickstartPlayground_OpenAI_ClearKey" xml:space="preserve">
     <value>Clear OpenAI key</value>
