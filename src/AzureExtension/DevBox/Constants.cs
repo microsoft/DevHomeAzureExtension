@@ -217,6 +217,11 @@ public static class Constants
     public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
 
     /// <summary>
+    /// Resource key for the error message to show with the log location for the configuration flow.
+    /// </summary>
+    public const string DevBoxCheckLogsKey = "DevBox_CheckLogs";
+
+    /// <summary>
     /// Resource key for the error message when Dev Boxes retrival failed.
     /// </summary>
     public const string RetrivalFailKey = "DevBox_RetrivalFailKey";
