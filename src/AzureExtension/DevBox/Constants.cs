@@ -5,6 +5,7 @@ using System.Text.Json;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Helpers;
 using DevHomeAzureExtension.Helpers;
+using Windows.ApplicationModel;
 using Windows.Storage;
 
 namespace AzureExtension.DevBox;
@@ -170,7 +171,6 @@ public static class Constants
     /// <summary>
     /// Location of the thumbnail that is shown for all Dev Boxes in the UI
     /// </summary>
-    public const string ThumbnailURI = "ms-appx:///AzureExtension/Assets/DevBoxThumbnail.png";
 
     /// <summary>
     /// Location of the provider icon.
@@ -187,10 +187,13 @@ public static class Constants
     /// </remarks>
 #if CANARY_BUILD
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Canary/Files/AzureExtension/Assets/DevBoxProvider.png";
+    public const string ThumbnailURI = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Canary/Files/AzureExtension/Assets/DevBoxThumbnail.png";
 #elif STABLE_BUILD
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension/Files/AzureExtension/Assets/DevBoxProvider.png";
+    public const string ThumbnailURI = "ms-resource://Microsoft.Windows.DevHomeAzureExtension/Files/AzureExtension/Assets/DevBoxThumbnail.png";
 #else
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Dev/Files/AzureExtension/Assets/DevBoxProvider.png";
+    public const string ThumbnailURI = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Dev/Files/AzureExtension/Assets/DevBoxThumbnail.png";
 #endif
 
     /// <summary>
@@ -275,5 +278,13 @@ public static class Constants
         {
             return string.Empty;
         }
+    }
+
+    public static readonly Lazy<byte[]> ThumbnailInBytes = new(GetBloomThumbnailInBytes);
+
+    private static byte[] GetBloomThumbnailInBytes()
+    {
+        var fileLocationOfThumbnail = Resources.GetResourceFromPackage(Constants.ThumbnailURI, Package.Current.Id.FullName);
+        return File.ReadAllBytes(fileLocationOfThumbnail);
     }
 }
