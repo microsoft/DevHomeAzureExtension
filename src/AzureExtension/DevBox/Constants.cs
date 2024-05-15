@@ -284,7 +284,7 @@ public static class Constants
 
     private static byte[] GetBloomThumbnailInBytes()
     {
-        var fileLocationOfThumbnail = Resources.GetResourceFromPackage(Constants.ThumbnailURI, Package.Current.Id.FullName);
+        var fileLocationOfThumbnail = Resources.GetResourceFromPackage(ThumbnailURI, Package.Current.Id.FullName);
         return File.ReadAllBytes(fileLocationOfThumbnail);
     }
 }

@@ -123,7 +123,7 @@ public static class Resources
     }
 
     /// <summary>
-    /// Gets the string of a ms-resource for a given package.
+    /// Gets a string or the absolute file path of an asset location within a package.
     /// </summary>
     /// <param name="resource">the ms-resource:// path to a resource in an app package's pri file.</param>
     /// <param name="packageFullName">the package containing the resource.</param>
