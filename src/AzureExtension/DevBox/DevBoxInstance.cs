@@ -669,9 +669,22 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         }).AsAsyncOperation();
     }
 
-    private string ValidateWindowsAppParameters()
+    private string ValidateWindowsAppAndItsParameters()
     {
-        if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
+        var isWindowsAppInstalled = _packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName);
+
+        if (!isWindowsAppInstalled)
+        {
+            return "Windows App is not installed on the system";
+        }
+
+        PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
+
+        if (!IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+        {
+            return "Older version of Windows App installed on the system";
+        }
+        else if (string.IsNullOrEmpty(WorkspaceId) || string.IsNullOrEmpty(DisplayName) || string.IsNullOrEmpty(Environment) || string.IsNullOrEmpty(Username))
         {
             return $"ValidateWindowsAppParameters failed with workspaceid={WorkspaceId} displayname={DisplayName} environment={Environment} username={Username}";
         }
@@ -685,11 +698,12 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
-            var validationString = ValidateWindowsAppParameters();
-            if (!string.IsNullOrEmpty(validationString))
+            var errorString = ValidateWindowsAppAndItsParameters();
+
+            if (!string.IsNullOrEmpty(errorString))
             {
-                _log.Error(validationString);
-                return new ComputeSystemOperationResult(new InvalidDataException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), validationString);
+                _log.Error(errorString);
+                return new ComputeSystemOperationResult(new InvalidDataException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
             }
 
             var exitcode = ExitCodeInvalid;
@@ -715,7 +729,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                 }
             }
 
-            var errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
+            errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
             _log.Error(errorString);
             return new ComputeSystemOperationResult(new NotSupportedException(), Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey), errorString);
         }).AsAsyncOperation();
@@ -745,7 +759,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
-            var validationString = ValidateWindowsAppParameters();
+            var validationString = ValidateWindowsAppAndItsParameters();
             if (!string.IsNullOrEmpty(validationString))
             {
                 _log.Error(validationString);

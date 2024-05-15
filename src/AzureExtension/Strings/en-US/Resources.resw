@@ -683,4 +683,8 @@
     <value>Settings</value>
     <comment>Display name for settings page.</comment>
   </data>
+  <data name="DevBox_CheckLogs" xml:space="preserve">
+    <value>Please check logs at C:\ProgramData\Microsoft\DevBoxAgent\Logs</value>
+    <comment>Shown for errors in config flow for Dev Boxes which don't have additional info</comment>
+  </data>
 </root>

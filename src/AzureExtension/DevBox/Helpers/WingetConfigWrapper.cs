@@ -232,10 +232,41 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                     if (_oldUnitState[i] != responseStatus)
                     {
                         var task = _units[i];
-                        var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
-                        var resultInfo = responseStatus == "Failed" ? _commonfailureResult : null;
-                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, resultInfo, task));
-                        ConfigurationSetStateChanged?.Invoke(this, args);
+                        if (responseStatus == "Failed")
+                        {
+                            // Wait for a few seconds before fetching the logs
+                            // otherwise the logs might not be available
+                            Thread.Sleep(TimeSpan.FromSeconds(15));
+
+                            // Make the log API string : Remove the API version from the URI and add 'logs'
+                            var logURI = _restAPI.Substring(0, _restAPI.LastIndexOf('?'));
+                            var id = response.Tasks[i].Id;
+                            logURI += $"/logs/{id}?{Constants.APIVersion}";
+
+                            // Fetch the logs
+                            var log = _managementService.HttpsRequestToDataPlaneRawResponse(new Uri(logURI), _devId, HttpMethod.Get).GetAwaiter().GetResult();
+
+                            // Split the log into lines
+                            var logLines = log.Split('\n');
+
+                            // Find index of line with "Result" in it
+                            // The error message is in the next line
+                            var errorIndex = Array.FindIndex(logLines, x => x.Contains("Result")) + 1;
+                            var errorMessage = errorIndex >= 0 ? logLines[errorIndex] : Resources.GetResource(Constants.DevBoxCheckLogsKey);
+
+                            // Make the result info to show in the UI
+                            var resultInfo = new ConfigurationUnitResultInformation(
+                                new WingetConfigurationException("Runtime Failure"), errorMessage, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
+                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, ConfigurationUnitState.Completed, resultInfo, task));
+                            ConfigurationSetStateChanged?.Invoke(this, args);
+                        }
+                        else
+                        {
+                            var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
+                            ConfigurationSetStateChanged?.Invoke(this, args);
+                        }
+
                         _oldUnitState[i] = responseStatus;
                     }
                 }
