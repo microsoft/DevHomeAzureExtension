@@ -736,7 +736,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                 if (!string.IsNullOrEmpty(errorString))
                 {
                     _log.Error(errorString);
-                    throw new InvalidDataException(validationString);
+                    throw new InvalidDataException(errorString);
                 }
 
                 var exitcode = ExitCodeInvalid;
