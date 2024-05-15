@@ -134,7 +134,6 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
                 Prompts =
                 {
                     systemInstructions + "\n\n" + userMessage,
-
                 },
                 Temperature = 0.01F,
                 MaxTokens = 2000,
