@@ -15,7 +15,7 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
 {
     private static readonly Uri _privacyUri = new("https://openai.com/policies/privacy-policy");
     private static readonly Uri _termsUri = new("https://openai.com/policies/terms-of-use");
-    private const string _loginId = "OpenAI";
+    internal const string LoginId = "OpenAI";
 
     public OpenAIDevContainerQuickStartProjectProvider(AzureOpenAIServiceFactory azureOpenAIServiceFactory, IInstalledAppsService installedAppsService)
         : base(
@@ -37,7 +37,7 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
 
         public static QuickStartProjectAdaptiveCardResult GetAdaptiveCard(IAzureOpenAIService azureOpenAIService)
         {
-            if (azureOpenAIService.AICredentialService.GetCredentials(_loginId, _loginId) is not null)
+            if (azureOpenAIService.AICredentialService.GetCredentials(LoginId, LoginId) is not null)
             {
                 return null!;
             }
@@ -124,7 +124,7 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
                             fixed (char* keyPtr = inputPayload.Key)
                             {
                                 SecureString secureString = new(keyPtr, inputPayload.Key.Length);
-                                _azureOpenAIService.AICredentialService.SaveCredentials(_loginId, _loginId, secureString);
+                                _azureOpenAIService.AICredentialService.SaveCredentials(LoginId, LoginId, secureString);
                             }
 
                             _azureOpenAIService.InitializeAIClient();

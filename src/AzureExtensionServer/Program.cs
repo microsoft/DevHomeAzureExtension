@@ -4,6 +4,7 @@
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
 using AzureExtension.DevBox.Models;
+using AzureExtension.Providers;
 using AzureExtension.QuickStartPlayground;
 using AzureExtension.Services.DevBox;
 using DevHomeAzureExtension.DataModel;
@@ -236,6 +237,9 @@ public sealed class Program
             {
                 // Logging
                 services.AddLogging(builder => builder.AddSerilog(dispose: true));
+
+                // Settings
+                services.AddTransient<SettingsProvider>();
 
                 // Dev Box
                 services.AddHttpClient();
