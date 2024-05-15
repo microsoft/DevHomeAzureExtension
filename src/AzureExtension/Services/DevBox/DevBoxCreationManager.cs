@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Collections.Generic;
 using System.Text.Json;
 using AzureExtension.Contracts;
 using AzureExtension.DevBox;
@@ -10,7 +9,6 @@ using AzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace AzureExtension.Services.DevBox;
 
