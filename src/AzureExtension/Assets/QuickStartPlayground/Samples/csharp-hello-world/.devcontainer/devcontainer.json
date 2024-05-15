@@ -1,0 +1,16 @@
+{
+    "name": "C#",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "ms-dotnettools.csharp"
+            ]
+        }
+    },
+    "postCreateCommand": "dotnet restore"
+}

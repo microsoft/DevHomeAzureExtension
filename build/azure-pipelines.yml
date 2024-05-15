@@ -24,6 +24,9 @@ variables:
   solution: '**/DevHomeAzureExtension.sln'
   appxPackageDir: 'AppxPackages'
   testOutputArtifactDir: 'TestResults'
+  DisableDockerDetector: true
+  cfsNpmWarnLevel: 'warn'
+  cfsCargoWarnLevel: 'warn'
 
 resources:
   repositories:
