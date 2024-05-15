@@ -1,0 +1,17 @@
+{
+    "name": "Vue Calculator",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "Vue.volar",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    },
+    "postCreateCommand": "npm install && npm i vue@3.2.26"
+}

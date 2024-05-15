@@ -45,6 +45,7 @@
                   <Repository />
                   <ComputeSystem />
                   <QuickStartProject />
+                  <Settings />
                 </SupportedInterfaces>
               </DevHomeProvider>
             </uap3:Properties>

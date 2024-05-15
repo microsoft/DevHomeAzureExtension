@@ -7,6 +7,7 @@ using System.Text.Json;
 using AzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 using Windows.Storage;
 
@@ -14,6 +15,8 @@ namespace AzureExtension.QuickStartPlayground;
 
 public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerationOperation
 {
+    private static readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevContainerGenerationOperation));
+
     private readonly string _prompt;
     private readonly StorageFolder _outputFolder;
     private readonly IAzureOpenAIService _azureOpenAIService;
@@ -44,20 +47,20 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
             try
             {
-                // TelemetryProviderSingleton.Instance.LogPrompt(userPrompt);
                 ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetRecommendedLanguage"), 0);
                 var recommendedLanguage = await Completions.GetRecommendedLanguageAsync(_azureOpenAIService, _prompt);
 
                 if (recommendedLanguage.Contains("Rejected", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidDataException(recommendedLanguage);
+                    return new QuickStartProjectResult(
+                        new InvalidDataException(recommendedLanguage),
+                        recommendedLanguage,
+                        $"Requested rejected: '{recommendedLanguage}'");
                 }
 
-                // TelemetryProviderSingleton.Instance.LogGeneratedData("GetRecommendedLanguage", recommendedLanguage);
                 ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetEnrichedPrompt"), 8);
                 var enrichedPrompt = await Completions.GetEnrichedPromptAsync(_azureOpenAIService, _prompt, recommendedLanguage);
 
-                // TelemetryProviderSingleton.Instance.LogGeneratedData("GetEnrichedPrompt", enrichedPrompt);
                 ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetSamples"), 10);
                 var samples = await GetSamplesAsync();
 
@@ -69,18 +72,16 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                 var topDocFavoredLanguage = favoredLanguageCosineSortedSamples.First().Sample;
                 if (topDocFavoredLanguage != null && topDocFavoredLanguage.Name != null)
                 {
-                    // TelemetryProviderSingleton.Instance.LogGeneratedData("GetTopDocFavoredLanguage", topDocFavoredLanguage.Name);
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetContainerFiles"), 50);
                     var codeSpacesCompletion = await Completions.GetDevContainerFilesAsync(_azureOpenAIService, enrichedPrompt, topDocFavoredLanguage);
 
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetStarterCode"), 70);
-                    var codeCompletion = await Completions.GetStarterCodeAsync(_azureOpenAIService, enrichedPrompt, codeSpacesCompletion, topDoc);
+                    var codeCompletion = await Completions.GetStarterCodeAsync(_azureOpenAIService, enrichedPrompt, codeSpacesCompletion, topDocFavoredLanguage);
 
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_GetReadme"), 80);
                     var readmeCompletion = await Completions.GetProjectReadmeAsync(_azureOpenAIService, enrichedPrompt, codeSpacesCompletion, codeCompletion);
                     var codeSpaceDefinitionString = codeSpacesCompletion + "\r\n" + codeCompletion + "\r\n" + readmeCompletion;
 
-                    // TelemetryProviderSingleton.Instance.LogGeneratedData("GetDefinition", codeSpaceDefinitionString);
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_WriteOutput"), 85);
                     CreateFilesInOutputFolder(codeSpaceDefinitionString, _outputFolder);
 
@@ -109,14 +110,21 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_Done"), 100, dockerProgressUIController);
 
+                    var sampleDirectory = Path.Combine(AppContext.BaseDirectory, "AzureExtension\\Assets\\QuickstartPlayground\\Samples", topDocFavoredLanguage.Name);
+                    var sampleUri = new Uri(sampleDirectory);
+                    _log.Information($"Using {sampleUri.AbsoluteUri} as sample reference.");
+
                     return QuickStartProjectResult.CreateWithFeedbackHandler(
                         DevContainerProjectHost.GetProjectHosts(_outputFolder.Path, await IsVisualStudioCodeInsidersInstalled()),
-                        [_azureOpenAIService.GetEmbeddingsFile()],
+                        [sampleUri],
                         new DevContainerProjectFeedback(_prompt));
                 }
                 else
                 {
-                    throw new InvalidDataException(nameof(topDocFavoredLanguage));
+                    return new QuickStartProjectResult(
+                        new InvalidDataException(nameof(topDocFavoredLanguage)),
+                        Resources.GetResource(@"QuickstartPlayground_SampleFailureDuringProjectGeneration", recommendedLanguage),
+                        $"Failed to find similar sample for '{recommendedLanguage}'");
                 }
             }
             catch (Azure.RequestFailedException ex) when (string.Equals(ex.ErrorCode, "invalid_api_key", StringComparison.Ordinal))
@@ -128,7 +136,7 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
             }
             catch (Exception ex)
             {
-                return new QuickStartProjectResult(ex, Resources.GetResource(@"QuickstartPlayground_FailureDuringProjectGeneration", currentStep), ex.Message);
+                return new QuickStartProjectResult(ex, Resources.GetResource(@"QuickstartPlayground_FailureDuringProjectGeneration", currentStep, ex.Message), ex.Message);
             }
 
             void ReportProgress(string step, uint progressValue, IExtensionAdaptiveCardSession2? dockerProgressAdapativeCardSession = null)

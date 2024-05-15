@@ -412,8 +412,16 @@
     <comment>Error text to show the user when multiple operations are requested of the Dev Box provider without letting previous operations complete first.</comment>
   </data>
   <data name="DevBox_UnableToPerformRequestedOperation" xml:space="preserve">
-    <value>There was an error performing the requested operation. Error {0}</value>
-    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to performa user requested action. {0} is the error information received after attempting the call.</comment>
+    <value>There was an error performing the requested operation, for more information please view the log file {0}</value>
+    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to perform a user requested action. {0} is the location of the log file.</comment>
+  </data>
+  <data name="DevBox_UnableToCheckStartMenuPinningStatus" xml:space="preserve">
+    <value>Unable to confirm if the Dev Box is currently pinned to the start menu. For more information please view the log file {0}</value>
+    <comment>Error text that we present the user when the Dev Box provider is unable check whether or not the dev box is pinned to the start menu</comment>
+  </data>
+  <data name="DevBox_UnableToCheckTaskbarPinningStatus" xml:space="preserve">
+    <value>Unable to confirm if the Dev Box is currently pinned to the taskbar. For more information please view the log file {0}</value>
+    <comment>Error text that we present the user when the Dev Box provider is unable check whether or not the dev box is pinned to the taskbar</comment>
   </data>
   <data name="SelectionOptionsPrompt" xml:space="preserve">
     <value>Change Path</value>
@@ -664,11 +672,27 @@
     <comment>Locked="{0}" Error message shown when we failed to launch the {0} application for the generated Quickstart project.</comment>
   </data>
   <data name="QuickstartPlayground_FailureDuringProjectGeneration" xml:space="preserve">
-    <value>Failure when '{0}'</value>
-    <comment>Locked="{0}" Error message shown when we failed to generate the project where {0} mentions the step that failed.</comment>
+    <value>Failure when '{0}' with message '{1}'</value>
+    <comment>{Locked="{0}", "{1}"} Error message shown when we failed to generate the project where {0} mentions the step that failed and {1} mentions the exception message.</comment>
   </data>
   <data name="QuickstartPlayground_APIKeyFailureDuringProjectGeneration" xml:space="preserve">
     <value>Failure to authenticate with API Key when '{0}'</value>
     <comment>Locked="{0}" Error message shown when we failed with an API key error when generating the project where {0} mentions the step that failed.</comment>
-  </data>	
+  </data>
+  <data name="QuickstartPlayground_SampleFailureDuringProjectGeneration" xml:space="preserve">
+    <value>Failed to find reference sample for '{0}'</value>
+    <comment>Locked="{0}" Error message shown when we failed to find the reference sample for the language mentioned by {0}</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_ClearKey" xml:space="preserve">
+    <value>Clear OpenAI key</value>
+    <comment>{Locked="OpenAI"} Text of button to clear OpenAI key.</comment>
+  </data>
+  <data name="SettingsProviderDisplayName" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Display name for settings page.</comment>
+  </data>
+  <data name="DevBox_CheckLogs" xml:space="preserve">
+    <value>Please check logs at C:\ProgramData\Microsoft\DevBoxAgent\Logs</value>
+    <comment>Shown for errors in config flow for Dev Boxes which don't have additional info</comment>
+  </data>
 </root>
