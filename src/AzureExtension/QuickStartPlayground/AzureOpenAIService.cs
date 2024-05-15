@@ -133,7 +133,8 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
                 DeploymentName = CompletionDeploymentName,
                 Prompts =
                 {
-                    systemInstructions + "\n" + userMessage,
+                    systemInstructions + "\n\n" + userMessage,
+
                 },
                 Temperature = 0.01F,
                 MaxTokens = 2000,
