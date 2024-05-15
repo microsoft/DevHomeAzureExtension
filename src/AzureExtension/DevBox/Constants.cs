@@ -169,11 +169,7 @@ public static class Constants
     };
 
     /// <summary>
-    /// Location of the thumbnail that is shown for all Dev Boxes in the UI
-    /// </summary>
-
-    /// <summary>
-    /// Location of the provider icon.
+    /// Location of the provider icon and Dev Box bloom thumbnail icon.
     /// </summary>
     /// <remarks>
     /// We use different icon locations for different builds. Note these are ms-resource URIs, but are used by Dev Home to load the providers icon,
