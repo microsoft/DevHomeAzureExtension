@@ -279,7 +279,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
             var itemsData = new JsonObject();
             var itemsArray = new JsonArray();
 
-            foreach (var element in pullRequestsResults)
+            foreach (var element in pullRequestsResults!)
             {
                 var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
 
