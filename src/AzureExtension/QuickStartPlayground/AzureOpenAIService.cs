@@ -42,7 +42,7 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
     {
         const string openAILoginId = "OpenAI";
 
-        CompletionDeploymentName = "gpt-3.5-turbo";
+        CompletionDeploymentName = "gpt-3.5-turbo-instruct";
         EmbeddingDeploymentName = "text-embedding-3-small";
 
         var secureOpenAIAccessToken = AICredentialService.GetCredentials(openAILoginId, openAILoginId);
@@ -56,7 +56,7 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
     private void InitializeAzureOpenAIClient()
     {
 #if DEBUG
-        Dictionary<string, string> config;
+        Dictionary<string, string>? config;
         var binaryPath = Assembly.GetExecutingAssembly().Location;
         var binaryDirectory = Path.GetDirectoryName(binaryPath) ?? throw new DirectoryNotFoundException($"Couldn't get directory name for {binaryPath}");
         var filePath = Path.Combine(binaryDirectory, "config.json");
@@ -127,16 +127,16 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
         var openAIClient = OpenAIClient;
         ArgumentNullException.ThrowIfNull(openAIClient);
 
-        var response = await openAIClient.GetChatCompletionsAsync(
-            new ChatCompletionsOptions()
+        var response = await openAIClient.GetCompletionsAsync(
+            new CompletionsOptions()
             {
                 DeploymentName = CompletionDeploymentName,
-                Messages =
+                Prompts =
                 {
-                        new ChatRequestSystemMessage(systemInstructions),
-                        new ChatRequestUserMessage(userMessage),
+                    systemInstructions + "\n\n" + userMessage,
                 },
                 Temperature = 0.01F,
+                MaxTokens = 2000,
             });
 
         if (response.Value.Choices[0].FinishReason == CompletionsFinishReason.TokenLimitReached)
@@ -145,6 +145,6 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
             Console.WriteLine("Cut off due to length constraints");
         }
 
-        return response.Value.Choices[0].Message.Content;
+        return response.Value.Choices[0].Text;
     }
 }

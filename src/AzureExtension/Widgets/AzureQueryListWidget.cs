@@ -290,7 +290,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
             var itemsData = new JsonObject();
             var itemsArray = new JsonArray();
 
-            foreach (var element in queryResults)
+            foreach (var element in queryResults!)
             {
                 var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
 
