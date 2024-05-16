@@ -619,6 +619,10 @@
     <value>Please also see these [terms and conditions](https://openai.com/policies) for using OpenAI.</value>
     <comment>{Locked="https://openai.com/policies"} Third message in adaptive card to set OpenAI key.</comment>
   </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text4" xml:space="preserve">
+    <value>NOTE: You need to have available paid credits in your OpenAI account to use this feature. If you do not have credits, you will see an 'API key quota exceeded' error.</value>
+    <comment>Fourth message in adaptive card to set OpenAI key.</comment>
+  </data>
   <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Image_AltText" xml:space="preserve">
     <value>Create OpenAI key</value>
     <comment>Alt text for image showing OpenAI API key UI.</comment>
