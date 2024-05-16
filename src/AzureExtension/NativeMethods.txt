@@ -3,3 +3,4 @@ CredRead
 CredFree
 CredDelete
 WIN32_ERROR
+SHLoadIndirectString
