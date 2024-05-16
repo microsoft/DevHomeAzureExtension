@@ -56,7 +56,7 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
     private void InitializeAzureOpenAIClient()
     {
 #if DEBUG
-        Dictionary<string, string> config;
+        Dictionary<string, string>? config;
         var binaryPath = Assembly.GetExecutingAssembly().Location;
         var binaryDirectory = Path.GetDirectoryName(binaryPath) ?? throw new DirectoryNotFoundException($"Couldn't get directory name for {binaryPath}");
         var filePath = Path.Combine(binaryDirectory, "config.json");
