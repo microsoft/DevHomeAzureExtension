@@ -412,8 +412,16 @@
     <comment>Error text to show the user when multiple operations are requested of the Dev Box provider without letting previous operations complete first.</comment>
   </data>
   <data name="DevBox_UnableToPerformRequestedOperation" xml:space="preserve">
-    <value>There was an error performing the requested operation. Error {0}</value>
-    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to performa user requested action. {0} is the error information received after attempting the call.</comment>
+    <value>There was an error performing the requested operation, for more information please view the log file {0}</value>
+    <comment>Locked="{0}" Error text that we present the user when the Dev Box provider returns an error while attempting to perform a user requested action. {0} is the location of the log file.</comment>
+  </data>
+  <data name="DevBox_UnableToCheckStartMenuPinningStatus" xml:space="preserve">
+    <value>Unable to confirm if the Dev Box is currently pinned to the start menu. For more information please view the log file {0}</value>
+    <comment>Error text that we present the user when the Dev Box provider is unable check whether or not the dev box is pinned to the start menu</comment>
+  </data>
+  <data name="DevBox_UnableToCheckTaskbarPinningStatus" xml:space="preserve">
+    <value>Unable to confirm if the Dev Box is currently pinned to the taskbar. For more information please view the log file {0}</value>
+    <comment>Error text that we present the user when the Dev Box provider is unable check whether or not the dev box is pinned to the taskbar</comment>
   </data>
   <data name="SelectionOptionsPrompt" xml:space="preserve">
     <value>Change Path</value>
@@ -480,7 +488,7 @@
     <comment>Error text to show the user when the was an error getting the review page for dev box creation wizard</comment>
   </data>
   <data name="DevBox_TextBoxErrorMessage" xml:space="preserve">
-    <value>Please enter a name that contains more than three characters, uses only alphanumeric characters and hyphens, and does not start with a hypen</value>
+    <value>Please enter a name that contains more than three characters, uses only alphanumeric characters and hyphens, and does not start with a hyphen</value>
     <comment>Error text to show the user when the name of the new Dev Box they've entered does not match the criteria</comment>
   </data>
   <data name="DevBox_ProjectComboBoxErrorMessage" xml:space="preserve">
@@ -510,5 +518,185 @@
   <data name="DevBox_ValidationFailedKey" xml:space="preserve">
     <value>Validation failed for configuration</value>
     <comment>Error message when validation fails for a configuration file.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Description" xml:space="preserve">
+    <value>You have an action item to follow</value>
+    <comment>Text describing the purpose of the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_InnerDescription" xml:space="preserve">
+    <value>Please log in to the Dev Box to continue the set up.</value>
+    <comment>Warning description text in the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Text" xml:space="preserve">
+    <value>Log in required</value>
+    <comment>Warning text in the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_Title" xml:space="preserve">
+    <value>Please logon to your Dev Box</value>
+    <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
+  </data>
+  <data name="DevBox_NoDefaultUserFailKey" xml:space="preserve">
+    <value>No default user logged in. Please login from the Settings page.</value>
+    <comment>Error shown when no user name is sent to the extension.</comment>
+  </data>
+  <data name="DevBox_NotRunningFailedKey" xml:space="preserve">
+    <value>The Dev Box isn't running. Please start the Dev Box and try again.</value>
+    <comment>Error shown when the operation fails due to the Dev Box not currently running.</comment>
+  </data>
+  <data name="DevBox_AdaptiveCard_ResumeText" xml:space="preserve">
+    <value>Resume</value>
+    <comment>Text shown in the button to resume operations.</comment>
+  </data>
+  <data name="QuickStartProjectProviderUsingAzureOpenAIDisplayName" xml:space="preserve">
+    <value>Dev Container using Azure OpenAI</value>
+    <comment>{Locked="{Dev Container}", "{Azure}", "{OpenAI}"} Shown on the available QuickStartProject providers page</comment>
+  </data>
+  <data name="QuickStartProjectProviderUsingOpenAIDisplayName" xml:space="preserve">
+    <value>Dev Container using OpenAI</value>
+    <comment>{Locked="{Dev Container}", "{OpenAI}"} Shown on the available QuickStartProject providers page</comment>
+  </data>
+  <data name="QuickstartPlayground_ExamplePrompt1" xml:space="preserve">
+    <value>Create a portfolio website with NodeJS and Vue</value>
+    <comment>First example prompt to instruct how to use the Quickstart Playground feature</comment>
+  </data>
+  <data name="QuickstartPlayground_ExamplePrompt2" xml:space="preserve">
+    <value>Create a machine learning project with Python</value>
+    <comment>Second example prompt to instruct how to use the Quickstart Playground feature</comment>
+  </data>
+  <data name="QuickstartPlayground_ExamplePrompt3" xml:space="preserve">
+    <value>Create a new environment for building command line applications in C++</value>
+    <comment>Third example prompt to instruct how to use the Quickstart Playground feature</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetRecommendedLanguage" xml:space="preserve">
+    <value>Getting recommended language</value>
+    <comment>First step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetEnrichedPrompt" xml:space="preserve">
+    <value>Getting enriched prompt</value>
+    <comment>Second step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetSamples" xml:space="preserve">
+    <value>Getting samples</value>
+    <comment>Third step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetEmbeddings" xml:space="preserve">
+    <value>Finding most similar sample</value>
+    <comment>Fourth step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetContainerFiles" xml:space="preserve">
+    <value>Getting container files for environment</value>
+    <comment>Fifth step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetStarterCode" xml:space="preserve">
+    <value>Getting starter code</value>
+    <comment>Sixth step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_GetReadme" xml:space="preserve">
+    <value>Generating README file</value>
+    <comment>{Locked="README"} Seventh step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_WriteOutput" xml:space="preserve">
+    <value>Writing files to output folder</value>
+    <comment>Eighth step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_DockerValidation" xml:space="preserve">
+    <value>Verifying Docker image, this may take a while</value>
+    <comment>{Locked="Docker"} Nineth step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_Progress_Done" xml:space="preserve">
+    <value>Done!</value>
+    <comment>Last step in Quickstart Playground project generation</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text1" xml:space="preserve">
+    <value>To access this project, you need to add an OpenAI API key.</value>
+    <comment>First message in adaptive card to set OpenAI key.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text2" xml:space="preserve">
+    <value>Please click [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys), login to your OpenAI account, and create a new secret key.  Upon creation, paste the key below.</value>
+    <comment>{Locked="https://platform.openai.com/api-keys"} Second message in adaptive card to set OpenAI key.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text3" xml:space="preserve">
+    <value>Please also see these [terms and conditions](https://openai.com/policies) for using OpenAI.</value>
+    <comment>{Locked="https://openai.com/policies"} Third message in adaptive card to set OpenAI key.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text4" xml:space="preserve">
+    <value>NOTE: You need to have available paid credits in your OpenAI account to use this feature. If you do not have credits, you will see an 'API key quota exceeded' error.</value>
+    <comment>Fourth message in adaptive card to set OpenAI key.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Image_AltText" xml:space="preserve">
+    <value>Create OpenAI key</value>
+    <comment>Alt text for image showing OpenAI API key UI.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input" xml:space="preserve">
+    <value>OpenAI API Key</value>
+    <comment>Text placeholder for OpenAI API key input field.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input_ErrorMsg" xml:space="preserve">
+    <value>API Key is required.</value>
+    <comment>Error message for OpenAI API key input field.</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_InvalidAPIKey" xml:space="preserve">
+    <value>Invalid API Key</value>
+    <comment>Error message for invalid API key.</comment>
+  </data>
+  <data name="Continue" xml:space="preserve">
+    <value>Continue</value>
+    <comment>Text for continue button.</comment>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Text for cancel button.</comment>
+  </data>
+  <data name="QuickstartPlayground_Dependency_AppNameHeader" xml:space="preserve">
+    <value>App Name</value>
+    <comment>Column header on Adaptive Card for name of apps</comment>
+  </data>
+  <data name="QuickstartPlayground_Dependency_CancelAction" xml:space="preserve">
+    <value>Cancel</value>
+    <comment>Shown on button for canceling out of the dependency setup process</comment>
+  </data>
+  <data name="QuickstartPlayground_Dependency_CardInstructions" xml:space="preserve">
+    <value>To use this feature, please install the dependencies below</value>
+    <comment>Instruction statement on Adaptive Card to help user set up Quickstart dependencies</comment>
+  </data>
+  <data name="QuickstartPlayground_Dependency_CardName" xml:space="preserve">
+    <value>Dependency Checker</value>
+    <comment>Title of Adaptive Card to help user set up Quickstart dependencies</comment>
+  </data>
+  <data name="QuickstartPlayground_Dependency_DownloadHeader" xml:space="preserve">
+    <value>Installer Webpage</value>
+    <comment>Column header on Adaptive Card for where to download the associated app</comment>
+  </data>
+  <data name="QuickstartPlayground_Dependency_RefreshStatusAction" xml:space="preserve">
+    <value>Refresh Status</value>
+    <comment>Shown on button for requerying the state of dependencies needed by the Quickstart feature</comment>
+  </data>
+  <data name="QuickstartPlayground_FailedToLaunch" xml:space="preserve">
+    <value>Failed to launch {0}</value>
+    <comment>Locked="{0}" Error message shown when we failed to launch the {0} application for the generated Quickstart project.</comment>
+  </data>
+  <data name="QuickstartPlayground_FailureDuringProjectGeneration" xml:space="preserve">
+    <value>Failure when '{0}' with message '{1}'</value>
+    <comment>{Locked="{0}", "{1}"} Error message shown when we failed to generate the project where {0} mentions the step that failed and {1} mentions the exception message.</comment>
+  </data>
+  <data name="QuickstartPlayground_APIKeyFailureDuringProjectGeneration" xml:space="preserve">
+    <value>Failure to authenticate with API Key when '{0}'</value>
+    <comment>Locked="{0}" Error message shown when we failed with an API key error when generating the project where {0} mentions the step that failed.</comment>
+  </data>
+  <data name="QuickstartPlayground_SampleFailureDuringProjectGeneration" xml:space="preserve">
+    <value>Failed to find reference sample for '{0}'</value>
+    <comment>Locked="{0}" Error message shown when we failed to find the reference sample for the language mentioned by {0}</comment>
+  </data>
+  <data name="QuickstartPlayground_OpenAI_ClearKey" xml:space="preserve">
+    <value>Clear OpenAI key</value>
+    <comment>{Locked="OpenAI"} Text of button to clear OpenAI key.</comment>
+  </data>
+  <data name="SettingsProviderDisplayName" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Display name for settings page.</comment>
+  </data>
+  <data name="DevBox_CheckLogs" xml:space="preserve">
+    <value>Please check logs at C:\ProgramData\Microsoft\DevBoxAgent\Logs</value>
+    <comment>Shown for errors in config flow for Dev Boxes which don't have additional info</comment>
   </data>
 </root>

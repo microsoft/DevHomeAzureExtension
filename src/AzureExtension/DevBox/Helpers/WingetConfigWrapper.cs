@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
+using AzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
@@ -12,7 +13,7 @@ using YamlDotNet.Serialization.NamingConventions;
 
 namespace AzureExtension.DevBox.Helpers;
 
-public class WingetConfigWrapper : IApplyConfigurationOperation
+public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 {
     // Example of the JSON payload for the customization task
     //  {
@@ -29,7 +30,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
     public const string WingetTaskJsonBaseStart = "{\"tasks\": [";
 
     public const string WingetTaskJsonTaskStart = @"{
-            ""name"": ""Quickstart-Catalog-Tasks/winget"",
+            ""name"": ""winget"",
 			""runAs"": ""User"",
             ""parameters"": {
                 ""inlineConfigurationBase64"": """;
@@ -41,6 +42,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
     public const string ConfigApplyFailedKey = "DevBox_ConfigApplyFailedKey";
 
     public const string ValidationFailedKey = "DevBox_ValidationFailedKey";
+
+    public const string NotRunningFailedKey = "DevBox_NotRunningFailedKey";
 
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
@@ -68,30 +71,48 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
 
     private Serilog.ILogger _log;
 
-    private ConfigurationUnitState[] _oldUnitState = Array.Empty<ConfigurationUnitState>();
+    private string[] _oldUnitState = Array.Empty<string>();
 
     private bool _pendingNotificationShown;
 
-    public WingetConfigWrapper(string configuration, string taskAPI, IDevBoxManagementService devBoxManagementService, IDeveloperId associatedDeveloperId, Serilog.ILogger log)
+    private ManualResetEvent _resumeEvent = new(false);
+
+    private ComputeSystemState _computeSystemState;
+
+    // Using a common failure result for all the tasks
+    // since we don't get any other information from the REST API
+    private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
+            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
+
+    public WingetConfigWrapper(
+        string configuration,
+        string taskAPI,
+        IDevBoxManagementService devBoxManagementService,
+        IDeveloperId associatedDeveloperId,
+        Serilog.ILogger log,
+        ComputeSystemState computeSystemState)
     {
         _restAPI = taskAPI;
         _managementService = devBoxManagementService;
         _devId = associatedDeveloperId;
         _log = log;
-        Initialize(configuration);
+        _computeSystemState = computeSystemState;
+
+        // If the dev box isn't running, skip initialization
+        // Later this logic will be changed to start the dev box
+        if (_computeSystemState == ComputeSystemState.Running)
+        {
+            Initialize(configuration);
+        }
     }
 
     public void Initialize(string configuration)
     {
         List<ConfigurationUnit> units = new();
 
-        // Remove " dependsOn: -'Git.Git | Install: Git'" from the configuration
-        // This is a workaround as the current implementation does not support dependsOn
-        configuration = configuration.Replace("dependsOn:", string.Empty);
-        configuration = configuration.Replace("- 'Git.Git | Install: Git'", string.Empty);
-
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
             .Build();
         var baseDSC = deserializer.Deserialize<TaskYAMLToCSClasses.BasePackage>(configuration);
 
@@ -110,7 +131,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
 
             var serializer = new SerializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
-                .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitEmptyCollections)
+                .ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitEmptyCollections | DefaultValuesHandling.OmitNull)
                 .Build();
 
             foreach (var resource in resources)
@@ -129,6 +150,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
 
                 // Add the resource back as an individual task
                 var tempDsc = baseDSC;
+
+                // Remove "dependsOn:" from the configuration
+                // This is a workaround as the current implementation breaks down the task into individual tasks
+                // and we cannot have dependencies between them
+                resource.DependsOn = null;
                 tempDsc?.Properties?.SetResources(new List<TaskYAMLToCSClasses.ResourceItem> { resource });
                 var yaml = serializer.Serialize(tempDsc);
                 var encodedConfiguration = DevBoxOperationHelper.Base64Encode(yaml);
@@ -141,8 +167,27 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
             _fullTaskJSON = fullTask.ToString();
 
             _units = units;
-            _oldUnitState = Enumerable.Repeat(ConfigurationUnitState.Unknown, units.Count).ToArray();
+            _oldUnitState = Enumerable.Repeat(string.Empty, units.Count).ToArray();
         }
+    }
+
+    private void HandleEndState(TaskJSONToCSClasses.BaseClass response, bool isSetSuccessful = false)
+    {
+        List<ApplyConfigurationUnitResult> unitResults = new();
+        for (var i = 0; i < _units.Count; i++)
+        {
+            var task = _units[i];
+            if (isSetSuccessful || response.Tasks[i].Status == "Succeeded")
+            {
+                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
+            }
+            else
+            {
+                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, _commonfailureResult));
+            }
+        }
+
+        _applyConfigurationSetResult = new(null, unitResults);
     }
 
     private void SetStateForCustomizationTask(TaskJSONToCSClasses.BaseClass response)
@@ -164,42 +209,91 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 break;
 
             case "Running":
+                bool isAnyTaskRunning = false;
+                bool isWaitingForUserSession = false;
                 for (var i = 0; i < _units.Count; i++)
                 {
-                    var task = _units[i];
-                    var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(response.Tasks[i].Status);
-                    if (_oldUnitState[i] != unitState)
+                    var responseStatus = response.Tasks[i].Status;
+                    _log.Information($"Unit Response Status: {responseStatus}");
+
+                    // If the status is waiting for a user session, there is no need to check for other
+                    // individual task statuses.
+                    if (responseStatus == "WaitingForUserSession")
                     {
-                        ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
-                        ConfigurationSetStateChanged?.Invoke(this, args);
-                        _oldUnitState[i] = unitState;
+                        isWaitingForUserSession = true;
+                        continue;
                     }
 
-                    _log.Information($"Unit Status: {unitState}");
+                    if (responseStatus == "Running")
+                    {
+                        isAnyTaskRunning = true;
+                    }
+
+                    if (_oldUnitState[i] != responseStatus)
+                    {
+                        var task = _units[i];
+                        if (responseStatus == "Failed")
+                        {
+                            // Wait for a few seconds before fetching the logs
+                            // otherwise the logs might not be available
+                            Thread.Sleep(TimeSpan.FromSeconds(15));
+
+                            // Make the log API string : Remove the API version from the URI and add 'logs'
+                            var logURI = _restAPI.Substring(0, _restAPI.LastIndexOf('?'));
+                            var id = response.Tasks[i].Id;
+                            logURI += $"/logs/{id}?{Constants.APIVersion}";
+
+                            // Fetch the logs
+                            var log = _managementService.HttpsRequestToDataPlaneRawResponse(new Uri(logURI), _devId, HttpMethod.Get).GetAwaiter().GetResult();
+
+                            // Split the log into lines
+                            var logLines = log.Split('\n');
+
+                            // Find index of line with "Result" in it
+                            // The error message is in the next line
+                            var errorIndex = Array.FindIndex(logLines, x => x.Contains("Result")) + 1;
+                            var errorMessage = errorIndex >= 0 ? logLines[errorIndex] : Resources.GetResource(Constants.DevBoxCheckLogsKey);
+
+                            // Make the result info to show in the UI
+                            var resultInfo = new ConfigurationUnitResultInformation(
+                                new WingetConfigurationException("Runtime Failure"), errorMessage, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
+                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, ConfigurationUnitState.Completed, resultInfo, task));
+                            ConfigurationSetStateChanged?.Invoke(this, args);
+                        }
+                        else
+                        {
+                            var unitState = DevBoxOperationHelper.JSONStatusToUnitStatus(responseStatus);
+                            ConfigurationSetStateChangedEventArgs args = new(new(ConfigurationSetChangeEventType.UnitStateChanged, setState, unitState, null, task));
+                            ConfigurationSetStateChanged?.Invoke(this, args);
+                        }
+
+                        _oldUnitState[i] = responseStatus;
+                    }
                 }
 
-                break;
-
-            case "Succeeded":
-                List<ApplyConfigurationUnitResult> unitResults = new();
-                for (var i = 0; i < _units.Count; i++)
+                // If waiting for user session and no task is running, show the adaptive card
+                // We add a wait since Dev Boxes take a little over 2 minutes to start applying
+                // the configuration and we don't want to show the same message immediately after.
+                if (isWaitingForUserSession && !isAnyTaskRunning)
                 {
-                    var task = _units[i];
-                    unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, null));
+                    ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
+                    ActionRequired?.Invoke(this, eventArgs);
+                    WaitHandle.WaitAny(new[] { _resumeEvent });
+                    Thread.Sleep(TimeSpan.FromSeconds(135));
                 }
 
-                _applyConfigurationSetResult = new(null, unitResults);
                 break;
 
             case "ValidationFailed":
                 _openConfigurationSetResult = new(new FormatException(Resources.GetResource(ValidationFailedKey)), null, null, 0, 0);
                 break;
 
+            case "Succeeded":
+                HandleEndState(response);
+                break;
+
             case "Failed":
-                // To Do: Add case. Currently the API only checks if Winget started the task.
-                // Does not check if the task failed.
-                // Send UnitStateChanged event for the failed task with ResultInfo and ResultSource as UnitProcessing
-                // _applyConfigurationSetResult = new(new ApplicationException(Resources.GetResource(ConfigApplyFailedKey)), null);
+                HandleEndState(response);
                 break;
         }
     }
@@ -210,6 +304,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
         {
             try
             {
+                if (_computeSystemState != ComputeSystemState.Running)
+                {
+                    throw new InvalidOperationException(Resources.GetResource(NotRunningFailedKey));
+                }
+
                 _log.Information($"Applying config {_fullTaskJSON}");
 
                 HttpContent httpContent = new StringContent(_fullTaskJSON, Encoding.UTF8, "application/json");
@@ -238,5 +337,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation
                 return new ApplyConfigurationResult(ex, Resources.GetResource(Constants.DevBoxUnableToPerformOperationKey, ex.Message), ex.Message);
             }
         }).AsAsyncOperation();
+    }
+
+    void IDisposable.Dispose()
+    {
+        _resumeEvent?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

@@ -63,6 +63,8 @@ public class TaskYAMLToCSClasses
         public Settings? Settings { get; set; }
 
         public string Id { get; set; } = string.Empty;
+
+        public List<string>? DependsOn { get; set; }
     }
 
     public class Directives
@@ -70,6 +72,8 @@ public class TaskYAMLToCSClasses
         public string Description { get; set; } = string.Empty;
 
         public bool? AllowPrerelease { get; set; }
+
+        public string SecurityContext { get; set; } = "current";
     }
 
     public class Settings

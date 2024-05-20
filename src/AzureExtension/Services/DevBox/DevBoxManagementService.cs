@@ -1,7 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -35,17 +37,43 @@ public class DevBoxManagementService : IDevBoxManagementService
     public async Task<DevBoxHttpsRequestResult> HttpsRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpManagementClient = _authService.GetManagementClient(developerId);
-        return await DevBoxHttpRequest(httpManagementClient, webUri, developerId, method, requestContent);
+        var result = await DevBoxHttpRequest(httpManagementClient, webUri, developerId, method, requestContent);
+        try
+        {
+            return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"HttpsRequestToManagementPlane failed: Exception");
+            throw;
+        }
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
     public async Task<DevBoxHttpsRequestResult> HttpsRequestToDataPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpDataClient = _authService.GetDataPlaneClient(developerId);
-        return await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
+        var result = await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
+        try
+        {
+            return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"HttpsRequestToDataPlane failed: Exception");
+            throw;
+        }
     }
 
-    private async Task<DevBoxHttpsRequestResult> DevBoxHttpRequest(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
+    public async Task<string> HttpsRequestToDataPlaneRawResponse(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    {
+        var httpDataClient = _authService.GetDataPlaneClient(developerId);
+        var result = await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
+        return result.Content;
+    }
+
+    private async Task<(string Content, HttpResponseHeaders ResponseHeaders)> DevBoxHttpRequest(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         try
         {
@@ -57,7 +85,7 @@ public class DevBoxManagementService : IDevBoxManagementService
             var content = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode && content.Length > 0)
             {
-                return new(JsonDocument.Parse(content).RootElement, new DevBoxOperationResponseHeader(response.Headers));
+                return (content, response.Headers);
             }
 
             throw new HttpRequestException($"DevBoxHttpRequest failed: {response.StatusCode} {content}");
@@ -65,6 +93,29 @@ public class DevBoxManagementService : IDevBoxManagementService
         catch (Exception ex)
         {
             _log.Error(ex, $"DevBoxHttpRequest failed: Exception");
+            throw;
+        }
+    }
+
+    public async Task<string> HttpsRequestToDataPlaneWithRawResponse(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method)
+    {
+        try
+        {
+            var devBoxQuery = new HttpRequestMessage(method, webUri);
+
+            // Make the request
+            var response = await client.SendAsync(devBoxQuery);
+            var content = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode && content.Length > 0)
+            {
+                return content;
+            }
+
+            throw new HttpRequestException($"DevBoxRawRequest failed: {response.StatusCode} {content}");
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"DevBoxRawRequest failed: Exception");
             throw;
         }
     }
@@ -79,9 +130,13 @@ public class DevBoxManagementService : IDevBoxManagementService
             return devBoxProjectAndPools;
         }
 
-        var projectsToPoolsMapping = new List<DevBoxProjectAndPoolContainer>();
+        var projectsToPoolsMapping = new ConcurrentBag<DevBoxProjectAndPoolContainer>();
 
-        foreach (var project in projects.Data!)
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(2));
+        var token = cancellationTokenSource.Token;
+
+        await Parallel.ForEachAsync(projects.Data!, async (project, token) =>
         {
             try
             {
@@ -97,10 +152,10 @@ public class DevBoxManagementService : IDevBoxManagementService
             {
                 _log.Error(ex, $"unable to get pools for {project.Name}");
             }
-        }
+        });
 
-        _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping);
-        return projectsToPoolsMapping;
+        _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
+        return projectsToPoolsMapping.ToList();
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.CreateDevBox"/>

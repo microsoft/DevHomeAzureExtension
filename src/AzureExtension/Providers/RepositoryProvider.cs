@@ -348,12 +348,12 @@ public class RepositoryProvider : IRepositoryProvider2
             catch (LibGit2Sharp.LibGit2SharpException libGitTwoException)
             {
                 _log.Error(libGitTwoException, $"Either no logged in account has access to this repo, or the repo can't be found");
-                return new ProviderOperationResult(ProviderOperationStatus.Failure, libGitTwoException, "LigGit2 threw an exception", "LibGit2 Threw an exception");
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, libGitTwoException, libGitTwoException.Message, libGitTwoException.Message);
             }
             catch (Exception e)
             {
                 _log.Error(e, "Could not clone the repository");
-                return new ProviderOperationResult(ProviderOperationStatus.Failure, e, "Something happened when cloning the repo", "something happened when cloning the repo");
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, e, e.Message, e.Message);
             }
 
             _log.Information($"Repository {repository.RepoUri} successfully cloned to {cloneDestination}");

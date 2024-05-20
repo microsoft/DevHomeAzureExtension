@@ -1,0 +1,15 @@
+{
+    "name": "Java Hello World",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "vscjava.vscode-java-pack"
+            ]
+        }
+    }
+}
