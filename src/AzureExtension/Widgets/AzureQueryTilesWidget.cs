@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DataManager;
@@ -20,6 +22,14 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
     // Widget data
     private readonly List<QueryTile> tiles = [];
+
+    [DllImport("user32")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool AllowSetForegroundWindow(int dwProcessId);
+
+    // Bring process to foreground
+    [DllImport("user32.dll")]
+    internal static extern bool SetForegroundWindow(IntPtr hWnd);
 
     // Creation and destruction methods
     public AzureQueryTilesWidget()
@@ -117,6 +127,18 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                 break;
 
             case WidgetAction.Save:
+                try
+                {
+                    var p = Process.Start("explorer.exe");
+                    AllowSetForegroundWindow(p.Id);
+                    SetForegroundWindow(p.MainWindowHandle);
+                }
+                catch (Exception e)
+                {
+                    var log = Log.ForContext("SourceContext", "AboutPage");
+                    log.Error(e, $"Error opening log location");
+                }
+
                 if (ValidateConfiguration(actionInvokedArgs))
                 {
                     SavedConfigurationData = string.Empty;
