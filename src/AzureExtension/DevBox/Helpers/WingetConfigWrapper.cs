@@ -82,6 +82,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private ComputeSystemState _computeSystemState;
 
+    private bool _alreadyUpdatedUI;
+
     // Using a common failure result for all the tasks
     // since we don't get any other information from the REST API
     private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
@@ -276,14 +278,24 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 }
 
                 // If waiting for user session and no task is running, show the adaptive card
-                // We add a wait since Dev Boxes take a little over 2 minutes to start applying
-                // the configuration and we don't want to show the same message immediately after.
+                // We add a wait to give Dev Box time to start the task
+                // But if this is the first login, Dev Box Agent needs to configure itself
+                // So an extra wait might be needed.
                 if (isWaitingForUserSession && !isAnyTaskRunning)
                 {
-                    ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
-                    ActionRequired?.Invoke(this, eventArgs);
-                    WaitHandle.WaitAny(new[] { _resumeEvent });
-                    Thread.Sleep(TimeSpan.FromSeconds(135));
+                    if (_alreadyUpdatedUI)
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(100));
+                        _alreadyUpdatedUI = false;
+                    }
+                    else
+                    {
+                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
+                        ActionRequired?.Invoke(this, eventArgs);
+                        WaitHandle.WaitAny(new[] { _resumeEvent });
+                        Thread.Sleep(TimeSpan.FromSeconds(20));
+                        _alreadyUpdatedUI = true;
+                    }
                 }
 
                 break;
