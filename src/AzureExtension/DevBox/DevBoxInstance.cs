@@ -630,8 +630,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
-        var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
-        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log, GetState());
+        return new WingetConfigWrapper(configuration, DevBoxState.Uri, _devBoxManagementService, AssociatedDeveloperId, _log, GetState());
     }
 
     // Unsupported operations
