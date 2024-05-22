@@ -78,9 +78,13 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private bool _pendingNotificationShown;
 
+    private ManualResetEvent _launchEvent = new(false);
+
     private ManualResetEvent _resumeEvent = new(false);
 
     private ComputeSystemState _computeSystemState;
+
+    private Func<string, IAsyncOperation<ComputeSystemOperationResult>> _connectAsync;
 
     private bool _alreadyUpdatedUI;
 
@@ -95,7 +99,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         IDevBoxManagementService devBoxManagementService,
         IDeveloperId associatedDeveloperId,
         Serilog.ILogger log,
-        ComputeSystemState computeSystemState)
+        ComputeSystemState computeSystemState,
+        Func<string, IAsyncOperation<ComputeSystemOperationResult>> connectAsync)
     {
         _baseAPI = baseAPI;
         _taskAPI = $"{_baseAPI}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
@@ -103,13 +108,9 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         _devId = associatedDeveloperId;
         _log = log;
         _computeSystemState = computeSystemState;
+        _connectAsync = connectAsync;
 
-        // If the dev box isn't running, skip initialization
-        // Later this logic will be changed to start the dev box
-        if (_computeSystemState == ComputeSystemState.Running)
-        {
-            Initialize(configuration);
-        }
+        Initialize(configuration);
     }
 
     public void Initialize(string configuration)
@@ -290,12 +291,25 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                     }
                     else
                     {
-                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
+                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent, _launchEvent));
                         ActionRequired?.Invoke(this, eventArgs);
                         WaitHandle.WaitAny(new[] { _resumeEvent });
+
+                        // Check if the launch event is also set
+                        // If it is, wait for a few seconds longer to account for it
+                        if (_launchEvent.WaitOne(0))
+                        {
+                            _log.Information("Launching the dev box");
+                            _connectAsync(string.Empty).GetAwaiter().GetResult();
+                            Thread.Sleep(TimeSpan.FromSeconds(30));
+                            _launchEvent.Reset();
+                        }
+
                         Thread.Sleep(TimeSpan.FromSeconds(20));
                         _alreadyUpdatedUI = true;
                     }
+
+                    _resumeEvent.Reset();
                 }
 
                 break;
