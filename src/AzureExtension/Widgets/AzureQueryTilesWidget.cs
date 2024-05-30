@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
@@ -23,12 +24,12 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     // Widget data
     private readonly List<QueryTile> tiles = [];
 
-    [DllImport("user32")]
+    [DllImport("user32", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool AllowSetForegroundWindow(int dwProcessId);
 
     // Bring process to foreground
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     internal static extern bool SetForegroundWindow(IntPtr hWnd);
 
     // Creation and destruction methods
@@ -130,13 +131,37 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                 try
                 {
                     var p = Process.Start("explorer.exe");
-                    AllowSetForegroundWindow(p.Id);
-                    SetForegroundWindow(p.MainWindowHandle);
+                    p.Refresh();
+                    var allow = AllowSetForegroundWindow(p.Id);
+                    if (!allow)
+                    {
+                        Log.Error("AllowSetForegroundWindow failed: {GetLastError}", Marshal.GetLastWin32Error().ToString(CultureInfo.CurrentCulture));
+                    }
+
+                    p.WaitForInputIdle();
+
+                    //// Try some stuff ------------------
+                    p = Process.GetProcessById(p.Id);
+                    Log.Information("Start sleep");
+                    Thread.Sleep(2000);
+                    Log.Information("End sleep");
+                    //// ---------------------------------
+
+                    p.Refresh();
+
+                    Log.Information($"MainWindowHandle = {p.MainWindowHandle}");
+
+                    var set = SetForegroundWindow(p.MainWindowHandle);
+                    if (!set)
+                    {
+                        Log.Error("SetForegroundWindow failed: {GetLastError}", Marshal.GetLastWin32Error().ToString(CultureInfo.CurrentCulture));
+                    }
+
+                    Log.Information($"Allow = {allow}, set = {set}");
                 }
                 catch (Exception e)
                 {
-                    var log = Log.ForContext("SourceContext", "AboutPage");
-                    log.Error(e, $"Error opening log location");
+                    Log.Error(e, $"Error opening log location");
                 }
 
                 if (ValidateConfiguration(actionInvokedArgs))
