@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 
 namespace AzureExtension.DevBox.Helpers;
@@ -20,6 +21,14 @@ public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2,
     private ManualResetEvent _resumeEvent;
 
     private ManualResetEvent _launchEvent;
+
+    private const string _waitingForUserSessionState = "WaitingForUserSession";
+
+    private const string _launchAction = "launchAction";
+
+    private const string _resumeAction = "resumeAction";
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(WaitingForUserAdaptiveCardSession));
 
     private JsonSerializerOptions _serializerOptions = new()
     {
@@ -87,35 +96,35 @@ public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2,
                 var state = _extensionAdaptiveCard?.State;
                 ProviderOperationResult operationResult;
                 var data = JsonSerializer.Deserialize<AdaptiveCardJSONToCSClass>(action, _serializerOptions);
-                if (state == "WaitingForUserSession" && data != null)
+                if (state != null && state.Equals(_waitingForUserSessionState, StringComparison.OrdinalIgnoreCase) && data != null)
                 {
                     switch (data.Id)
                     {
-                        case "launchAction":
+                        case _launchAction:
                             operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
                             _launchEvent.Set();
                             _resumeEvent.Set();
                             break;
-                        case "resumeAction":
+                        case _resumeAction:
                             operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
                             _resumeEvent.Set();
                             break;
                         default:
-                            operationResult = new ProviderOperationResult(ProviderOperationStatus.Failure, null, "Something went wrong", $"Unexpected action:{data.Id}");
-                            break;
+                            throw new InvalidOperationException($"Unexpected action:{data.Id}");
                     }
 
-                    Stopped?.Invoke(this, new(operationResult, string.Empty));
+                    Stopped.Invoke(this, new(operationResult, string.Empty));
                 }
                 else
                 {
-                    operationResult = new ProviderOperationResult(ProviderOperationStatus.Failure, null, "Something went wrong", $"Unexpected state:{_extensionAdaptiveCard?.State} or Parsing Error");
+                    throw new InvalidOperationException($"Unexpected state:{state} or Parsing Error");
                 }
 
                 return operationResult;
             }
             catch (Exception ex)
             {
+                _log.Error(ex, "Error occurred while processing the action");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, null, ex.Message, ex.StackTrace);
             }
         }).AsAsyncOperation();
