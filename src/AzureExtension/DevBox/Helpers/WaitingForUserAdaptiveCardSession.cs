@@ -3,9 +3,11 @@
 
 using System.Drawing;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
+using Serilog;
 using Windows.Foundation;
 
 namespace AzureExtension.DevBox.Helpers;
@@ -18,9 +20,26 @@ public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2,
 
     private ManualResetEvent _resumeEvent;
 
-    public WaitingForUserAdaptiveCardSession(ManualResetEvent resumeEvent)
+    private ManualResetEvent _launchEvent;
+
+    private const string _waitingForUserSessionState = "WaitingForUserSession";
+
+    private const string _launchAction = "launchAction";
+
+    private const string _resumeAction = "resumeAction";
+
+    private readonly ILogger _log = Log.ForContext("SourceContext", nameof(WaitingForUserAdaptiveCardSession));
+
+    private JsonSerializerOptions _serializerOptions = new()
     {
-        this._resumeEvent = resumeEvent;
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    public WaitingForUserAdaptiveCardSession(ManualResetEvent resumeEvent, ManualResetEvent launchEvent)
+    {
+        _resumeEvent = resumeEvent;
+        _launchEvent = launchEvent;
     }
 
     public event TypedEventHandler<IExtensionAdaptiveCardSession2, ExtensionAdaptiveCardSessionStoppedEventArgs> Stopped = (s, e) => { };
@@ -39,6 +58,7 @@ public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2,
             { "icon", ConvertIconToDataString("Caution.png") },
             { "loginRequiredText", Resources.GetResource("DevBox_AdaptiveCard_Text") },
             { "loginRequiredDescriptionText", Resources.GetResource("DevBox_AdaptiveCard_InnerDescription") },
+            { "LaunchText", Resources.GetResource("DevBox_AdaptiveCard_LaunchText") },
             { "ResumeText", Resources.GetResource("DevBox_AdaptiveCard_ResumeText") },
         };
 
@@ -71,20 +91,42 @@ public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2,
     {
         return Task.Run(() =>
         {
-            var state = _extensionAdaptiveCard?.State;
-            ProviderOperationResult operationResult;
-            if (state == "WaitingForUserSession")
+            try
             {
-                operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
-                _resumeEvent.Set();
-                Stopped?.Invoke(this, new(operationResult, string.Empty));
-            }
-            else
-            {
-                operationResult = new ProviderOperationResult(ProviderOperationStatus.Failure, null, "Something went wrong", $"Unexpected state:{_extensionAdaptiveCard?.State}");
-            }
+                var state = _extensionAdaptiveCard?.State;
+                ProviderOperationResult operationResult;
+                var data = JsonSerializer.Deserialize<AdaptiveCardJSONToCSClass>(action, _serializerOptions);
+                if (state != null && state.Equals(_waitingForUserSessionState, StringComparison.OrdinalIgnoreCase) && data != null)
+                {
+                    switch (data.Id)
+                    {
+                        case _launchAction:
+                            operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
+                            _launchEvent.Set();
+                            _resumeEvent.Set();
+                            break;
+                        case _resumeAction:
+                            operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
+                            _resumeEvent.Set();
+                            break;
+                        default:
+                            throw new InvalidOperationException($"Unexpected action:{data.Id}");
+                    }
 
-            return operationResult;
+                    Stopped.Invoke(this, new(operationResult, string.Empty));
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unexpected state:{state} or Parsing Error");
+                }
+
+                return operationResult;
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Error occurred while processing the action");
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, null, ex.Message, ex.StackTrace);
+            }
         }).AsAsyncOperation();
     }
 }

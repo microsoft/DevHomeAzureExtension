@@ -159,11 +159,12 @@ public class DevBoxProvider : IComputeSystemProvider
                 ArgumentNullException.ThrowIfNull(developerId);
                 ArgumentNullException.ThrowIfNullOrEmpty(developerId.LoginId);
 
-                _log.Information($"Attempting to retrieving all Dev Boxes for {developerId.LoginId}, at {DateTime.Now}");
+                var start = DateTime.Now;
+                _log.Information($"Attempting to retrieving all Dev Boxes for {developerId.LoginId}");
 
                 var computeSystems = await GetDevBoxesAsync(developerId);
 
-                _log.Information($"Successfully retrieved all Dev Boxes for {developerId.LoginId}, at {DateTime.Now}");
+                _log.Information($"Successfully retrieved all Dev Boxes for {developerId.LoginId}, in {DateTime.Now - start}");
                 return new ComputeSystemsResult(computeSystems);
             }
             catch (Exception ex)
