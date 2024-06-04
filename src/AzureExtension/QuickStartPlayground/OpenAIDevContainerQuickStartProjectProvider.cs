@@ -78,6 +78,12 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
             ""text"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_Text3") + @"""
         },
         {
+            ""type"": ""TextBlock"",
+            ""size"": ""Medium"",
+            ""text"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_Text4") + @""",
+            ""wrap"": true
+        },
+        {
             ""type"": ""Input.Text"",
             ""placeholder"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input") + @""",
             ""tooltip"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input") + @""",

@@ -72,11 +72,13 @@
   "actions": [
     {
       "type": "Action.Execute",
+      "title": "${LaunchText}",
+      "id": "launchAction"
+    },
+    {
+      "type": "Action.Execute",
       "title": "${ResumeText}",
-      "id": "resumeAction",
-      "data": {
-        "id": "resumeAction"
-      }
+      "id": "resumeAction"
     }
   ]
 }

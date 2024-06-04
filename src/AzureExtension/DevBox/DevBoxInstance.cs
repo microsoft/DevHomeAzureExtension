@@ -605,24 +605,12 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IAsyncOperation<ComputeSystemThumbnailResult> GetComputeSystemThumbnailAsync(string options)
     {
-        return Task.Run(async () =>
+        return Task.Run(() =>
         {
             try
             {
                 _log.Information($"Retrieving thumbnail for '{DisplayName}'");
-                var uri = new Uri(Constants.ThumbnailURI);
-                var storageFile = await StorageFile.GetFileFromApplicationUriAsync(uri);
-                var randomAccessStream = await storageFile.OpenReadAsync();
-
-                // Convert the stream to a byte array
-                var bytes = new byte[randomAccessStream.Size];
-
-                // safely convert ulong to uint
-                var maxSizeSafeUlongToUint = (uint)Math.Min(randomAccessStream.Size, uint.MaxValue);
-
-                await randomAccessStream.ReadAsync(bytes.AsBuffer(), maxSizeSafeUlongToUint, InputStreamOptions.None);
-
-                return new ComputeSystemThumbnailResult(bytes);
+                return new ComputeSystemThumbnailResult(Constants.ThumbnailInBytes.Value);
             }
             catch (Exception ex)
             {
@@ -642,8 +630,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
-        var taskAPI = $"{DevBoxState.Uri}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
-        return new WingetConfigWrapper(configuration, taskAPI, _devBoxManagementService, AssociatedDeveloperId, _log, GetState());
+        return new WingetConfigWrapper(configuration, DevBoxState.Uri, _devBoxManagementService, AssociatedDeveloperId, _log, GetState(), ConnectAsync);
     }
 
     // Unsupported operations
