@@ -1,0 +1,16 @@
+{
+    "name": "C++ game",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "ms-vscode.cpptools"
+            ]
+        }
+    }
+}
+

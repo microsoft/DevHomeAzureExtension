@@ -2,10 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Net.Http.Headers;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 public class AuthService : IDevBoxAuthService
 {

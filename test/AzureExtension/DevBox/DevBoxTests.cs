@@ -2,15 +2,11 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using System.Threading;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
-using AzureExtension.Test.DevBox;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;
@@ -39,6 +35,7 @@ public partial class DevBoxTests
         {
             new StringContent(MockProjectJson),
             new StringContent(MockDevBoxListJson),
+            new StringContent(MockTestPoolJson),
         };
         UpdateHttpClientResponseMock(contentList);
 
@@ -99,6 +96,8 @@ public partial class DevBoxTests
         var contentList = new List<HttpContent>
         {
             new StringContent(MockProjectJson),
+            new StringContent(devBoxListPoweredOffJson),
+            new StringContent(MockTestPoolJson),
             new StringContent(devBoxListPoweredOffJson),
             new StringContent(MockTestOperationJson), // initial operation status with 'Running' status
             new StringContent(succeededJson), // ending operation status with 'Succeeded' status

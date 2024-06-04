@@ -1,19 +1,22 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Exceptions;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Exceptions;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// The DevBoxManagementService is responsible for making calls to the Azure Resource Graph API.
@@ -25,6 +28,8 @@ public class DevBoxManagementService : IDevBoxManagementService
 
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxManagementService));
 
+    private readonly Dictionary<string, List<DevBoxProjectAndPoolContainer>> _projectAndPoolContainerMap = new();
+
     public DevBoxManagementService(IDevBoxAuthService authService) => _authService = authService;
 
     private const string DevBoxManagementServiceName = nameof(DevBoxManagementService);
@@ -33,17 +38,43 @@ public class DevBoxManagementService : IDevBoxManagementService
     public async Task<DevBoxHttpsRequestResult> HttpsRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpManagementClient = _authService.GetManagementClient(developerId);
-        return await DevBoxHttpRequest(httpManagementClient, webUri, developerId, method, requestContent);
+        var result = await DevBoxHttpRequest(httpManagementClient, webUri, developerId, method, requestContent);
+        try
+        {
+            return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"HttpsRequestToManagementPlane failed: Exception");
+            throw;
+        }
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
     public async Task<DevBoxHttpsRequestResult> HttpsRequestToDataPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         var httpDataClient = _authService.GetDataPlaneClient(developerId);
-        return await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
+        var result = await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
+        try
+        {
+            return new(JsonDocument.Parse(result.Content).RootElement, new DevBoxOperationResponseHeader(result.ResponseHeaders));
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"HttpsRequestToDataPlane failed: Exception");
+            throw;
+        }
     }
 
-    private async Task<DevBoxHttpsRequestResult> DevBoxHttpRequest(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToDataPlane"/>
+    public async Task<string> HttpsRequestToDataPlaneRawResponse(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
+    {
+        var httpDataClient = _authService.GetDataPlaneClient(developerId);
+        var result = await DevBoxHttpRequest(httpDataClient, webUri, developerId, method, requestContent);
+        return result.Content;
+    }
+
+    private async Task<(string Content, HttpResponseHeaders ResponseHeaders)> DevBoxHttpRequest(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
     {
         try
         {
@@ -55,7 +86,7 @@ public class DevBoxManagementService : IDevBoxManagementService
             var content = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode && content.Length > 0)
             {
-                return new(JsonDocument.Parse(content).RootElement, new DevBoxOperationResponseHeader(response.Headers));
+                return (content, response.Headers);
             }
 
             throw new HttpRequestException($"DevBoxHttpRequest failed: {response.StatusCode} {content}");
@@ -67,48 +98,81 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
     }
 
-    /// <inheritdoc cref="IDevBoxManagementService.GetAllProjectsToPoolsMappingAsync"/>
-    public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(JsonElement projectsJson, IDeveloperId developerId)
+    public async Task<string> HttpsRequestToDataPlaneWithRawResponse(HttpClient client, Uri webUri, IDeveloperId developerId, HttpMethod method)
     {
-        var projectsToPoolsMapping = new List<DevBoxProjectAndPoolContainer>();
+        try
+        {
+            var devBoxQuery = new HttpRequestMessage(method, webUri);
 
-        foreach (var projectJson in projectsJson.EnumerateArray())
+            // Make the request
+            var response = await client.SendAsync(devBoxQuery);
+            var content = await response.Content.ReadAsStringAsync();
+            if (response.IsSuccessStatusCode && content.Length > 0)
+            {
+                return content;
+            }
+
+            throw new HttpRequestException($"DevBoxRawRequest failed: {response.StatusCode} {content}");
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"DevBoxRawRequest failed: Exception");
+            throw;
+        }
+    }
+
+    /// <inheritdoc cref="IDevBoxManagementService.GetAllProjectsToPoolsMappingAsync"/>
+    public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(DevBoxProjects projects, IDeveloperId developerId)
+    {
+        var uniqueUserId = $"{developerId.LoginId}#{developerId.Url}";
+
+        if (_projectAndPoolContainerMap.TryGetValue(uniqueUserId, out var devBoxProjectAndPools))
+        {
+            return devBoxProjectAndPools;
+        }
+
+        var projectsToPoolsMapping = new ConcurrentBag<DevBoxProjectAndPoolContainer>();
+
+        var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(2));
+        var token = cancellationTokenSource.Token;
+
+        await Parallel.ForEachAsync(projects.Data!, async (project, token) =>
         {
             try
             {
-                var projectObj = JsonSerializer.Deserialize<DevBoxProject>(projectJson.ToString(), Constants.JsonOptions)!;
-                var properties = projectObj.Properties;
-                var uriToRetrievePools = $"{properties.DevCenterUri}{Constants.Projects}/{projectObj.Name}/{Constants.Pools}?{Constants.APIVersion}";
+                var properties = project.Properties;
+                var uriToRetrievePools = $"{properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/{DevBoxConstants.Pools}?{DevBoxConstants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
-                var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
-                var container = new DevBoxProjectAndPoolContainer { Project = projectObj, Pools = pools };
+                var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions);
+                var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
 
                 projectsToPoolsMapping.Add(container);
             }
             catch (Exception ex)
             {
-                projectJson.TryGetProperty("name", out var projectWithErrorName);
-                _log.Error(ex, $"unable to get pools for {projectWithErrorName}");
+                _log.Error(ex, $"unable to get pools for {project.Name}");
             }
-        }
+        });
 
-        return projectsToPoolsMapping;
+        _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
+        return projectsToPoolsMapping.ToList();
     }
 
     /// <inheritdoc cref="IDevBoxManagementService.CreateDevBox"/>
     public async Task<DevBoxHttpsRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId)
     {
-        if (!Regex.IsMatch(parameters.DevBoxName, Constants.NameRegexPattern))
+        if (!Regex.IsMatch(parameters.NewEnvironmentName, DevBoxConstants.NameRegexPattern))
         {
-            throw new DevBoxNameInvalidException($"Unable to create Dev Box due to Invalid Dev Box name: {parameters.DevBoxName}");
+            throw new DevBoxNameInvalidException($"Unable to create Dev Box due to Invalid Dev Box name: {parameters.NewEnvironmentName}");
         }
 
-        if (!Regex.IsMatch(parameters.ProjectName, Constants.NameRegexPattern))
+        if (!Regex.IsMatch(parameters.ProjectName, DevBoxConstants.NameRegexPattern))
         {
             throw new DevBoxProjectNameInvalidException($"Unable to create Dev Box due to Invalid project name: {parameters.ProjectName}");
         }
 
-        var uriToCreateDevBox = $"{parameters.DevCenterUri}{Constants.Projects}/{parameters.ProjectName}{Constants.DevBoxUserSegmentOfUri}/{parameters.DevBoxName}?{Constants.APIVersion}";
+        var uriToCreateDevBox = $"{parameters.DevCenterUri}{DevBoxConstants.Projects}/{parameters.ProjectName}{DevBoxConstants.DevBoxUserSegmentOfUri}/{parameters.NewEnvironmentName}?{DevBoxConstants.APIVersion}";
         var contentJson = JsonSerializer.Serialize(new DevBoxCreationPoolName(parameters.PoolName));
         var content = new StringContent(contentJson, Encoding.UTF8, "application/json");
         return await HttpsRequestToDataPlane(new Uri(uriToCreateDevBox), developerId, HttpMethod.Put, content);

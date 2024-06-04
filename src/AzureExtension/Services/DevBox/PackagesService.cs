@@ -1,10 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
+using Windows.ApplicationModel;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 public class PackagesService : IPackagesService
 {
@@ -14,5 +15,17 @@ public class PackagesService : IPackagesService
     {
         var currentPackage = _packageManager.FindPackagesForUser(string.Empty, packageName).FirstOrDefault();
         return currentPackage != null;
+    }
+
+    public PackageVersion GetPackageInstalledVersion(string packageName)
+    {
+        PackageVersion version = new PackageVersion(0, 0, 0, 0);
+        var currentPackage = _packageManager.FindPackagesForUser(string.Empty, packageName).FirstOrDefault();
+        if (currentPackage != null)
+        {
+            version = currentPackage.Id.Version;
+        }
+
+        return version;
     }
 }

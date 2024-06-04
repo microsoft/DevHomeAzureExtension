@@ -1,0 +1,20 @@
+{
+    "name": "Python 3",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": [
+                "ms-python.python",
+                "ms-ml.tensorflow-tools"
+            ]
+        }
+    },
+    "runArgs": [
+        "--gpus=all"
+    ],
+    "postCreateCommand": "pip3 install -r requirements.txt"
+}

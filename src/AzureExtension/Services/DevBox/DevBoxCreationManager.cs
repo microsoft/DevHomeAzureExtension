@@ -1,16 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 public class DevBoxCreationManager : IDevBoxCreationManager
 {
@@ -48,23 +50,24 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     {
         try
         {
-            operation.UpdateProgress(Resources.GetResource(SendingCreationRequestProgressKey), Constants.IndefiniteProgress);
+            _log.Information($"Starting the create DevBox operation for new environment with new: {parameters.NewEnvironmentName}");
+            operation.UpdateProgress(Resources.GetResource(SendingCreationRequestProgressKey), DevBoxConstants.IndefiniteProgress);
 
             var result = await _devBoxManagementService.CreateDevBox(parameters, developerId);
-            operation.UpdateProgress(Resources.GetResource(CreationResponseReceivedProgressKey, parameters.DevBoxName, parameters.ProjectName), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(CreationResponseReceivedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), DevBoxConstants.IndefiniteProgress);
 
-            var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+            var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions)!;
             var devBox = _devBoxInstanceFactory(developerId, devBoxState);
 
-            operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.DevBoxName, parameters.ProjectName), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), DevBoxConstants.IndefiniteProgress);
 
             var callback = DevCenterLongRunningOperationCallback(devBox);
 
             // Now we can start querying the Dev Center for the creation status of the Dev Box operation. This operation will continue until the Dev Box is ready for use.
             var operationUri = result.ResponseHeader.OperationLocation;
-            var operationid = Guid.Parse(operationUri!.Segments.Last());
+            var operationId = Guid.Parse(operationUri!.Segments.Last());
 
-            _devBoxOperationWatcher.StartDevCenterOperationMonitor(developerId, operationUri!, operationid, DevBoxActionToPerform.Create, callback);
+            _devBoxOperationWatcher.StartDevCenterOperationMonitor(developerId, operationUri!, operationId, DevBoxActionToPerform.Create, callback);
 
             // At this point the DevBox is partially created in the cloud. However the DevBox is not ready for use. Querying for all Dev Box will
             // return this DevBox via Json with its provisioningState set to "Provisioning". So, we'll keep track of the operation.
@@ -76,7 +79,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         catch (Exception ex)
         {
             _log.Error(ex, $"unable to create the Dev Box with user options: {parameters}");
-            return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.DevBoxName, parameters.ProjectName), ex.Message);
+            return new CreateComputeSystemResult(ex, Resources.GetResource(CreationErrorProgressKey, parameters.NewEnvironmentName, parameters.ProjectName, ex.Message), ex.Message);
         }
     }
 
@@ -84,6 +87,7 @@ public class DevBoxCreationManager : IDevBoxCreationManager
     {
         return (DevCenterOperationStatus? status) =>
             {
+                _log.Information($"Long running operation status: '{status}' received for DevBox: {devBox.DisplayName}, Id: {devBox.Id}.");
                 switch (status)
                 {
                     case DevCenterOperationStatus.NotStarted:
@@ -92,9 +96,8 @@ public class DevBoxCreationManager : IDevBoxCreationManager
                     case DevCenterOperationStatus.Succeeded:
                         RemoveDevBoxFromMap(devBox);
 
-                        // The Dev Box is now ready for use. No need to request a new Dev Box from the Dev Center. We can update the state for Dev Homes UI.
-                        devBox.DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Succeeded;
-                        devBox.UpdateStateForUI();
+                        // Update the Dev Box Machine state with the updated state from the Dev Center.
+                        devBox.OperationCallback(DevCenterOperationStatus.Succeeded);
                         break;
                     default:
                         RemoveDevBoxFromMap(devBox);
@@ -139,6 +142,14 @@ public class DevBoxCreationManager : IDevBoxCreationManager
 
         lock (_creationLock)
         {
+            // The user previously chose to delete the Dev Box while it was being created. So it is no longer being
+            // watched and we need to remove it from the creation map.
+            if (!_devBoxOperationWatcher.IsIdBeingWatched(Guid.Parse(id)) && _devBoxesBeingCreated.ContainsKey(id))
+            {
+                _devBoxesBeingCreated.Remove(id);
+                return false;
+            }
+
             if (_devBoxesBeingCreated.TryGetValue(id, out var value))
             {
                 devBox = value;

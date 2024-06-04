@@ -1,0 +1,84 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "${title}",
+      "horizontalAlignment": "Left",
+      "wrap": true,
+      "style": "heading"
+    },
+    {
+      "type": "TextBlock",
+      "text": "${description}",
+      "wrap": true
+    },
+    {
+      "type": "Container",
+      "style": "attention",
+      "items": [
+        {
+          "type": "Table",
+          "columns": [
+            {
+              "width": "20px"
+            },
+            {
+              "width": 1
+            }
+          ],
+          "rows": [
+            {
+              "type": "TableRow",
+              "cells": [
+                {
+                  "type": "TableCell",
+                  "items": [
+                    {
+                      "type": "Image",
+                      "url": "data:image/png;base64,${icon}",
+                      "size": "Small"
+                    }
+                  ]
+                },
+                {
+                  "type": "TableCell",
+                  "items": [
+                    {
+                      "type": "TextBlock",
+                      "text": "${loginRequiredText}",
+                      "weight": "Bolder",
+                      "spacing": "Small"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "${loginRequiredDescriptionText}",
+                      "wrap": true,
+                      "spacing": "Small"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "showGridLines": false,
+          "spacing": "None"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.Execute",
+      "title": "${LaunchText}",
+      "id": "launchAction"
+    },
+    {
+      "type": "Action.Execute",
+      "title": "${ResumeText}",
+      "id": "resumeAction"
+    }
+  ]
+}

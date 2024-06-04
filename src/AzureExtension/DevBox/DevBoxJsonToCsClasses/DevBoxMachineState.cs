@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// This class represents the state of a DevBox machine. It is the class representation of

@@ -2,10 +2,13 @@
 // Licensed under the MIT License.
 
 using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.Helpers;
-using Microsoft.UI.Xaml;
+using DevHomeAzureExtension.QuickStartPlayground;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
@@ -13,16 +16,19 @@ using Windows.Foundation;
 
 namespace DevHomeAzureExtension.Providers;
 
-internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
+internal sealed class SettingsUIController(IAICredentialService aiCredentialService) : IExtensionAdaptiveCardSession
 {
     private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
 
     private static readonly ILogger Log = _log.Value;
 
+    private readonly IAICredentialService _aiCredentialService = aiCredentialService;
+
     private static readonly string _notificationsEnabledString = "NotificationsEnabled";
 
+    private string? _template;
+
     private IExtensionAdaptiveCard? _settingsUI;
-    private static readonly SettingsUITemplate _settingsUITemplate = new();
 
     public void Dispose()
     {
@@ -33,80 +39,73 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
     public ProviderOperationResult Initialize(IExtensionAdaptiveCard extensionUI)
     {
         Log.Debug($"Initialize");
-        _settingsUI = extensionUI;
         CacheManager.GetInstance().OnUpdate += HandleCacheUpdate;
-        return _settingsUI.Update(_settingsUITemplate.GetSettingsUITemplate(), null, "SettingsPage");
+        _settingsUI = extensionUI;
+        return UpdateCard();
+    }
+
+    private void HandleCacheUpdate(object? source, CacheManagerUpdateEventArgs e)
+    {
+        Log.Debug("Cache was updated, updating settings UI.");
+        UpdateCard();
     }
 
     public IAsyncOperation<ProviderOperationResult> OnAction(string action, string inputs)
     {
         return Task.Run(async () =>
         {
-            ProviderOperationResult operationResult;
-            Log.Information($"OnAction() called with state:{_settingsUI?.State}");
-            Log.Debug($"action: {action}");
-
-            switch (_settingsUI?.State)
+            try
             {
-                case "SettingsPage":
-                    {
-                        Log.Debug($"inputs: {inputs}");
-                        var actionObject = JsonNode.Parse(action);
-                        var verb = actionObject?["verb"]?.GetValue<string>() ?? string.Empty;
-                        Log.Debug($"Verb: {verb}");
-                        switch (verb)
-                        {
-                            case "ToggleNotifications":
-                                var currentNotificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
-                                await LocalSettings.SaveSettingAsync(_notificationsEnabledString, currentNotificationsEnabled == "true" ? "false" : "true");
-                                Log.Information($"Changed notification state to: {(currentNotificationsEnabled == "true" ? "false" : "true")}");
-                                break;
-
-                            case "UpdateData":
-                                Log.Information($"Refreshing data for organizations.");
-                                _ = CacheManager.GetInstance().Refresh();
-                                break;
-
-                            case "OpenLogs":
-                                FileHelper.OpenLogsLocation();
-                                break;
-
-                            default:
-                                Log.Warning($"Unknown verb: {verb}");
-                                break;
-                        }
-
-                        operationResult = _settingsUI.Update(_settingsUITemplate.GetSettingsUITemplate(), null, "SettingsPage");
+                Log.Information($"OnAction() called with {action}");
+                Log.Debug($"inputs: {inputs}");
+                var actionObject = JsonNode.Parse(action);
+                var verb = actionObject?["verb"]?.GetValue<string>() ?? string.Empty;
+                Log.Debug($"Verb: {verb}");
+                switch (verb)
+                {
+                    case "ClearOpenAIKey":
+                        Log.Information("Clearing OpenAI key");
+                        _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);
                         break;
-                    }
 
-                default:
-                    {
-                        Log.Error($"Unexpected state:{_settingsUI?.State}");
-                        operationResult = new ProviderOperationResult(ProviderOperationStatus.Failure, null, "Something went wrong", $"Unexpected state:{_settingsUI?.State}");
+                    case "ToggleNotifications":
+                        var currentNotificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
+                        await LocalSettings.SaveSettingAsync(_notificationsEnabledString, currentNotificationsEnabled == "true" ? "false" : "true");
+                        Log.Information($"Changed notification state to: {(currentNotificationsEnabled == "true" ? "false" : "true")}");
                         break;
-                    }
+
+                    case "UpdateData":
+                        Log.Information($"Refreshing data for organizations.");
+                        _ = CacheManager.GetInstance().Refresh();
+                        break;
+
+                    case "OpenLogs":
+                        FileHelper.OpenLogsLocation();
+                        break;
+
+                    default:
+                        Log.Warning($"Unknown verb: {verb}");
+                        break;
+                }
+
+                return UpdateCard();
             }
-
-            return operationResult;
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Unexpected failure handling settings action.");
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
+            }
         }).AsAsyncOperation();
     }
 
-    private void HandleCacheUpdate(object? source, CacheManagerUpdateEventArgs e)
+    private ProviderOperationResult UpdateCard()
     {
-        Log.Debug("Cache was updated, updating settings UI.");
-        _settingsUI?.Update(_settingsUITemplate.GetSettingsUITemplate(), null, "SettingsPage");
-    }
-
-    // Adaptive Card Templates for SettingsUI.
-    private sealed class SettingsUITemplate
-    {
-        internal string GetSettingsUITemplate()
+        try
         {
-            var loader = new ResourceLoader(ResourceLoader.GetDefaultResourceFilePath(), "AzureExtension/Resources");
+            var hasOpenAIKey = _aiCredentialService.GetCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId) is not null;
 
             var notificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
-            var notificationsEnabledString = (notificationsEnabled == "true") ? loader.GetString("Settings_NotificationsEnabled") : loader.GetString("Settings_NotificationsDisabled");
+            var notificationsEnabledString = (notificationsEnabled == "true") ? Resources.GetResource("Settings_NotificationsEnabled", Log) : Resources.GetResource("Settings_NotificationsDisabled", Log);
 
             var lastUpdated = CacheManager.GetInstance().LastUpdated;
             var lastUpdatedString = $"Last updated: {lastUpdated.ToString(CultureInfo.InvariantCulture)}";
@@ -115,69 +114,62 @@ internal sealed class SettingsUIController : IExtensionAdaptiveCardSession
                 lastUpdatedString = "Last updated: never";
             }
 
-            var updateAzureDataString = loader.GetString("Settings_UpdateData");
+            var updateAzureDataString = Resources.GetResource("Settings_UpdateData", Log);
             if (CacheManager.GetInstance().UpdateInProgress)
             {
                 updateAzureDataString = "Update in progress";
             }
 
-            var openLogsString = loader.GetString("Settings_ViewLogs");
+            var settingsCardData = new SettingsCardData
+            {
+                HasOpenAIKey = hasOpenAIKey,
+                NotificationsEnabled = notificationsEnabledString,
+                CacheLastUpdated = lastUpdatedString,
+                UpdateAzureData = updateAzureDataString,
+            };
 
-            var settingsUI = @"
-{
-    ""type"": ""AdaptiveCard"",
-    ""body"": [
+            return _settingsUI!.Update(
+                GetTemplate(),
+                JsonSerializer.Serialize(settingsCardData, SettingsCardSerializerContext.Default.SettingsCardData),
+                "SettingsPage");
+        }
+        catch (Exception ex)
         {
-          ""type"": ""Container"",
-          ""items"": [
-                {
-                    ""type"": ""ActionSet"",
-                    ""actions"": [
-                        {
-                            ""type"": ""Action.Submit"",
-                            ""title"": """ + $"{notificationsEnabledString}" + @""",
-                            ""verb"": ""ToggleNotifications"",
-                            ""associatedInputs"": ""auto""
-                        }
-                    ]
-                },
-                {
-                  ""type"": ""TextBlock"",
-                  ""text"": """ + $"{lastUpdatedString}" + @""",
-                  ""size"": ""medium""
-                },
-                {
-                    ""type"": ""ActionSet"",
-                    ""actions"": [
-                        {
-                            ""type"": ""Action.Execute"",
-                            ""title"": """ + $"{updateAzureDataString}" + @""",
-                            ""verb"": ""UpdateData"",
-                            ""tooltip"": """ + $"{updateAzureDataString}" + @"""
-                        }
-                    ]
-                },
-                {
-                    ""type"": ""ActionSet"",
-                    ""actions"": [
-                        {
-                            ""type"": ""Action.Execute"",
-                            ""title"": """ + $"{openLogsString}" + @""",
-                            ""verb"": ""OpenLogs"",
-                            ""tooltip"": """ + $"{openLogsString}" + @"""
-                        }
-                    ]
-                }
-            ]
+            Log.Error(ex, "Failed to update settings card");
+            return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
         }
-    ],
-    ""$schema"": ""http://adaptivecards.io/schemas/adaptive-card.json"",
-    ""version"": ""1.5"",
-    ""minHeight"": ""200px""
-}
-";
+    }
 
-            return settingsUI;
+    private string GetTemplate()
+    {
+        if (_template is not null)
+        {
+            Log.Debug("Using cached template.");
+            return _template;
         }
+
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, @"Providers\SettingsCardTemplate.json");
+            var template = File.ReadAllText(path, Encoding.Default) ?? throw new FileNotFoundException(path);
+            template = Resources.ReplaceIdentifiers(template, GetSettingsCardResourceIdentifiers(), Log);
+            Log.Debug($"Caching template");
+            _template = template;
+            return _template;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error getting template.");
+            return string.Empty;
+        }
+    }
+
+    private static string[] GetSettingsCardResourceIdentifiers()
+    {
+        return
+        [
+            "QuickstartPlayground_OpenAI_ClearKey",
+            "Settings_ViewLogs",
+        ];
     }
 }

@@ -1,7 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.Helpers;
+using System.Text;
+using DevHomeAzureExtension.DevBox.Models;
+using Microsoft.Windows.DevHome.SDK;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
+
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 public static class DevBoxOperationHelper
 {
@@ -25,6 +31,43 @@ public static class DevBoxOperationHelper
             Constants.DevBoxRestartOperation => DevBoxActionToPerform.Restart,
             Constants.DevBoxRepairOperation => DevBoxActionToPerform.Repair,
             _ => null,
+        };
+    }
+
+    public static string Base64Encode(string plainText)
+    {
+        var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+        return System.Convert.ToBase64String(plainTextBytes);
+    }
+
+    public static ConfigurationUnitState JSONStatusToUnitStatus(string status)
+    {
+        return status switch
+        {
+            "NotStarted" => ConfigurationUnitState.Pending,
+            "Running" => ConfigurationUnitState.InProgress,
+            "Skipped" => ConfigurationUnitState.Skipped,
+            "Succeeded" => ConfigurationUnitState.Completed,
+            "Failed" => ConfigurationUnitState.Unknown,
+            "TimedOut" => ConfigurationUnitState.Unknown,
+            "WaitingForUserSession" => ConfigurationUnitState.Pending,
+            _ => ConfigurationUnitState.Unknown,
+
+            // Not implemented by the REST API
+            // "WaitingForUserInputUac" => ConfigurationUnitState.Unknown,
+        };
+    }
+
+    public static ConfigurationSetState JSONStatusToSetStatus(string status)
+    {
+        return status switch
+        {
+            "NotStarted" => ConfigurationSetState.Pending,
+            "Running" => ConfigurationSetState.InProgress,
+            "Succeeded" => ConfigurationSetState.Completed,
+            "Failed" => ConfigurationSetState.Unknown,
+            "ValidationFailed" => ConfigurationSetState.Unknown,
+            _ => ConfigurationSetState.Unknown,
         };
     }
 }

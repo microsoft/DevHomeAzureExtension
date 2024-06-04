@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 /// <summary>
 /// The status of a DevCenter operation.
@@ -30,4 +30,9 @@ public class DevCenterOperationBase
 
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public DateTime? EndTime { get; set; }
+
+    public override string ToString()
+    {
+        return $"Status: {Status}, StartTime: {StartTime}, EndTime: {EndTime}";
+    }
 }

@@ -1,12 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DataModel;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.DeveloperId;
+using DevHomeAzureExtension.Providers;
+using DevHomeAzureExtension.QuickStartPlayground;
+using DevHomeAzureExtension.Services.DevBox;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -110,8 +112,7 @@ public sealed class Program
 
     private static void HandleNotificationActivation(AppActivationArguments activationArgs)
     {
-        var notificationArgs = activationArgs.Data as AppNotificationActivatedEventArgs;
-        if (notificationArgs != null)
+        if (activationArgs.Data is AppNotificationActivatedEventArgs notificationArgs)
         {
             Log.Information($"Notification Activation.");
             Notifications.NotificationHandler.NotificationActivation(notificationArgs);
@@ -229,7 +230,7 @@ public sealed class Program
 
     private static IHost CreateHost()
     {
-        var host = Microsoft.Extensions.Hosting.Host.
+        var host = Host.
             CreateDefaultBuilder().
             UseContentRoot(AppContext.BaseDirectory).
             UseDefaultServiceProvider((context, options) =>
@@ -240,6 +241,9 @@ public sealed class Program
             {
                 // Logging
                 services.AddLogging(builder => builder.AddSerilog(dispose: true));
+
+                // Settings
+                services.AddTransient<SettingsProvider>();
 
                 // Dev Box
                 services.AddHttpClient();
@@ -254,6 +258,9 @@ public sealed class Program
                 services.AddSingleton<IDevBoxCreationManager, DevBoxCreationManager>();
                 services.AddSingleton<DevBoxInstanceFactory>(sp => (developerId, dexBoxMachine) => ActivatorUtilities.CreateInstance<DevBoxInstance>(sp, developerId, dexBoxMachine));
                 services.AddSingleton<CreateComputeSystemOperationFactory>(sp => (devId, userOptions) => ActivatorUtilities.CreateInstance<CreateComputeSystemOperation>(sp, devId, userOptions));
+
+                // Quick Start Project
+                services.AddQuickStartPlayground();
             }).
         Build();
 

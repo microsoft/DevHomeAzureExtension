@@ -2,10 +2,13 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Helpers;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Helpers;
+using DevHomeAzureExtension.Helpers;
+using Windows.ApplicationModel;
+using Windows.Storage;
 
-namespace AzureExtension.DevBox;
+namespace DevHomeAzureExtension.DevBox;
 
 public static class Constants
 {
@@ -22,6 +25,13 @@ public static class Constants
         " \"options\":{\"allowPartialScopes\":true}}";
 
     /// <summary>
+    /// API version used for enumeration and start, stop, and restart APIs
+    /// </summary>
+    /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
+    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
+    public const string APIVersion = "api-version=2024-05-01-preview";
+
+    /// <summary>
     /// DevCenter API to get all devboxes
     /// </summary>
     /// for stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
@@ -31,6 +41,11 @@ public static class Constants
     public const string DevBoxUserSegmentOfUri = "/users/me/devboxes";
 
     public const string OperationsParameter = "operations";
+
+    /// <summary>
+    /// Dev Box API to run the winget customization task
+    /// </summary>
+    public const string CustomizationAPI = "/customizationgroups/AzureExt";
 
     /// <summary>
     /// Gets the Regex pattern for the name of a DevBox. This pattern is used to validate the name and the project name of a DevBox before attempting
@@ -49,13 +64,6 @@ public static class Constants
     /// Scope to query for all projects
     /// </summary>
     public const string ManagementPlaneScope = "https://management.azure.com/user_impersonation";
-
-    /// <summary>
-    /// API version used for enumeration and start, stop, and restart APIs
-    /// </summary>
-    /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
-    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
-    public const string APIVersion = "api-version=2024-05-01-preview";
 
     public const string Pools = "pools";
 
@@ -76,7 +84,7 @@ public static class Constants
 
     public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
 
-    public static readonly TimeSpan FiveMinutePeriod = TimeSpan.FromMinutes(5);
+    public static readonly TimeSpan ThreeMinutePeriod = TimeSpan.FromMinutes(3);
 
     public static readonly TimeSpan OperationDeadline = TimeSpan.FromHours(2);
 
@@ -109,6 +117,8 @@ public static class Constants
         public const string Deleting = "Deleting";
 
         public const string Updating = "Updating";
+
+        public const string Deleted = "Deleted";
     }
 
     public static class DevBoxActionStates
@@ -159,12 +169,7 @@ public static class Constants
     };
 
     /// <summary>
-    /// Location of the thumbnail that is shown for all Dev Boxes in the UI
-    /// </summary>
-    public const string ThumbnailURI = "ms-appx:///AzureExtension/Assets/DevBoxThumbnail.png";
-
-    /// <summary>
-    /// Location of the provider icon.
+    /// Location of the provider icon and Dev Box bloom thumbnail icon.
     /// </summary>
     /// <remarks>
     /// We use different icon locations for different builds. Note these are ms-resource URIs, but are used by Dev Home to load the providers icon,
@@ -178,10 +183,13 @@ public static class Constants
     /// </remarks>
 #if CANARY_BUILD
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Canary/Files/AzureExtension/Assets/DevBoxProvider.png";
+    public const string ThumbnailURI = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Canary/Files/AzureExtension/Assets/DevBoxThumbnail.png";
 #elif STABLE_BUILD
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension/Files/AzureExtension/Assets/DevBoxProvider.png";
+    public const string ThumbnailURI = "ms-resource://Microsoft.Windows.DevHomeAzureExtension/Files/AzureExtension/Assets/DevBoxThumbnail.png";
 #else
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Dev/Files/AzureExtension/Assets/DevBoxProvider.png";
+    public const string ThumbnailURI = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Dev/Files/AzureExtension/Assets/DevBoxThumbnail.png";
 #endif
 
     /// <summary>
@@ -192,7 +200,7 @@ public static class Constants
     /// <summary>
     /// Non localized display Name for Microsoft Dev Box.
     /// </summary>
-    public const string DevBoxProviderDisplayName = "Microsoft DevBox";
+    public const string DevBoxProviderDisplayName = "Microsoft Dev Box";
 
     /// <summary>
     /// Size of a GB in bytes
@@ -209,10 +217,24 @@ public static class Constants
     /// </summary>
     public const string DevBoxUnableToPerformOperationKey = "DevBox_UnableToPerformRequestedOperation";
 
+    public const string DevBoxUnableToCheckStartMenuPinning = "DevBox_UnableToCheckStartMenuPinningStatus";
+
+    public const string DevBoxUnableToCheckTaskbarPinning = "DevBox_UnableToCheckTaskbarPinningStatus";
+
+    /// <summary>
+    /// Resource key for the error message to show with the log location for the configuration flow.
+    /// </summary>
+    public const string DevBoxCheckLogsKey = "DevBox_CheckLogs";
+
     /// <summary>
     /// Resource key for the error message when Dev Boxes retrival failed.
     /// </summary>
     public const string RetrivalFailKey = "DevBox_RetrivalFailKey";
+
+    /// <summary>
+    /// Resource key for the error message when there is no default user logged in.
+    /// </summary>
+    public const string NoDefaultUserFailKey = "DevBox_NoDefaultUserFailKey";
 
     /// <summary>
     /// Resource key for the error message when Dev Boxes retrival failed.
@@ -228,4 +250,37 @@ public static class Constants
     /// Windows App, used for remote connections, Package Family Name
     /// </summary>
     public const string WindowsAppPackageFamilyName = "MicrosoftCorporationII.Windows365_8wekyb3d8bbwe";
+
+    public static readonly string LogFolderName = "Logs";
+
+    private static readonly Lazy<string> _logFolderRoot = new(GetLoggingPath);
+
+    public static readonly string LogFolderRoot = _logFolderRoot.Value;
+
+    public static readonly string OperationsDefaultErrorMsg = Resources.GetResource(DevBoxUnableToPerformOperationKey, LogFolderRoot);
+
+    public static readonly string StartMenuPinnedStatusErrorMsg = Resources.GetResource(DevBoxUnableToCheckStartMenuPinning, LogFolderRoot);
+
+    public static readonly string TaskbarPinnedStatusErrorMsg = Resources.GetResource(DevBoxUnableToCheckTaskbarPinning, LogFolderRoot);
+
+    private static string GetLoggingPath()
+    {
+        try
+        {
+            // This will always result in a returned value in non test scenarios. But will throw when run in a unit test as ApplicationData does not exist.
+            return Path.Combine(ApplicationData.Current.TemporaryFolder.Path, LogFolderName);
+        }
+        catch (Exception)
+        {
+            return string.Empty;
+        }
+    }
+
+    public static readonly Lazy<byte[]> ThumbnailInBytes = new(GetBloomThumbnailInBytes);
+
+    private static byte[] GetBloomThumbnailInBytes()
+    {
+        var fileLocationOfThumbnail = Resources.GetResourceFromPackage(ThumbnailURI, Package.Current.Id.FullName);
+        return File.ReadAllBytes(fileLocationOfThumbnail);
+    }
 }

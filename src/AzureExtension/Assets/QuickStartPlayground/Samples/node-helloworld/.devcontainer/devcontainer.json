@@ -1,0 +1,14 @@
+{
+    "name": "NodeJS",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            "settings": {},
+            "extensions": []
+        }
+    },
+    "postCreateCommand": "npm install"
+}

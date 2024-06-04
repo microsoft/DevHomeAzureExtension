@@ -1,13 +1,14 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 
 namespace DevHomeAzureExtension.Providers;
 
-public class SettingsProvider : ISettingsProvider
+public class SettingsProvider(IAICredentialService aiCredentialService) : ISettingsProvider
 {
     private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsProvider)));
 
@@ -15,10 +16,12 @@ public class SettingsProvider : ISettingsProvider
 
     string ISettingsProvider.DisplayName => Resources.GetResource(@"SettingsProviderDisplayName", Log);
 
+    private readonly IAICredentialService _aiCredentialService = aiCredentialService;
+
     public AdaptiveCardSessionResult GetSettingsAdaptiveCardSession()
     {
         Log.Information($"GetSettingsAdaptiveCardSession");
-        return new AdaptiveCardSessionResult(new SettingsUIController());
+        return new AdaptiveCardSessionResult(new SettingsUIController(_aiCredentialService));
     }
 
     public void Dispose()

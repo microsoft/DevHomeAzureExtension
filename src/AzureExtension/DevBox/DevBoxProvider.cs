@@ -1,17 +1,20 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Text;
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 
-namespace AzureExtension.DevBox;
+namespace DevHomeAzureExtension.DevBox;
 
 /// <summary>
 /// Implements the IComputeSystemProvider interface to provide DevBoxes as ComputeSystems.
@@ -26,7 +29,15 @@ public class DevBoxProvider : IComputeSystemProvider
 
     private readonly DevBoxInstanceFactory _devBoxInstanceFactory;
 
+    private readonly Dictionary<string, DevBoxProjects> _devBoxProjectsMap = new();
+
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DevBoxProvider));
+
+    private readonly Dictionary<string, List<DevBoxProjectAndPoolContainer>> _devBoxProjectAndPoolsMap = new();
+
+    private readonly Dictionary<string, List<IComputeSystem>> _cachedDevBoxesMap = new();
+
+    private ConcurrentBag<IComputeSystem> devBoxes = new();
 
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,
@@ -54,8 +65,7 @@ public class DevBoxProvider : IComputeSystemProvider
     /// </summary>
     /// <param name="devBoxProject">Object with the properties of the project</param>
     /// <param name="devId">DeveloperID to be used for the authentication token service</param>
-    /// <param name="systems">List of valid dev box objects</param>
-    private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId, List<IComputeSystem> systems)
+    private async Task ProcessAllDevBoxesInProjectAsync(DevBoxProject devBoxProject, IDeveloperId devId)
     {
         var devCenterUri = devBoxProject.Properties.DevCenterUri;
         var baseUriStr = $"{devCenterUri}{Constants.Projects}/{devBoxProject.Name}{Constants.DevBoxAPI}";
@@ -70,10 +80,12 @@ public class DevBoxProvider : IComputeSystemProvider
             {
                 if (_devBoxCreationManager.TryGetDevBoxInstanceIfBeingCreated(devBoxState.UniqueId, out var devBox))
                 {
+                    _log.Information($"DevBox with name: {devBox!.DevBoxState.Name} found and is currently being created and monitored by Dev Box provider");
+
                     // If the Dev Box's creation operation or its provisioning state are being tracked by us, then don't make a new instance.
                     // Add the one we're tracking. This is to avoid adding the same Dev Box twice. E.g User clicks Dev Homes refresh button while
                     // the Dev Box is being created.
-                    systems.Add(devBox!);
+                    devBoxes.Add(devBox!);
                     continue;
                 }
 
@@ -81,12 +93,19 @@ public class DevBoxProvider : IComputeSystemProvider
 
                 if (newDevBoxInstance.IsDevBoxBeingCreatedOrProvisioned)
                 {
+                    _log.Information(
+                        $"DevBox with name: {newDevBoxInstance!.DevBoxState.Name} is currently being provisioned and is not monitored by the DevBox provider. Adding DevBox To Operation watcher");
+
                     // DevBox is being created but we aren't tracking it yet. So we'll start tracking its provisioning state until its fully provisioned.
                     // It was likely created by Dev Portals UI or some other non-Dev Home related UI.
                     _devBoxCreationManager.StartDevBoxProvisioningStateMonitor(newDevBoxInstance.AssociatedDeveloperId, newDevBoxInstance);
                 }
+                else
+                {
+                    await newDevBoxInstance.LoadWindowsAppParameters();
+                }
 
-                systems.Add(newDevBoxInstance);
+                devBoxes.Add(newDevBoxInstance);
             }
         }
     }
@@ -97,28 +116,34 @@ public class DevBoxProvider : IComputeSystemProvider
     /// <param name="developerId">DeveloperId to be used by the authentication token service</param>
     public async Task<IEnumerable<IComputeSystem>> GetDevBoxesAsync(IDeveloperId developerId)
     {
-        var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
-        var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
-        var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
-        var computeSystems = new List<IComputeSystem>();
+        var devBoxProjects = await GetDevBoxProjectsAsync(developerId);
 
         if (devBoxProjects?.Data != null)
         {
             _log.Information($"Found {devBoxProjects.Data.Length} projects");
-            foreach (var project in devBoxProjects.Data)
+            devBoxes.Clear();
+            var cancellationTokenSource = new CancellationTokenSource();
+            cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(2));
+            var token = cancellationTokenSource.Token;
+
+            await Parallel.ForEachAsync(devBoxProjects.Data, async (project, token) =>
             {
                 try
                 {
-                    await ProcessAllDevBoxesInProjectAsync(project, developerId, computeSystems);
+                    await ProcessAllDevBoxesInProjectAsync(project, developerId);
                 }
                 catch (Exception ex)
                 {
                     _log.Error(ex, $"Error processing project {project.Name}");
                 }
-            }
+            });
         }
 
-        return computeSystems;
+        // update the cache every time we retrieve new Dev Boxes. This is used so in the creation flow we don't need
+        // to retrieve the Dev Boxes again if the user already retrieved them in the environments page in Dev Home
+        var uniqueUserId = GetUniqueDeveloperId(developerId);
+        _cachedDevBoxesMap[uniqueUserId] = devBoxes.ToList();
+        return _cachedDevBoxesMap[uniqueUserId];
     }
 
     /// <summary>
@@ -132,28 +157,37 @@ public class DevBoxProvider : IComputeSystemProvider
             try
             {
                 ArgumentNullException.ThrowIfNull(developerId);
+                ArgumentNullException.ThrowIfNullOrEmpty(developerId.LoginId);
+
+                var start = DateTime.Now;
+                _log.Information($"Attempting to retrieving all Dev Boxes for {developerId.LoginId}");
 
                 var computeSystems = await GetDevBoxesAsync(developerId);
+
+                _log.Information($"Successfully retrieved all Dev Boxes for {developerId.LoginId}, in {DateTime.Now - start}");
                 return new ComputeSystemsResult(computeSystems);
             }
             catch (Exception ex)
             {
-                var errorMessage = string.Empty;
+                var errorMessage = Constants.OperationsDefaultErrorMsg;
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.SessionExpiredKey);
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.SessionExpiredKey);
                 }
                 else if (ex.Message.Contains("A passthrough token was detected without proper resource provider context"))
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + Resources.GetResource(Constants.UnconfiguredKey);
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.UnconfiguredKey);
+                }
+                else if (ex is ArgumentException ae)
+                {
+                    errorMessage = Resources.GetResource(Constants.NoDefaultUserFailKey);
                 }
                 else
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey) + ex.Message;
-                    return new ComputeSystemsResult(ex, Resources.GetResource(Constants.RetrivalFailKey), ex.Message);
+                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + ex.Message;
                 }
 
-                _log.Error(errorMessage);
+                _log.Error(ex, errorMessage);
                 return new ComputeSystemsResult(ex, errorMessage, string.Empty);
             }
         }).AsAsyncOperation();
@@ -161,8 +195,11 @@ public class DevBoxProvider : IComputeSystemProvider
 
     public ICreateComputeSystemOperation? CreateCreateComputeSystemOperation(IDeveloperId developerId, string inputJson)
     {
+        _log.Information($"Attempting to create CreateComputeSystemOperation for {developerId.LoginId}");
+
         if (developerId is null || string.IsNullOrEmpty(inputJson))
         {
+            _log.Error($"Unable to create Dev Box with DeveloperId: '{developerId?.LoginId ?? "null"}' and inputJson '{inputJson ?? "null"}'");
             return null;
         }
 
@@ -171,16 +208,65 @@ public class DevBoxProvider : IComputeSystemProvider
         return _createComputeSystemOperationFactory(developerId, parameters);
     }
 
-    // These methods are not implemented but will be implemented as part of the work to support DevBox creation before the feature is released before build.
     public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForDeveloperId(IDeveloperId developerId, ComputeSystemAdaptiveCardKind sessionKind)
     {
-        var exception = new NotImplementedException();
-        return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
+        return Task.Run(async () =>
+        {
+            try
+            {
+                _log.Information($"Attempting to create adaptive card session for {developerId?.LoginId ?? "null"}");
+
+                ArgumentNullException.ThrowIfNull(developerId);
+
+                var uniqueId = GetUniqueDeveloperId(developerId);
+                if (!_devBoxProjectAndPoolsMap.TryGetValue(uniqueId, out var _))
+                {
+                    _log.Information($"No cached Dev Boxes found for {developerId.LoginId}, getting new Dev Boxes");
+                    await GetDevBoxesAsync(developerId);
+                    _devBoxProjectAndPoolsMap[uniqueId] = await
+                        _devBoxManagementService.GetAllProjectsToPoolsMappingAsync(_devBoxProjectsMap[uniqueId]!, developerId);
+                }
+
+                return new ComputeSystemAdaptiveCardResult(new CreationAdaptiveCardSession(_devBoxProjectAndPoolsMap[uniqueId], _cachedDevBoxesMap[uniqueId]));
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Unable to get the adaptive card session for the provided developerId");
+                return new ComputeSystemAdaptiveCardResult(ex, Constants.OperationsDefaultErrorMsg, ex.Message);
+            }
+        }).GetAwaiter().GetResult();
     }
 
     public ComputeSystemAdaptiveCardResult CreateAdaptiveCardSessionForComputeSystem(IComputeSystem computeSystem, ComputeSystemAdaptiveCardKind sessionKind)
     {
         var exception = new NotImplementedException();
-        return new ComputeSystemAdaptiveCardResult(exception, Resources.GetResource(Constants.DevBoxMethodNotImplementedKey), exception.Message);
+        return new ComputeSystemAdaptiveCardResult(exception, Constants.OperationsDefaultErrorMsg, exception.Message);
+    }
+
+    private async Task<DevBoxProjects> GetDevBoxProjectsAsync(IDeveloperId developerId)
+    {
+        _log.Information($"Attempting to get all projects for {developerId?.LoginId ?? "null"}");
+
+        ArgumentNullException.ThrowIfNull(developerId);
+
+        var uniqueUserId = GetUniqueDeveloperId(developerId);
+
+        if (_devBoxProjectsMap.TryGetValue(uniqueUserId, out var projects))
+        {
+            _log.Information($"Found cached projects for {developerId.LoginId}, returning cached projects");
+            return projects;
+        }
+
+        var requestContent = new StringContent(Constants.ARGQuery, Encoding.UTF8, "application/json");
+        var result = await _devBoxManagementService.HttpsRequestToManagementPlane(new Uri(Constants.ARGQueryAPI), developerId, HttpMethod.Post, requestContent);
+        var devBoxProjects = JsonSerializer.Deserialize<DevBoxProjects>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
+
+        _devBoxProjectsMap.Add(uniqueUserId, devBoxProjects!);
+        return devBoxProjects!;
+    }
+
+    private string GetUniqueDeveloperId(IDeveloperId developerId)
+    {
+        return $"{developerId.LoginId}#{developerId.Url}";
     }
 }

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// This is used to represent the json object that we send with the "create Dev Box" request.

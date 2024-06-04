@@ -1,1 +1,7 @@
-﻿GetCurrentPackageFullName
+GetCurrentPackageFullName
+﻿CredWrite
+CredRead
+CredFree
+CredDelete
+WIN32_ERROR
+SHLoadIndirectString

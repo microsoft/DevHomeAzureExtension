@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <BuildRing Condition="'$(BuildRing)'==''">Dev</BuildRing>
     <DebugType>portable</DebugType>
+    <RunAnalyzersDuringBuild>True</RunAnalyzersDuringBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -45,9 +46,22 @@
     <Content Include="Widgets\Templates\AzureSignInTemplate.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="DevBox\Templates\CreationForm.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DevBox\Templates\ReviewForm.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DevBox\Templates\WaitingForUserSessionTemplate.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DevBox\Templates\Caution.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.14" />
     <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
     <PackageReference Include="LibGit2Sharp" Version="0.29.0" />
@@ -56,16 +70,13 @@
     <PackageReference Include="Microsoft.Identity.Client" Version="4.56.0" />
     <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.56.0" />
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.49-beta">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.0.7" />
-    <PackageReference Include="Microsoft.Windows.DevHome.SDK" Version="0.300.443" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.2.206-beta" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.0.4" />
+    <PackageReference Include="Microsoft.Windows.DevHome.SDK" Version="0.600.494" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240227000" />
-    <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="16.205.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Services.Client" Version="16.205.1" />
-    <PackageReference Include="Microsoft.VisualStudio.Services.InteractiveClient" Version="16.205.1" />
+    <PackageReference Include="Microsoft.TeamFoundationServer.Client" Version="19.225.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Services.Client" Version="19.225.1" />
+    <PackageReference Include="Microsoft.VisualStudio.Services.InteractiveClient" Version="19.225.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Serilog" Version="3.1.1" />
@@ -74,6 +85,7 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
     <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="YamlDotNet" Version="15.1.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -189,6 +201,33 @@
     <Content Update="Widgets\Assets\UserStory.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\QuickStartPlayground\Samples\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Providers\SettingsCardTemplate.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>

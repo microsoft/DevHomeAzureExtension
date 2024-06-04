@@ -4,11 +4,15 @@
 using System.Globalization;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Serilog;
+using Windows.Win32;
+using Windows.Win32.Foundation;
 
 namespace DevHomeAzureExtension.Helpers;
 
 public static class Resources
 {
+    private const int MaxBufferLength = 1024;
+
     private static ResourceLoader? _resourceLoader;
 
     public static string GetResource(string identifier, ILogger? log = null)
@@ -76,8 +80,8 @@ public static class Resources
     // These are all the string identifiers that appear in widgets.
     public static string[] GetWidgetResourceIdentifiers()
     {
-        return new string[]
-        {
+        return
+        [
             "Extension_Name/Azure",
             "Widget_Template/Loading",
             "Widget_Template/Updated",
@@ -115,6 +119,28 @@ public static class Resources
             "Widget_Template/EmptyWorkItems",
             "Widget_Template/NotShownItems",
             "Widget_Template/ContentLoading",
-        };
+        ];
+    }
+
+    /// <summary>
+    /// Gets a string or the absolute file path of an asset location within a package.
+    /// </summary>
+    /// <param name="resource">the ms-resource:// path to a resource in an app package's pri file.</param>
+    /// <param name="packageFullName">the package containing the resource.</param>
+    /// <returns>The retrieved string represented by the resource key.</returns>
+    public static unsafe string GetResourceFromPackage(string resource, string packageFullName)
+    {
+        var indirectPathToResource = "@{" + packageFullName + "?" + resource + "}";
+        Span<char> outputBuffer = new char[MaxBufferLength];
+
+        fixed (char* outBufferPointer = outputBuffer)
+        {
+            fixed (char* resourcePathPointer = indirectPathToResource)
+            {
+                var res = PInvoke.SHLoadIndirectString(resourcePathPointer, new PWSTR(outBufferPointer), (uint)outputBuffer.Length);
+                res.ThrowOnFailure();
+                return new string(outputBuffer.TrimEnd('\0'));
+            }
+        }
     }
 }

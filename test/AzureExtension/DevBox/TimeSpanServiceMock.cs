@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
 
-namespace AzureExtension.Test.DevBox;
+namespace DevHomeAzureExtension.Test.DevBox;
 
 public class TimeSpanServiceMock : ITimeSpanService
 {

@@ -5,12 +5,12 @@ using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection.Metadata.Ecma335;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
-using AzureExtension.Test.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
@@ -76,7 +76,7 @@ public partial class DevBoxTests : IDisposable
                     ""provisioningState"": ""Succeeded"",
                     ""actionState"": ""Stopped"",
                     ""powerState"": ""Deallocated"",
-                    ""uniqueId"": ""28feedaeb-996b-434b-bb57-4969cbeef8f0"",
+                    ""uniqueId"": ""28feedae-996b-434b-bb57-4969cbeef8f0"",
                     ""location"": ""westus2"",
                     ""osType"": ""Windows"",
                     ""user"": ""28feedaeb-996b-434b-bb57-4969cbeef8f0"",
@@ -111,6 +111,33 @@ public partial class DevBoxTests : IDisposable
               ""startTime"": ""2024-02-20T08:23:16.8547869+00:00""
         }";
 
+    private const string MockTestPoolJson =
+        @"{
+          ""uri"": ""https://8a40af38-3b4c-4672-a6a4-5e964b1870ed-contosodevcenter.centralus.devcenter.azure.com/projects/myProject/users/b08e39b4-2ac6-4465-a35e-48322efb0f98/devboxes/MyDevBox"",
+          ""name"": ""MyDevBox"",
+          ""provisioningState"": ""Succeeded"",
+          ""projectName"": ""ContosoProject"",
+          ""poolName"": ""LargeDevWorkStationPool"",
+          ""location"": ""centralus"",
+          ""osType"": ""Windows"",
+          ""user"": ""b08e39b4-2ac6-4465-a35e-48322efb0f98"",
+          ""hardwareProfile"": {
+            ""vCPUs"": 8,
+            ""memoryGB"": 32
+          },
+          ""storageProfile"": {
+            ""osDisk"": {
+              ""diskSizeGB"": 1024
+            }
+          },
+          ""hibernateSupport"": ""Enabled"",
+          ""imageReference"": {
+            ""name"": ""DevImage"",
+            ""version"": ""1.0.0"",
+            ""publishedDate"": ""2022-03-01T00:13:23.323Z""
+          }
+        }";
+
     private const string MockTestRemoteConnectionJson =
         @"{
               ""webUrl"": ""https://devcenter.azure.com/projects/project/users/b214d34a-3feb-12ab-96bd-cca70d0c9d69/devboxes/DevBox1"",
@@ -119,7 +146,7 @@ public partial class DevBoxTests : IDisposable
 
     private const string MockTestCreationParametersJson =
         @"{
-              ""devBoxName"": ""MyDevBox"",
+              ""NewEnvironmentName"": ""MyDevBox"",
               ""projectName"": ""MyProject"",
               ""poolName"": ""MyPoolName"",
               ""devCenterUri"": ""https://devcenter.azure.com""

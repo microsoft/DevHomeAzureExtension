@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.Exceptions;
+namespace DevHomeAzureExtension.DevBox.Exceptions;
 
 public class DevBoxProjectNameInvalidException : Exception
 {

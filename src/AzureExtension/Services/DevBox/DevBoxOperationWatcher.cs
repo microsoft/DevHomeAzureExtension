@@ -2,16 +2,17 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Exceptions;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Exceptions;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.System.Threading;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// Represents the status of a Dev Box provisioning operation.
@@ -72,9 +73,11 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
             {
                 try
                 {
+                    _log.Information($"Starting Dev Box operation with action {actionToPerform}, Uri: {operationUri}, Id: {operationId}");
+
                     // Query the Dev Center for the status of the Dev Box operation.
                     var result = await _managementService.HttpsRequestToDataPlane(operationUri, developerId, HttpMethod.Get, null);
-                    var operation = JsonSerializer.Deserialize<DevCenterOperationBase>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+                    var operation = JsonSerializer.Deserialize<DevCenterOperationBase>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions)!;
 
                     // Invoke the call back so the original requester can handle the status update of the operation.
                     completionCallback(operation.Status);
@@ -87,7 +90,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                             break;
                         default:
                             _log.Information($"Dev Box operation monitoring stopped. {operation}, Uri: {operationUri}, Id: {operationId}");
-                            RemoveTimer(operationId);
+                            RemoveTimerIfBeingWatched(operationId);
                             break;
                     }
 
@@ -98,7 +101,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     _log.Error(ex, $"Dev Box operation monitoring stopped unexpectedly. Uri: {operationUri}, Id: {operationId}");
 
                     completionCallback(DevCenterOperationStatus.Failed);
-                    RemoveTimer(operationId);
+                    RemoveTimerIfBeingWatched(operationId);
                 }
             },
             interval);
@@ -132,18 +135,20 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
             {
                 try
                 {
+                    _log.Information($"Starting the provisioning monitor for Dev Box with Name: '{devBoxInstance.DisplayName}' , Id: '{devBoxInstance.Id}'");
+
                     // Query the Dev Center for the provisioning status of the Dev Box. This is needed for when the Dev Box was created outside of Dev Home.
-                    var devBoxUri = $"{devBoxInstance.DevBoxState.Uri}?{Constants.APIVersion}";
+                    var devBoxUri = $"{devBoxInstance.DevBoxState.Uri}?{DevBoxConstants.APIVersion}";
                     var result = await _managementService.HttpsRequestToDataPlane(new Uri(devBoxUri), developerId, HttpMethod.Get, null);
-                    var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+                    var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions)!;
 
                     // If the Dev Box is no longer being created, update the state for Dev Homes UI and end the timer.
-                    if (!(devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Creating || devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Provisioning))
+                    if (!(devBoxState.ProvisioningState == DevBoxConstants.DevBoxProvisioningStates.Creating || devBoxState.ProvisioningState == DevBoxConstants.DevBoxProvisioningStates.Provisioning))
                     {
                         _log.Information($"Dev Box provisioning now completed.");
                         devBoxInstance.ProvisioningMonitorCompleted(devBoxState, ProvisioningStatus.Succeeded);
                         completionCallback(devBoxInstance);
-                        RemoveTimer(devBoxId);
+                        RemoveTimerIfBeingWatched(devBoxId);
                     }
 
                     ThrowIfTimerPastDeadline(devBoxId);
@@ -153,7 +158,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     _log.Error(ex, $"Dev Box provisioning monitoring stopped unexpectedly.");
                     devBoxInstance.ProvisioningMonitorCompleted(null, ProvisioningStatus.Failed);
                     completionCallback(devBoxInstance);
-                    RemoveTimer(devBoxId);
+                    RemoveTimerIfBeingWatched(devBoxId);
                 }
             },
             interval);
@@ -172,7 +177,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
         }
     }
 
-    private void RemoveTimer(Guid id)
+    public void RemoveTimerIfBeingWatched(Guid id)
     {
         lock (_lock)
         {
@@ -216,6 +221,14 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
             }
 
             _operationWatcherTimers[id].Timer = timer;
+        }
+    }
+
+    public bool IsIdBeingWatched(Guid id)
+    {
+        lock (_lock)
+        {
+            return _operationWatcherTimers.ContainsKey(id);
         }
     }
 }
