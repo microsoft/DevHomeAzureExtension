@@ -4,6 +4,7 @@
 using System.Net.Http.Headers;
 using AzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
+using Windows.ApplicationModel;
 
 namespace AzureExtension.Services.DevBox;
 
@@ -23,6 +24,10 @@ public class AuthService : IDevBoxAuthService
         _dataTokenService = dataTokenService;
         _httpArmClient = _httpClientFactory.CreateClient();
         _httpDataClient = _httpClientFactory.CreateClient();
+
+        var agentHeader = new ProductInfoHeaderValue(Package.Current.Id.Name, Package.Current.Id.Version.ToString());
+        _httpArmClient.DefaultRequestHeaders.UserAgent.Add(agentHeader);
+        _httpDataClient.DefaultRequestHeaders.UserAgent.Add(agentHeader);
     }
 
     /// <summary>
