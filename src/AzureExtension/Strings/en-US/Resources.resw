@@ -699,4 +699,8 @@
     <value>Please check logs at C:\ProgramData\Microsoft\DevBoxAgent\Logs</value>
     <comment>Shown for errors in config flow for Dev Boxes which don't have additional info</comment>
   </data>
+  <data name="DevBox_AdaptiveCard_LaunchText" xml:space="preserve">
+    <value>Launch</value>
+    <comment>Text shown in the button to launch Dev Box.</comment>
+  </data>
 </root>
