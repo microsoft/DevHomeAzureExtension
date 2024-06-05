@@ -39,7 +39,9 @@ public class AuthService : IDevBoxAuthService
 
         if (!IsTest())
         {
-            var agentHeader = new ProductInfoHeaderValue(Package.Current.Id.Name, Package.Current.Id.Version.ToString());
+            var version = Package.Current.Id.Version;
+            var versionString = version.Build + "." + version.Major + "." + version.Minor + "." + version.Revision;
+            var agentHeader = new ProductInfoHeaderValue(Package.Current.Id.Name, versionString);
             _httpArmClient.DefaultRequestHeaders.UserAgent.Add(agentHeader);
             _httpDataClient.DefaultRequestHeaders.UserAgent.Add(agentHeader);
         }
