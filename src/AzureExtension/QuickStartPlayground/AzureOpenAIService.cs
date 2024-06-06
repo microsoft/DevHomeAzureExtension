@@ -21,9 +21,16 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
 
     private readonly OpenAIEndpoint _endpoint;
 
-    private readonly int contextWindowMaxLength = 4096;
-    private readonly int contextWindowPadding = 100;
+    // We use a Microsoft-published library that implements OpenAI's TikToken algorithm to figure out how much space to
+    // allocate for the output.
     private readonly Tokenizer gpt3Tokenizer = Tokenizer.CreateTiktokenForModel("gpt-35-turbo-instruct");
+
+    // This is the publicly documented gpt-35-turbo-instruct context window length (shared between the input and output)
+    private readonly int contextWindowMaxLength = 4096;
+
+    // This is a fudge factor in case there is a discrepancy between the tokenizer's output and what the
+    // model will internally calculate.
+    private readonly int contextWindowPadding = 100;
 
     public AzureOpenAIService(IAICredentialService aiCredentialService, OpenAIEndpoint endpoint)
     {
