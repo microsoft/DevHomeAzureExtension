@@ -82,7 +82,6 @@ extends:
                 restoreSolution: '$(solution)'
                 feedsToUse: 'config'
                 nugetConfigPath: 'nuget.config'
-                externalFeedCredentials: 'DevHomeInternal'
 
             - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@3
               displayName: Send and Download Localization Files for Artifacts
