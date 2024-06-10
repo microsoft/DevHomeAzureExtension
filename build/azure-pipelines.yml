@@ -62,8 +62,6 @@ extends:
             - task: NuGetToolInstaller@1
 
             - task: NuGetAuthenticate@1
-              inputs:
-                nuGetServiceConnections: 'DevHomeInternal'
 
             - task: PowerShell@2
               displayName: Replace Stubbed Files
@@ -84,7 +82,6 @@ extends:
                 restoreSolution: '$(solution)'
                 feedsToUse: 'config'
                 nugetConfigPath: 'nuget.config'
-                externalFeedCredentials: 'DevHomeInternal'
 
             - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@3
               displayName: Send and Download Localization Files for Artifacts
