@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.Globalization;
+using System.Numerics.Tensors;
 
 namespace AzureExtension.QuickStartPlayground;
 
@@ -12,19 +13,11 @@ namespace AzureExtension.QuickStartPlayground;
 /// </summary>
 public static class EmbeddingsCalc
 {
-    private static double DotProduct(ReadOnlyMemory<float> a, ReadOnlyMemory<float> b)
-    {
-        return Enumerable.Range(0, a.Length).Sum(i => a.Span[i] * b.Span[i]);
-    }
-
     private static double CalcCosineSimilarity(ReadOnlyMemory<float> a, ReadOnlyMemory<float> b)
     {
         try
         {
-            var dotProduct = DotProduct(a, b);
-            var magnitudeA = Math.Sqrt(DotProduct(a, a));
-            var magnitudeB = Math.Sqrt(DotProduct(b, b));
-            return dotProduct / (magnitudeA * magnitudeB);
+            return TensorPrimitives.CosineSimilarity(a.Span, b.Span);
         }
         catch (Exception)
         {
