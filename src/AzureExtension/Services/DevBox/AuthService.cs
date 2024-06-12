@@ -4,6 +4,7 @@
 using System.Net.Http.Headers;
 using DevHomeAzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
+using Windows.ApplicationModel;
 
 namespace DevHomeAzureExtension.Services.DevBox;
 
@@ -16,6 +17,18 @@ public class AuthService : IDevBoxAuthService
     private readonly HttpClient _httpArmClient;
     private readonly HttpClient _httpDataClient;
 
+    private bool IsTest()
+    {
+        try
+        {
+            return Package.Current.Id.Name.Contains("Test");
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
     public AuthService(IHttpClientFactory httpClientFactory, IArmTokenService armTokenService, IDataTokenService dataTokenService)
     {
         _httpClientFactory = httpClientFactory;
@@ -23,6 +36,15 @@ public class AuthService : IDevBoxAuthService
         _dataTokenService = dataTokenService;
         _httpArmClient = _httpClientFactory.CreateClient();
         _httpDataClient = _httpClientFactory.CreateClient();
+
+        if (!IsTest())
+        {
+            var version = Package.Current.Id.Version;
+            var versionString = version.Build + "." + version.Major + "." + version.Minor + "." + version.Revision;
+            var agentHeader = new ProductInfoHeaderValue(Package.Current.Id.Name, versionString);
+            _httpArmClient.DefaultRequestHeaders.UserAgent.Add(agentHeader);
+            _httpDataClient.DefaultRequestHeaders.UserAgent.Add(agentHeader);
+        }
     }
 
     /// <summary>

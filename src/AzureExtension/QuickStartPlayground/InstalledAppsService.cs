@@ -140,7 +140,7 @@ public class InstalledAppsService : IInstalledAppsService
             }
         }
 
-        _log.Information("${executableName} not found in PATH.");
+        _log.Information($"{executableName} not found in PATH.");
         return string.Empty;
     }
 

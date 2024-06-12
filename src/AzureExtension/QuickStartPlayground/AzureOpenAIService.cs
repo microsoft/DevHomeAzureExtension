@@ -6,16 +6,31 @@ using System.Reflection;
 using Azure;
 using Azure.AI.OpenAI;
 using DevHomeAzureExtension.Contracts;
+using Microsoft.ML.Tokenizers;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class AzureOpenAIService : IAzureOpenAIService
 {
+    private readonly ILogger _log = Serilog.Log.ForContext("SourceContext", nameof(AzureOpenAIService));
+
     private const string AzureOpenAIEmbeddingFile = "ms-appx:///AzureExtension/Assets/QuickStartPlayground/docsEmbeddings-AzureOpenAI.json";
     private const string OpenAIEmbeddingFile = "ms-appx:///AzureExtension/Assets/QuickStartPlayground/docsEmbeddings-OpenAI.json";
 
     private readonly OpenAIEndpoint _endpoint;
+
+    // We use a Microsoft-published library that implements OpenAI's TikToken algorithm to figure out how much space to
+    // allocate for the output.
+    private readonly Tokenizer _gpt3Tokenizer = Tokenizer.CreateTiktokenForModel("gpt-35-turbo-instruct");
+
+    // This is the publicly documented gpt-35-turbo-instruct context window length (shared between the input and output)
+    private readonly int _contextWindowMaxLength = 4096;
+
+    // This is a fudge factor in case there is a discrepancy between the tokenizer's output and what the
+    // model will internally calculate.
+    private readonly int _contextWindowPadding = 100;
 
     public AzureOpenAIService(IAICredentialService aiCredentialService, OpenAIEndpoint endpoint)
     {
@@ -127,24 +142,43 @@ public sealed class AzureOpenAIService : IAzureOpenAIService
         var openAIClient = OpenAIClient;
         ArgumentNullException.ThrowIfNull(openAIClient);
 
+        var prompts = systemInstructions + "\n\n" + userMessage;
+        var maxTokens = ComputeMaxTokens(prompts);
+
         var response = await openAIClient.GetCompletionsAsync(
             new CompletionsOptions()
             {
                 DeploymentName = CompletionDeploymentName,
                 Prompts =
                 {
-                    systemInstructions + "\n\n" + userMessage,
+                    prompts,
                 },
                 Temperature = 0.01F,
-                MaxTokens = 2000,
+                MaxTokens = maxTokens,
             });
 
         if (response.Value.Choices[0].FinishReason == CompletionsFinishReason.TokenLimitReached)
         {
-            // TODO: Need to handle this
-            Console.WriteLine("Cut off due to length constraints");
+            throw new InvalidDataException("Token limit reached while generating response");
         }
 
         return response.Value.Choices[0].Text;
+    }
+
+    private int ComputeMaxTokens(string inputPrompt)
+    {
+        var promptTokens = _gpt3Tokenizer.CountTokens(inputPrompt);
+        var maxTokensForResponse = _contextWindowMaxLength - _contextWindowPadding - promptTokens;
+
+        if (maxTokensForResponse < 0)
+        {
+            throw new InvalidDataException("Input prompt has taken up the entire context window.");
+        }
+
+        _log.Information("Input Prompt:\n{inputPrompt}", inputPrompt);
+        _log.Information("Tokens used: {promptTokens}", promptTokens);
+        _log.Information("Max tokens for response: {maxTokensForResponse}", maxTokensForResponse);
+
+        return maxTokensForResponse;
     }
 }
