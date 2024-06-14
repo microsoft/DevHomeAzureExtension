@@ -392,7 +392,7 @@ extends:
           displayName: 'Create Staging StoreBroker Package'
           condition: eq(variables['BuildingBranch'], 'staging')
           inputs:
-            ConnectedServiceNameARM: 'DevHomeAzureExtensionCanary StoreBroker ServiceConnection'
+            serviceEndpoint: 'DevHomeAzureExtensionCanary StoreBroker ServiceConnection'
             sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\canary\SBConfig.json'
             sourceFolder: 'StorePublish'
             contents: '*.msixbundle'
@@ -405,7 +405,7 @@ extends:
           displayName: 'Publish Staging StoreBroker Package'
           condition: eq(variables['BuildingBranch'], 'staging')
           inputs:
-            ConnectedServiceNameARM: 'DevHomeAzureExtensionCanary StoreBroker ServiceConnection'
+            serviceEndpoint: 'DevHomeAzureExtensionCanary StoreBroker ServiceConnection'
             appId: 9NBVFRMSFXHW
             inputMethod: JsonAndZip
             jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.json'
@@ -420,7 +420,7 @@ extends:
           displayName: 'Create Release StoreBroker Package'
           condition: eq(variables['BuildingBranch'], 'release')
           inputs:
-            ConnectedServiceNameARM: 'DevHomeAzureExtension StoreBroker ServiceConnection'
+            serviceEndpoint: 'DevHomeAzureExtension StoreBroker ServiceConnection'
             sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\preview\SBConfig.json'
             sourceFolder: 'StorePublish'
             contents: '*.msixbundle'
@@ -433,7 +433,7 @@ extends:
           displayName: 'Publish Release StoreBroker Package'
           condition: eq(variables['BuildingBranch'], 'release')
           inputs:
-            ConnectedServiceNameARM: 'DevHomeAzureExtension StoreBroker ServiceConnection'
+            serviceEndpoint: 'DevHomeAzureExtension StoreBroker ServiceConnection'
             appId: 9MV8F79FGXTR
             inputMethod: JsonAndZip
             jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.json'
