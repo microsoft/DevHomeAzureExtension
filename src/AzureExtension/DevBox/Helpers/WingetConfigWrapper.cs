@@ -4,6 +4,7 @@
 using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
+using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
@@ -63,7 +64,9 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private ApplyConfigurationSetResult _applyConfigurationSetResult = new(null, null);
 
-    private string _restAPI;
+    private string _taskAPI;
+
+    private string _baseAPI;
 
     private IDevBoxManagementService _managementService;
 
@@ -75,9 +78,15 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private bool _pendingNotificationShown;
 
+    private ManualResetEvent _launchEvent = new(false);
+
     private ManualResetEvent _resumeEvent = new(false);
 
     private ComputeSystemState _computeSystemState;
+
+    private Func<string, IAsyncOperation<ComputeSystemOperationResult>> _connectAsync;
+
+    private bool _alreadyUpdatedUI;
 
     // Using a common failure result for all the tasks
     // since we don't get any other information from the REST API
@@ -86,24 +95,22 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     public WingetConfigWrapper(
         string configuration,
-        string taskAPI,
+        string baseAPI,
         IDevBoxManagementService devBoxManagementService,
         IDeveloperId associatedDeveloperId,
         Serilog.ILogger log,
-        ComputeSystemState computeSystemState)
+        ComputeSystemState computeSystemState,
+        Func<string, IAsyncOperation<ComputeSystemOperationResult>> connectAsync)
     {
-        _restAPI = taskAPI;
+        _baseAPI = baseAPI;
+        _taskAPI = $"{_baseAPI}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
         _managementService = devBoxManagementService;
         _devId = associatedDeveloperId;
         _log = log;
         _computeSystemState = computeSystemState;
+        _connectAsync = connectAsync;
 
-        // If the dev box isn't running, skip initialization
-        // Later this logic will be changed to start the dev box
-        if (_computeSystemState == ComputeSystemState.Running)
-        {
-            Initialize(configuration);
-        }
+        Initialize(configuration);
     }
 
     public void Initialize(string configuration)
@@ -239,7 +246,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                             Thread.Sleep(TimeSpan.FromSeconds(15));
 
                             // Make the log API string : Remove the API version from the URI and add 'logs'
-                            var logURI = _restAPI.Substring(0, _restAPI.LastIndexOf('?'));
+                            var logURI = _taskAPI.Substring(0, _taskAPI.LastIndexOf('?'));
                             var id = response.Tasks[i].Id;
                             logURI += $"/logs/{id}?{Constants.APIVersion}";
 
@@ -272,14 +279,37 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 }
 
                 // If waiting for user session and no task is running, show the adaptive card
-                // We add a wait since Dev Boxes take a little over 2 minutes to start applying
-                // the configuration and we don't want to show the same message immediately after.
+                // We add a wait to give Dev Box time to start the task
+                // But if this is the first login, Dev Box Agent needs to configure itself
+                // So an extra wait might be needed.
                 if (isWaitingForUserSession && !isAnyTaskRunning)
                 {
-                    ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent));
-                    ActionRequired?.Invoke(this, eventArgs);
-                    WaitHandle.WaitAny(new[] { _resumeEvent });
-                    Thread.Sleep(TimeSpan.FromSeconds(135));
+                    if (_alreadyUpdatedUI)
+                    {
+                        Thread.Sleep(TimeSpan.FromSeconds(100));
+                        _alreadyUpdatedUI = false;
+                    }
+                    else
+                    {
+                        ApplyConfigurationActionRequiredEventArgs eventArgs = new(new WaitingForUserAdaptiveCardSession(_resumeEvent, _launchEvent));
+                        ActionRequired?.Invoke(this, eventArgs);
+                        WaitHandle.WaitAny(new[] { _resumeEvent });
+
+                        // Check if the launch event is also set
+                        // If it is, wait for a few seconds longer to account for it
+                        if (_launchEvent.WaitOne(0))
+                        {
+                            _log.Information("Launching the dev box");
+                            _connectAsync(string.Empty).GetAwaiter().GetResult();
+                            Thread.Sleep(TimeSpan.FromSeconds(30));
+                            _launchEvent.Reset();
+                        }
+
+                        Thread.Sleep(TimeSpan.FromSeconds(20));
+                        _alreadyUpdatedUI = true;
+                    }
+
+                    _resumeEvent.Reset();
                 }
 
                 break;
@@ -306,19 +336,25 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
             {
                 if (_computeSystemState != ComputeSystemState.Running)
                 {
-                    throw new InvalidOperationException(Resources.GetResource(NotRunningFailedKey));
+                    // Check if the dev box might have been started in the meantime
+                    var stateRequest = await _managementService.HttpsRequestToDataPlane(new Uri(_baseAPI), _devId, HttpMethod.Get, null);
+                    var state = JsonSerializer.Deserialize<DevBoxMachineState>(stateRequest.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+                    if (state.PowerState != Constants.DevBoxPowerStates.Running)
+                    {
+                        throw new InvalidOperationException(Resources.GetResource(NotRunningFailedKey));
+                    }
                 }
 
                 _log.Information($"Applying config {_fullTaskJSON}");
 
                 HttpContent httpContent = new StringContent(_fullTaskJSON, Encoding.UTF8, "application/json");
-                var result = await _managementService.HttpsRequestToDataPlane(new Uri(_restAPI), _devId, HttpMethod.Put, httpContent);
+                var result = await _managementService.HttpsRequestToDataPlane(new Uri(_taskAPI), _devId, HttpMethod.Put, httpContent);
 
                 var setStatus = string.Empty;
                 while (setStatus != "Succeeded" && setStatus != "Failed" && setStatus != "ValidationFailed")
                 {
                     await Task.Delay(TimeSpan.FromSeconds(15));
-                    var poll = await _managementService.HttpsRequestToDataPlane(new Uri(_restAPI), _devId, HttpMethod.Get, null);
+                    var poll = await _managementService.HttpsRequestToDataPlane(new Uri(_taskAPI), _devId, HttpMethod.Get, null);
                     var rawResponse = poll.JsonResponseRoot.ToString();
                     var response = JsonSerializer.Deserialize<TaskJSONToCSClasses.BaseClass>(rawResponse, _taskJsonSerializerOptions);
                     setStatus = response?.Status;
