@@ -32,7 +32,7 @@ public partial class DeveloperIdTests
         authProvider.LogoutDeveloperId(devIds.First());
 
         // Wait 1 sec for the Logout event.
-        AuthenticationEventTriggered.WaitOne(1000);
+        _authenticationEventTriggered.WaitOne(1000);
 
         // Get the list of DeveloperIds
         devIds = authProvider.GetLoggedInDeveloperIdsInternal();

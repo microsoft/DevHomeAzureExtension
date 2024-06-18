@@ -8,15 +8,15 @@ namespace DevHomeAzureExtension.Providers;
 
 public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
 {
-    private readonly string name;
+    private readonly string _name;
 
-    private readonly Uri cloneUrl;
+    private readonly Uri _cloneUrl;
 
     private readonly bool _isPrivate;
 
     private readonly DateTimeOffset _lastUpdated;
 
-    string Microsoft.Windows.DevHome.SDK.IRepository.DisplayName => name;
+    string Microsoft.Windows.DevHome.SDK.IRepository.DisplayName => _name;
 
     public string OwningAccountName => _owningAccountName;
 
@@ -26,7 +26,7 @@ public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
 
     public DateTimeOffset LastUpdated => _lastUpdated;
 
-    public Uri RepoUri => cloneUrl;
+    public Uri RepoUri => _cloneUrl;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DevHomeRepository"/> class.
@@ -36,7 +36,7 @@ public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
     /// </remarks>
     public DevHomeRepository(GitRepository gitRepository)
     {
-        name = gitRepository.Name;
+        _name = gitRepository.Name;
 
         Uri? localUrl;
         if (!Uri.TryCreate(gitRepository.WebUrl, UriKind.RelativeOrAbsolute, out localUrl))
@@ -47,7 +47,7 @@ public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
         var repoInformation = new AzureUri(localUrl);
         _owningAccountName = Path.Join(repoInformation.Connection.Host, repoInformation.Organization, repoInformation.Project);
 
-        cloneUrl = localUrl;
+        _cloneUrl = localUrl;
 
         _isPrivate = gitRepository.ProjectReference.Visibility == Microsoft.TeamFoundation.Core.WebApi.ProjectVisibility.Private;
         _lastUpdated = DateTimeOffset.UtcNow;

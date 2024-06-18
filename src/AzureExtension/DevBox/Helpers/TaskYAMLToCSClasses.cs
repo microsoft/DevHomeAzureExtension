@@ -35,6 +35,7 @@ namespace AzureExtension.DevBox.Helpers;
 //        - 'Git.Git | Install: Git'
 //      configurationVersion: 0.2.0
 //
+
 /// <summary>
 /// Represents the classes for the YAML customization task.
 /// </summary>

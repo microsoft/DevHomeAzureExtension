@@ -13,7 +13,7 @@ public partial class TestHelpers
 {
     private const string DataBaseFileName = "AzureExtension-Test.db";
     private const string LogFileName = "AzureExtension-{now}.dhlog";
-    private static readonly TimeSpan CleanupRetryWaitTime = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan _cleanupRetryWaitTime = TimeSpan.FromSeconds(10);
 
     public static void CleanupTempTestOptions(TestOptions options, TestContext context)
     {
@@ -42,7 +42,7 @@ public partial class TestHelpers
             // log is done writing. This was leading to random intermittent test failures due
             // to the log file being in use. If we encounter an IOException, wait a few seconds
             // and try again.
-            Thread.Sleep(CleanupRetryWaitTime);
+            Thread.Sleep(_cleanupRetryWaitTime);
             context?.WriteLine($"Cleanup: Retrying Deleting folder {path}");
             Directory.Delete(path, true);
 

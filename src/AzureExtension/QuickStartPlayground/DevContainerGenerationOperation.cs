@@ -139,9 +139,9 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                 return new QuickStartProjectResult(ex, Resources.GetResource(@"QuickstartPlayground_FailureDuringProjectGeneration", currentStep, ex.Message), ex.Message);
             }
 
-            void ReportProgress(string step, uint progressValue, IExtensionAdaptiveCardSession2? dockerProgressAdapativeCardSession = null)
+            void ReportProgress(string step, uint progressValue, IExtensionAdaptiveCardSession2? dockerProgressAdaptiveCardSession = null)
             {
-                _adaptiveCardSession = dockerProgressAdapativeCardSession;
+                _adaptiveCardSession = dockerProgressAdaptiveCardSession;
                 progress.Report(new QuickStartProjectProgress(step, progressValue / 100.0));
                 currentStep = step;
                 currentProgress = progressValue;

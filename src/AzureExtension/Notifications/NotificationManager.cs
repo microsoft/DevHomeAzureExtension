@@ -10,13 +10,13 @@ public class NotificationManager
 {
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(NotificationManager));
 
-    private bool isRegistered;
+    private bool _isRegistered;
 
     public NotificationManager(Windows.Foundation.TypedEventHandler<AppNotificationManager, AppNotificationActivatedEventArgs> handler)
     {
         AppNotificationManager.Default.NotificationInvoked += handler;
         AppNotificationManager.Default.Register();
-        isRegistered = true;
+        _isRegistered = true;
         _log.Debug($"NotificationManager created and registered.");
     }
 
@@ -27,10 +27,10 @@ public class NotificationManager
 
     public void Unregister()
     {
-        if (isRegistered)
+        if (_isRegistered)
         {
             AppNotificationManager.Default.Unregister();
-            isRegistered = false;
+            _isRegistered = false;
             _log.Debug($"NotificationManager unregistered.");
         }
     }

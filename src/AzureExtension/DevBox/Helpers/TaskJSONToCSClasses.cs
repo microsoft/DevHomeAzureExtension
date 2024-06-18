@@ -37,6 +37,7 @@ namespace AzureExtension.DevBox.Helpers;
 //  "startTime": "2024-04-09T20:09:03.0136738+00:00"
 // }
 //
+
 /// <summary>
 /// Represents the classes for the customization task JSON response.
 /// </summary>
