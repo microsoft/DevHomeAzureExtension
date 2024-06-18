@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using DevHome.Logging;
 using DevHomeAzureExtension.Client;
 
 namespace DevHomeAzureExtension.Test;
