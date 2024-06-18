@@ -17,7 +17,7 @@ public class PullRequests
     private static readonly ILogger Log = _log.Value;
 
     // This is the time between seeing a search and updating it's TimeUpdated.
-    private static readonly long UpdateThreshold = TimeSpan.FromMinutes(2).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromMinutes(2).Ticks;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -76,7 +76,7 @@ public class PullRequests
         if (existing is not null)
         {
             // Update threshold is in case there are many requests in a short period of time.
-            if ((pullRequests.TimeUpdated - existing.TimeUpdated) > UpdateThreshold)
+            if ((pullRequests.TimeUpdated - existing.TimeUpdated) > _updateThreshold)
             {
                 pullRequests.Id = existing.Id;
                 dataStore.Connection!.Update(pullRequests);

@@ -7,7 +7,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
 {
     public long SchemaVersion => SchemaVersionValue;
 
-    public List<string> SchemaSqls => SchemaSqlsValue;
+    public List<string> SchemaSqls => _schemaSqlsValue;
 
     public AzureDataStoreSchema()
     {
@@ -16,7 +16,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // Update this anytime incompatible changes happen with a released version.
     private const long SchemaVersionValue = 0x0003;
 
-    private static readonly string Metadata =
+    private const string Metadata =
     @"CREATE TABLE Metadata (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Key TEXT NOT NULL COLLATE NOCASE," +
@@ -24,7 +24,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     ");" +
     "CREATE UNIQUE INDEX IDX_Metadata_Key ON Metadata (Key);";
 
-    private static readonly string Identity =
+    private const string Identity =
     @"CREATE TABLE Identity (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Name TEXT NOT NULL COLLATE NOCASE," +
@@ -36,7 +36,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // InternalId is a Guid from the server, so by definition is unique.
     "CREATE UNIQUE INDEX IDX_Identity_InternalId ON Identity (InternalId);";
 
-    private static readonly string Project =
+    private const string Project =
     @"CREATE TABLE Project (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Name TEXT NOT NULL COLLATE NOCASE," +
@@ -50,7 +50,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // Project Name can be renamed and reused per DevOps documentation, so it is not safe.
     "CREATE UNIQUE INDEX IDX_Project_InternalId ON Project (InternalId);";
 
-    private static readonly string Organization =
+    private const string Organization =
     @"CREATE TABLE Organization (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Name TEXT NOT NULL COLLATE NOCASE," +
@@ -65,7 +65,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // each connection should correspond to only one organization.
     "CREATE UNIQUE INDEX IDX_Organization_Connection ON Organization (Connection);";
 
-    private static readonly string Query =
+    private const string Query =
     @"CREATE TABLE Query (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "QueryId TEXT NOT NULL COLLATE NOCASE," +
@@ -82,7 +82,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // the query. Therefore we make unique constraint on QueryId AND DeveloperLogin.
     "CREATE UNIQUE INDEX IDX_Query_QueryIdDeveloperLogin ON Query (QueryId, DeveloperLogin);";
 
-    private static readonly string WorkItemType =
+    private const string WorkItemType =
     @"CREATE TABLE WorkItemType (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Name TEXT NOT NULL COLLATE NOCASE," +
@@ -97,7 +97,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // constraint on Name and ProjectId is consistent and safe.
     "CREATE UNIQUE INDEX IDX_WorkItemType_NameProjectId ON WorkItemType (Name, ProjectId);";
 
-    private static readonly string PullRequests =
+    private const string PullRequests =
     @"CREATE TABLE PullRequests (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "RepositoryName TEXT NOT NULL COLLATE NOCASE," +
@@ -113,7 +113,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     "CREATE UNIQUE INDEX IDX_PullRequests_ProjectIdRepositoryNameDeveloperLoginViewId ON PullRequests (ProjectId, RepositoryName, DeveloperLogin, ViewId);";
 
     // All Sqls together.
-    private static readonly List<string> SchemaSqlsValue = new()
+    private static readonly List<string> _schemaSqlsValue = new()
     {
         Metadata,
         Identity,
