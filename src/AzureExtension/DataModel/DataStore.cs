@@ -22,7 +22,7 @@ public class DataStore : IDisposable
     {
         Name = name;
         DataStoreFilePath = dataStoreFilePath;
-        this.schema = schema;
+        _schema = schema;
         _log = Log.ForContext("SourceContext", Name);
     }
 
@@ -36,7 +36,7 @@ public class DataStore : IDisposable
         private set;
     }
 
-    private readonly IDataStoreSchema schema;
+    private readonly IDataStoreSchema _schema;
 
     public bool Create(bool deleteExistingDatabase = false)
     {
@@ -50,14 +50,14 @@ public class DataStore : IDisposable
                 {
                     Open();
                     var currentSchemaVersion = GetPragma<long>("user_version");
-                    if (currentSchemaVersion != schema.SchemaVersion)
+                    if (currentSchemaVersion != _schema.SchemaVersion)
                     {
                         // Any mismatch of schema is considered invalid.
                         // Since the data stored is functionally a cache, the simplest and most reliable.
                         // migration method is to delete the existing database and create anew.
                         deleteExistingDatabase = true;
                         Close();
-                        _log.Information($"Schema mismatch. Expected: {schema.SchemaVersion}  Actual: {currentSchemaVersion}");
+                        _log.Information($"Schema mismatch. Expected: {_schema.SchemaVersion}  Actual: {currentSchemaVersion}");
                     }
                 }
                 catch (SqliteException e)
@@ -149,7 +149,7 @@ public class DataStore : IDisposable
         }
 
         _log.Debug($"Opening datastore {DataStoreFilePath}");
-        disposed = false;
+        _disposed = false;
         var builder = new SqliteConnectionStringBuilder
         {
             DataSource = DataStoreFilePath,
@@ -178,14 +178,14 @@ public class DataStore : IDisposable
         SetPragma("encoding", "\"UTF-8\"");
 
         using var tx = BeginTransaction();
-        var sqls = schema.SchemaSqls;
+        var sqls = _schema.SchemaSqls;
         foreach (var sql in sqls)
         {
             Execute(sql);
         }
 
         _log.Debug($"Created schema ({sqls.Count} entities)");
-        SetPragma("user_version", schema.SchemaVersion);
+        SetPragma("user_version", _schema.SchemaVersion);
         tx.Commit();
     }
 
@@ -294,18 +294,18 @@ public class DataStore : IDisposable
         }
     }
 
-    private bool disposed; // To detect redundant calls.
+    private bool _disposed; // To detect redundant calls.
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposed)
+        if (!_disposed)
         {
             if (disposing)
             {
                 Close();
             }
 
-            disposed = true;
+            _disposed = true;
         }
     }
 

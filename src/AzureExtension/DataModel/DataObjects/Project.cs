@@ -19,7 +19,7 @@ public class Project
     // This is the time between seeing a potential updated Project record and updating it.
     // This value / 2 is the average time between Project updating their Project data and having
     // it reflected in the datastore.
-    private static readonly long UpdateThreshold = TimeSpan.FromHours(4).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromHours(4).Ticks;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -78,7 +78,7 @@ public class Project
             // avoid unnecessary updating and database operations for data that
             // is extremely unlikely to have changed in any significant way, we
             // will only update every UpdateThreshold amount of time.
-            if ((project.TimeUpdated - existingProject.TimeUpdated) > UpdateThreshold)
+            if ((project.TimeUpdated - existingProject.TimeUpdated) > _updateThreshold)
             {
                 project.Id = existingProject.Id;
                 dataStore.Connection!.Update(project);

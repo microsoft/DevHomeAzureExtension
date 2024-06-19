@@ -25,11 +25,11 @@ public class Identity
     // it reflected in the datastore. We expect identity data to change very infrequently.
     // Since updating an identity involves re-fetching an avatar image, we want to do this
     // infrequently.
-    private static readonly long UpdateThreshold = TimeSpan.FromDays(3).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromDays(3).Ticks;
 
     // Avatars may fail to download, in this case we will retry more frequently than the normal
     // update threshold since this can be intermittent.
-    private static readonly long AvatarRetryDelay = TimeSpan.FromHours(1).Ticks;
+    private static readonly long _avatarRetryDelay = TimeSpan.FromHours(1).Ticks;
 
     [Key]
     [JsonIgnore]
@@ -178,11 +178,11 @@ public class Identity
         }
 
         // Check for whether we need to update the record.
-        // We don't want to create an identity object and download a new avatar unlesss it needs to
+        // We don't want to create an identity object and download a new avatar unless it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
-        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
-            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
+        if (existing is null || ((DateTime.Now.Ticks - existing.TimeUpdated) > _updateThreshold)
+            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
             return AddOrUpdateIdentity(dataStore, newIdentity);

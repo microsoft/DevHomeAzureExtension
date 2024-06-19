@@ -17,7 +17,7 @@ public class Query
     private static readonly ILogger Log = _log.Value;
 
     // This is the time between seeing a search and updating it's TimeUpdated.
-    private static readonly long UpdateThreshold = TimeSpan.FromMinutes(2).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromMinutes(2).Ticks;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -77,7 +77,7 @@ public class Query
         var existing = Get(dataStore, query.QueryId, query.DeveloperLogin);
         if (existing is not null)
         {
-            if ((query.TimeUpdated - existing.TimeUpdated) > UpdateThreshold)
+            if ((query.TimeUpdated - existing.TimeUpdated) > _updateThreshold)
             {
                 query.Id = existing.Id;
                 dataStore.Connection!.Update(query);
