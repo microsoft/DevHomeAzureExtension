@@ -357,7 +357,7 @@ public class CreationAdaptiveCardSession : IExtensionAdaptiveCardSession2
                 var poolHardwareSpecs = Resources.GetResource("DevBox_PoolSubtitle", pool.HardwareProfile.VCPUs, pool.HardwareProfile.MemoryGB, pool.StorageProfile.OsDisk.DiskSizeGB);
                 var poolInfo = new JsonObject
                     {
-                        { "title", $"{pool.Name}" },
+                        { "title", $"{pool.Name} ({pool.Location})" },
                         { "subtitle", $"{poolHardwareSpecs}" },
                         { "value", $"{k}" },
                     };
