@@ -120,6 +120,23 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
     }
 
+    private async Task<bool> FilterOutProjectAsync(DevBoxProject project, IDeveloperId developerId)
+    {
+        try
+        {
+            var uri = $"{project.Properties.DevCenterUri}{Constants.Projects}/{project.Name}/users/me/abilities?{Constants.APIVersion}";
+            var result = await HttpsRequestToDataPlane(new Uri(uri), developerId, HttpMethod.Get, null);
+            var rawResponse = result.JsonResponseRoot.ToString();
+            _log.Debug($"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Response from abilities: {rawResponse}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"Unable to get abilities for {project.Name}");
+            return false;
+        }
+    }
+
     /// <inheritdoc cref="IDevBoxManagementService.GetAllProjectsToPoolsMappingAsync"/>
     public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(DevBoxProjects projects, IDeveloperId developerId)
     {
@@ -140,6 +157,11 @@ public class DevBoxManagementService : IDevBoxManagementService
         {
             try
             {
+                if (await FilterOutProjectAsync(project, developerId))
+                {
+                    return;
+                }
+
                 var properties = project.Properties;
                 var uriToRetrievePools = $"{properties.DevCenterUri}{Constants.Projects}/{project.Name}/{Constants.Pools}?{Constants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
@@ -153,6 +175,9 @@ public class DevBoxManagementService : IDevBoxManagementService
                 _log.Error(ex, $"unable to get pools for {project.Name}");
             }
         });
+
+        // Sort the mapping by project name
+        projectsToPoolsMapping = new(projectsToPoolsMapping.OrderBy(x => x.Project?.Name));
 
         _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
         return projectsToPoolsMapping.ToList();
