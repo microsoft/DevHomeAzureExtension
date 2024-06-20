@@ -254,11 +254,11 @@
     <value>Created by me</value>
     <comment>Shown in Pull Request Widget, filter for items</comment>
   </data>
-  <data name="Widget_Template.QueryTitleLabel" xml:space="preserve">
+  <data name="Widget_Template.WidgetTitleLabel" xml:space="preserve">
     <value>Title:</value>
     <comment>Shown in Widget</comment>
   </data>
-  <data name="Widget_Template.QueryTitlePlaceholder" xml:space="preserve">
+  <data name="Widget_Template.WidgetTitlePlaceholder" xml:space="preserve">
     <value>Widget title</value>
     <comment>Shown in Widget, placeholder for widget title</comment>
   </data>
