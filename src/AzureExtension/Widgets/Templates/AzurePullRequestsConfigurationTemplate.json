@@ -30,6 +30,13 @@
           "errorMessage": "%Widget_Template_ErrorMessage/RepositoryURL%"
         },
         {
+          "type": "Input.Text",
+          "placeholder": "%Widget_Template/QueryTitlePlaceholder%",
+          "id": "widgetTitle",
+          "label": "%Widget_Template/QueryTitleLabel%",
+          "value": "${widgetTitle}"
+        },
+        {
           "type": "Input.ChoiceSet",
           "choices": [
             {
