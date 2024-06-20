@@ -260,7 +260,7 @@
   </data>
   <data name="Widget_Template.QueryTitlePlaceholder" xml:space="preserve">
     <value>Widget title</value>
-    <comment>Shown in Widget, placeholder for query title</comment>
+    <comment>Shown in Widget, placeholder for widget title</comment>
   </data>
   <data name="Widget_Template.QueryURLLabel" xml:space="preserve">
     <value>Query URL:</value>
