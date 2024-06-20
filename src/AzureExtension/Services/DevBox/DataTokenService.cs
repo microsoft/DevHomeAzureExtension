@@ -11,7 +11,7 @@ namespace AzureExtension.Services.DevBox;
 
 /// <summary>
 /// Implementation of Dev Box Data Plane token service.
-/// It is a wrapper leveraging Developer ID's silent token aquiring
+/// It is a wrapper leveraging Developer ID's silent token acquiring
 /// function with the scope needed for the plane.
 /// </summary>
 public class DataTokenService : IDataTokenService

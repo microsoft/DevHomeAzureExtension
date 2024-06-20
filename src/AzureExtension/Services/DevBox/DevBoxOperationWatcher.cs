@@ -114,7 +114,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
     /// stops the extensions process or reboots the machine we will lose the Uri to the operation. In those cases we use this method to monitor the provisioning status of the Dev Box.
     /// When Dev Boxes are requested by Dev Home the <see cref="DevBoxMachineState"/> objects we get back from the Dev Center will have a provisioning state of "Provisioning". This indicates
     /// that the Dev Box is still being created. We use a ThreadPoolTimer to periodically query the Dev Center for the provisioning status of the Dev Box. Once this is set to
-    /// "Succeeded" we know that the Dev Box has been created and we can stop the timer and invoke the completionCallback. DevBoxInstance Id's are Guid's so we can use them as keys in for
+    /// "Succeeded" we know that the Dev Box has been created and we can stop the timer and invoke the completionCallback. DevBoxInstance Id's are GUIDs so we can use them as keys in for
     /// operationWaterTimers.
     /// </remarks>
     public void StartDevBoxProvisioningStatusMonitor(IDeveloperId developerId, DevBoxActionToPerform actionToPerform, DevBoxInstance devBoxInstance, Action<DevBoxInstance> completionCallback)

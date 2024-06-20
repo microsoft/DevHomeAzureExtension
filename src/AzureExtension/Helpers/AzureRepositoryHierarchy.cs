@@ -39,7 +39,7 @@ public class AzureRepositoryHierarchy
     /// <remarks>
     /// A server can have multiple organizations and each organization can have multiple projects.
     /// Additionally, organizations and projects need to be fetched from the network.
-    /// This calss handles fetching the data, caching it, and searching it.
+    /// This class handles fetching the data, caching it, and searching it.
     /// </remarks>
     public AzureRepositoryHierarchy(DeveloperId developerId)
     {
@@ -133,7 +133,7 @@ public class AzureRepositoryHierarchy
     /// <summary>
     /// Contacts the server to get all projects in an organization.
     /// </summary>
-    /// <param name="organization">PRojects are returned only for this organization.</param>
+    /// <param name="organization">Projects are returned only for this organization.</param>
     /// <returns>A list of projects.</returns>
     /// <remarks>
     /// the Task to get the projects is added to _organizationsAndProjectTask.

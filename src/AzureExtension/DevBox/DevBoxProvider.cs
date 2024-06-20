@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Text;
 using System.Text.Json;
 using AzureExtension.Contracts;
@@ -37,7 +35,7 @@ public class DevBoxProvider : IComputeSystemProvider
 
     private readonly Dictionary<string, List<IComputeSystem>> _cachedDevBoxesMap = new();
 
-    private ConcurrentBag<IComputeSystem> devBoxes = new();
+    private readonly ConcurrentBag<IComputeSystem> _devBoxes = new();
 
     public DevBoxProvider(
         IDevBoxManagementService mgmtSvc,
@@ -85,7 +83,7 @@ public class DevBoxProvider : IComputeSystemProvider
                     // If the Dev Box's creation operation or its provisioning state are being tracked by us, then don't make a new instance.
                     // Add the one we're tracking. This is to avoid adding the same Dev Box twice. E.g User clicks Dev Homes refresh button while
                     // the Dev Box is being created.
-                    devBoxes.Add(devBox!);
+                    _devBoxes.Add(devBox!);
                     continue;
                 }
 
@@ -105,7 +103,7 @@ public class DevBoxProvider : IComputeSystemProvider
                     await newDevBoxInstance.LoadWindowsAppParameters();
                 }
 
-                devBoxes.Add(newDevBoxInstance);
+                _devBoxes.Add(newDevBoxInstance);
             }
         }
     }
@@ -121,7 +119,7 @@ public class DevBoxProvider : IComputeSystemProvider
         if (devBoxProjects?.Data != null)
         {
             _log.Information($"Found {devBoxProjects.Data.Length} projects");
-            devBoxes.Clear();
+            _devBoxes.Clear();
             var cancellationTokenSource = new CancellationTokenSource();
             cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(2));
             var token = cancellationTokenSource.Token;
@@ -142,7 +140,7 @@ public class DevBoxProvider : IComputeSystemProvider
         // update the cache every time we retrieve new Dev Boxes. This is used so in the creation flow we don't need
         // to retrieve the Dev Boxes again if the user already retrieved them in the environments page in Dev Home
         var uniqueUserId = GetUniqueDeveloperId(developerId);
-        _cachedDevBoxesMap[uniqueUserId] = devBoxes.ToList();
+        _cachedDevBoxesMap[uniqueUserId] = _devBoxes.ToList();
         return _cachedDevBoxesMap[uniqueUserId];
     }
 
@@ -172,11 +170,11 @@ public class DevBoxProvider : IComputeSystemProvider
                 var errorMessage = Constants.OperationsDefaultErrorMsg;
                 if (ex.InnerException != null && ex.InnerException.Message.Contains("Account has previously been signed out of this application"))
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.SessionExpiredKey);
+                    errorMessage = Resources.GetResource(Constants.RetrievalFailKey, developerId.LoginId) + Resources.GetResource(Constants.SessionExpiredKey);
                 }
                 else if (ex.Message.Contains("A passthrough token was detected without proper resource provider context"))
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + Resources.GetResource(Constants.UnconfiguredKey);
+                    errorMessage = Resources.GetResource(Constants.RetrievalFailKey, developerId.LoginId) + Resources.GetResource(Constants.UnconfiguredKey);
                 }
                 else if (ex is ArgumentException ae)
                 {
@@ -184,7 +182,7 @@ public class DevBoxProvider : IComputeSystemProvider
                 }
                 else
                 {
-                    errorMessage = Resources.GetResource(Constants.RetrivalFailKey, developerId.LoginId) + ex.Message;
+                    errorMessage = Resources.GetResource(Constants.RetrievalFailKey, developerId.LoginId) + ex.Message;
                 }
 
                 _log.Error(ex, errorMessage);

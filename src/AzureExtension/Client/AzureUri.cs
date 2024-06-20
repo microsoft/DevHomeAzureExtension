@@ -14,7 +14,7 @@ namespace DevHomeAzureExtension.Client;
 // using. Instead you just check if it's valid and can then use the object and trust the result.
 public class AzureUri
 {
-    private static readonly string ValidUriString = "https://www.microsoft.com/";
+    private const string ValidUriString = "https://www.microsoft.com/";
 
     private readonly bool _validUri;
 
@@ -491,7 +491,7 @@ public class AzureUri
                 break;
 
             case AzureHostType.NotHosted:
-                // Onprem includes the collection.
+                // OnPrem includes the collection.
                 var onpremUriString = Uri.Scheme + "://" + Uri.Authority;
                 onpremUriString = onpremUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(onpremUriString, UriKind.Absolute, out newUri))

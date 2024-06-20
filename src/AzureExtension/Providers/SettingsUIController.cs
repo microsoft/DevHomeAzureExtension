@@ -92,10 +92,10 @@ internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSessi
         {
             try
             {
-                var adapativeCardPayload = JsonSerializer.Deserialize(action, SettingsAdaptiveCardPayloadSourceGeneration.Default.SettingsActionAdaptiveCardActionPayload);
-                if (adapativeCardPayload is not null)
+                var adaptiveCardPayload = JsonSerializer.Deserialize(action, SettingsAdaptiveCardPayloadSourceGeneration.Default.SettingsActionAdaptiveCardActionPayload);
+                if (adaptiveCardPayload is not null)
                 {
-                    if (adapativeCardPayload.IsClearOpenAIKeyAction)
+                    if (adaptiveCardPayload.IsClearOpenAIKeyAction)
                     {
                         Log.Information("Clearing OpenAI key");
                         _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);

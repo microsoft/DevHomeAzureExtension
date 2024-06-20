@@ -14,12 +14,12 @@ public partial class DeveloperIdTests : IDisposable
         set;
     }
 
-    private TestOptions testOptions = new();
+    private TestOptions _testOptions = new();
 
     private TestOptions TestOptions
     {
-        get => testOptions;
-        set => testOptions = value;
+        get => _testOptions;
+        set => _testOptions = value;
     }
 
     [TestInitialize]
@@ -36,19 +36,19 @@ public partial class DeveloperIdTests : IDisposable
         TestHelpers.CleanupTempTestOptions(TestOptions, TestContext!);
     }
 
-    private static readonly Semaphore AuthenticationEventTriggered = new(initialCount: 0, maximumCount: 1);
+    private static readonly Semaphore _authenticationEventTriggered = new(initialCount: 0, maximumCount: 1);
 
     public void AuthenticationEvent(object? sender, IDeveloperId developerId)
     {
         if (developerId.LoginId is not null)
         {
-            AuthenticationEventTriggered.Release();
+            _authenticationEventTriggered.Release();
         }
     }
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        AuthenticationEventTriggered.Dispose();
+        _authenticationEventTriggered.Dispose();
     }
 }

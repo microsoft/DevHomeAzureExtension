@@ -7,8 +7,8 @@ namespace DevHomeAzureExtension.DeveloperId;
 
 public class AuthenticationSettings
 {
-    private readonly string cacheFolderPathDefault = Path.Combine(Path.GetTempPath(), "AzureExtension");
-    private string? cacheFolderPath;
+    private readonly string _cacheFolderPathDefault = Path.Combine(Path.GetTempPath(), "AzureExtension");
+    private string? _cacheFolderPath;
 
     public string Authority
     {
@@ -37,8 +37,8 @@ public class AuthenticationSettings
 
     public string CacheDir
     {
-        get => cacheFolderPath is null ? cacheFolderPathDefault : cacheFolderPath;
-        private set => cacheFolderPath = string.IsNullOrEmpty(value) ? cacheFolderPathDefault : value;
+        get => _cacheFolderPath is null ? _cacheFolderPathDefault : _cacheFolderPath;
+        private set => _cacheFolderPath = string.IsNullOrEmpty(value) ? _cacheFolderPathDefault : value;
     }
 
     public string Scopes
@@ -66,7 +66,7 @@ public class AuthenticationSettings
         TenantId = string.Empty;
         RedirectURI = "ms-appx-web://microsoft.aad.brokerplugin/{0}";
         CacheFileName = "msal_cache";
-        CacheDir = ApplicationData.Current != null ? ApplicationData.Current.LocalFolder.Path : cacheFolderPathDefault;
+        CacheDir = ApplicationData.Current != null ? ApplicationData.Current.LocalFolder.Path : _cacheFolderPathDefault;
         Scopes = "499b84ac-1321-427f-aa17-267ca6975798/.default";
     }
 }
