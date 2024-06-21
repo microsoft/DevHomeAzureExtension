@@ -128,6 +128,7 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
     }
 
+    // Filter out projects that the user does not have write access to
     private async Task<bool> FilterOutProjectAsync(DevBoxProject project, IDeveloperId developerId)
     {
         try
@@ -171,13 +172,13 @@ public class DevBoxManagementService : IDevBoxManagementService
 
         await Parallel.ForEachAsync(projects.Data!, async (project, token) =>
         {
+            if (await FilterOutProjectAsync(project, developerId))
+            {
+                return;
+            }
+
             try
             {
-                if (await FilterOutProjectAsync(project, developerId))
-                {
-                    return;
-                }
-
                 var properties = project.Properties;
                 var uriToRetrievePools = $"{properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/{DevBoxConstants.Pools}?{DevBoxConstants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
