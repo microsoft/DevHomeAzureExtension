@@ -158,6 +158,8 @@ public class DevBoxManagementService : IDevBoxManagementService
     /// <inheritdoc cref="IDevBoxManagementService.GetAllProjectsToPoolsMappingAsync"/>
     public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(DevBoxProjects projects, IDeveloperId developerId)
     {
+        // Add timer
+        var start = DateTime.Now;
         var uniqueUserId = $"{developerId.LoginId}#{developerId.Url}";
 
         if (_projectAndPoolContainerMap.TryGetValue(uniqueUserId, out var devBoxProjectAndPools))
@@ -198,6 +200,7 @@ public class DevBoxManagementService : IDevBoxManagementService
         projectsToPoolsMapping = new(projectsToPoolsMapping.OrderBy(x => x.Project?.Name));
 
         _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
+        _log.Debug($">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Time taken to get all projects to pools mapping: {DateTime.Now - start}");
         return projectsToPoolsMapping.ToList();
     }
 
