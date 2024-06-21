@@ -11,6 +11,7 @@ using AzureExtension.Contracts;
 using AzureExtension.DevBox;
 using AzureExtension.DevBox.DevBoxJsonToCsClasses;
 using AzureExtension.DevBox.Exceptions;
+using AzureExtension.DevBox.Helpers;
 using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
@@ -32,6 +33,14 @@ public class DevBoxManagementService : IDevBoxManagementService
     public DevBoxManagementService(IDevBoxAuthService authService) => _authService = authService;
 
     private const string DevBoxManagementServiceName = nameof(DevBoxManagementService);
+
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private const string _writeAbility = "WriteDevBoxes";
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToManagementPlane"/>/>
     public async Task<DevBoxHttpsRequestResult> HttpsRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
@@ -127,7 +136,15 @@ public class DevBoxManagementService : IDevBoxManagementService
             var uri = $"{project.Properties.DevCenterUri}{Constants.Projects}/{project.Name}/users/me/abilities?{Constants.APIVersion}";
             var result = await HttpsRequestToDataPlane(new Uri(uri), developerId, HttpMethod.Get, null);
             var rawResponse = result.JsonResponseRoot.ToString();
-            _log.Debug($"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Response from abilities: {rawResponse}");
+            var abilities = JsonSerializer.Deserialize<AbilitiesJSONToCSClasses.BaseClass>(rawResponse, _jsonOptions);
+            _log.Debug($"Response from abilities: {rawResponse}");
+
+            if (abilities!.AbilitiesAsDeveloper.Contains(_writeAbility)
+                || abilities!.AbilitiesAsAdmin.Contains(_writeAbility))
+            {
+                return false;
+            }
+
             return true;
         }
         catch (Exception ex)
