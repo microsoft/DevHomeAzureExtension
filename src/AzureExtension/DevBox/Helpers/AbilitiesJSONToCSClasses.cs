@@ -7,21 +7,15 @@ namespace AzureExtension.DevBox.Helpers;
 // {
 //  "abilitiesAsAdmin": [],
 //  "abilitiesAsDeveloper": [
-//    "CustomizeDevBoxes",
-//    "DeleteDevBoxes",
-//    "ManageDevBoxActions",
-//    "ReadDevBoxActions",
 //    "ReadDevBoxes",
-//    "ReadRemoteConnections",
-//    "StartDevBoxes",
-//    "StopDevBoxes",
-//    "WriteDevBoxes"
+//    "WriteDevBoxes",
+//    ...
 //  ]
 // }
 //
 
 /// <summary>
-/// Represents the classes for the customization task JSON response.
+/// Represents the class for the abilities JSON response.
 /// </summary>
 public class AbilitiesJSONToCSClasses
 {
