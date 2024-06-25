@@ -183,8 +183,14 @@ public class DevBoxManagementService : IDevBoxManagementService
                 var uriToRetrievePools = $"{properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/{DevBoxConstants.Pools}?{DevBoxConstants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
                 var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions);
-                var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
 
+                // Sort the pools by name
+                if (pools?.Value != null)
+                {
+                    pools.Value = new(pools.Value.OrderBy(x => x.Name));
+                }
+
+                var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
                 projectsToPoolsMapping.Add(container);
             }
             catch (Exception ex)
@@ -194,7 +200,7 @@ public class DevBoxManagementService : IDevBoxManagementService
         });
 
         // Sort the mapping by project name
-        projectsToPoolsMapping = new(projectsToPoolsMapping.OrderBy(x => x.Project?.Name));
+        projectsToPoolsMapping = new(projectsToPoolsMapping.OrderByDescending(x => x.Project?.Name));
 
         _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
         return projectsToPoolsMapping.ToList();
