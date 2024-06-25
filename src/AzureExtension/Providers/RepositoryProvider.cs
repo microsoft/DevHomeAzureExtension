@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Security.Authentication;
-using AzureExtension.Helpers;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
