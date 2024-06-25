@@ -2,14 +2,13 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.Contracts;
-using Microsoft.Windows.DevHome.SDK;
 using Windows.ApplicationModel;
 
 namespace DevHomeAzureExtension.Services.DevBox;
 
 public class PackagesService : IPackagesService
 {
-    private Windows.Management.Deployment.PackageManager _packageManager = new();
+    private readonly Windows.Management.Deployment.PackageManager _packageManager = new();
 
     public bool IsPackageInstalled(string packageName)
     {
@@ -19,7 +18,7 @@ public class PackagesService : IPackagesService
 
     public PackageVersion GetPackageInstalledVersion(string packageName)
     {
-        PackageVersion version = new PackageVersion(0, 0, 0, 0);
+        var version = new PackageVersion(0, 0, 0, 0);
         var currentPackage = _packageManager.FindPackagesForUser(string.Empty, packageName).FirstOrDefault();
         if (currentPackage != null)
         {

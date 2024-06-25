@@ -6,7 +6,6 @@ using System.Text.Json.Serialization;
 using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Helpers;
-using Microsoft.VisualStudio.Services;
 using Microsoft.VisualStudio.Services.Profile;
 using Microsoft.VisualStudio.Services.Profile.Client;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -17,20 +16,20 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Identity")]
 public class Identity
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     // This is the time between seeing a potential updated Identity record and updating it.
     // This value / 2 is the average time between Identity updating their Identity data and having
     // it reflected in the datastore. We expect identity data to change very infrequently.
     // Since updating an identity involves re-fetching an avatar image, we want to do this
     // infrequently.
-    private static readonly long UpdateThreshold = TimeSpan.FromDays(3).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromDays(3).Ticks;
 
     // Avatars may fail to download, in this case we will retry more frequently than the normal
     // update threshold since this can be intermittent.
-    private static readonly long AvatarRetryDelay = TimeSpan.FromHours(1).Ticks;
+    private static readonly long _avatarRetryDelay = TimeSpan.FromHours(1).Ticks;
 
     [Key]
     [JsonIgnore]
@@ -68,19 +67,19 @@ public class Identity
         {
             var client = connection.GetClient<ProfileHttpClient>();
             var avatar = client.GetAvatarAsync(identity, AvatarSize.Small).Result;
-            Log.Debug($"Avatar found: {avatar.Value.Length} bytes.");
+            _log.Debug($"Avatar found: {avatar.Value.Length} bytes.");
             return Convert.ToBase64String(avatar.Value);
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, $"Failed getting Avatar for {identity}.");
+            _log.Warning(ex, $"Failed getting Avatar for {identity}.");
             return string.Empty;
         }
     }
 
     public static Identity? FromJson(DataStore dataStore, string json)
     {
-        var log = Serilog.Log.ForContext("SourceContext", nameof(Identity));
+        var log = Log.ForContext("SourceContext", nameof(Identity));
         if (string.IsNullOrEmpty(json))
         {
             return null;
@@ -98,7 +97,7 @@ public class Identity
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Failed to deserialize Json object into Identity: {json}");
+            _log.Error(ex, $"Failed to deserialize Json object into Identity: {json}");
             return null;
         }
     }
@@ -206,11 +205,11 @@ public class Identity
         }
 
         // Check for whether we need to update the record.
-        // We don't want to create an identity object and download a new avatar unlesss it needs to
+        // We don't want to create an identity object and download a new avatar unless it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
-        if (existing is null || isDeveloper || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
-            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
+        if (existing is null || (isDeveloper && !existing.Developer) || ((DateTime.Now.Ticks - existing.TimeUpdated) > _updateThreshold)
+            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
             return AddOrUpdateIdentity(dataStore, newIdentity, isDeveloper);
@@ -231,8 +230,8 @@ public class Identity
         // We don't want to create an identity object and download a new avatar unlesss it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
-        if (existing is null || isDeveloper || ((DateTime.Now.Ticks - existing.TimeUpdated) > UpdateThreshold)
-            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > AvatarRetryDelay)))
+        if (existing is null || isDeveloper || ((DateTime.Now.Ticks - existing.TimeUpdated) > _updateThreshold)
+            || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.Now.Ticks - existing.TimeUpdated) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentity(identity, connection);
             return AddOrUpdateIdentity(dataStore, newIdentity, isDeveloper);
@@ -248,8 +247,8 @@ public class Identity
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
+        _log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        _log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

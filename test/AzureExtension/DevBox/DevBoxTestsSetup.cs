@@ -1,13 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Reflection.Metadata.Ecma335;
 using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DevBox;
-using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Services.DevBox;
 using DevHomeAzureExtension.Test.DevBox;
@@ -22,7 +19,7 @@ namespace DevHomeAzureExtension.Test;
 [TestClass]
 public partial class DevBoxTests : IDisposable
 {
-    private readonly Mock<IHttpClientFactory> mockFactory = new();
+    private readonly Mock<IHttpClientFactory> _mockFactory = new();
 
     public Mock<HttpMessageHandler> HttpHandler { get; set; } = new(MockBehavior.Strict);
 
@@ -33,12 +30,12 @@ public partial class DevBoxTests : IDisposable
         get; set;
     }
 
-    private TestOptions testOptions = new();
+    private TestOptions _testOptions = new();
 
     private TestOptions TestOptions
     {
-        get => testOptions;
-        set => testOptions = value;
+        get => _testOptions;
+        set => _testOptions = value;
     }
 
     /// <summary>
@@ -161,7 +158,7 @@ public partial class DevBoxTests : IDisposable
         return headers;
     }
 
-    private HttpClient mockHttpClient = new();
+    private HttpClient _mockHttpClient = new();
 
     public void UpdateHttpClientResponseMock(List<HttpContent> returnList)
     {
@@ -200,12 +197,12 @@ public partial class DevBoxTests : IDisposable
         TestHelpers.ConfigureTestLog(TestOptions, TestContext!);
 
         // Create an HttpClient using the mocked handler
-        mockHttpClient = new HttpClient(HttpHandler.Object);
+        _mockHttpClient = new HttpClient(HttpHandler.Object);
 
-        mockFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
-            .Returns(mockHttpClient);
+        _mockFactory.Setup(f => f.CreateClient(It.IsAny<string>()))
+            .Returns(_mockHttpClient);
 
-        TestHost = BuildhostContainer();
+        TestHost = BuildHostContainer();
     }
 
     [TestCleanup]
@@ -220,7 +217,7 @@ public partial class DevBoxTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    public IHost BuildhostContainer()
+    public IHost BuildHostContainer()
     {
         return Host.
             CreateDefaultBuilder().
@@ -231,8 +228,8 @@ public partial class DevBoxTests : IDisposable
             }).
             ConfigureServices((context, services) =>
             {
-                services.AddSingleton<IHttpClientFactory>(mockFactory.Object);
-                services.AddSingleton<HttpClient>(mockHttpClient);
+                services.AddSingleton<IHttpClientFactory>(_mockFactory.Object);
+                services.AddSingleton<HttpClient>(_mockHttpClient);
                 services.AddSingleton<IDevBoxManagementService, DevBoxManagementService>();
                 services.AddSingleton<IDevBoxAuthService, AuthService>();
                 services.AddSingleton<IArmTokenService, ArmTestTokenService>();

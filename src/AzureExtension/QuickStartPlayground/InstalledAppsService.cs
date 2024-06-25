@@ -60,7 +60,7 @@ public class InstalledAppsService : IInstalledAppsService
         return missingApps;
     }
 
-    private static readonly char[] Separator = ['\r', '\n'];
+    private static readonly char[] _separator = ['\r', '\n'];
 
     private static HashSet<string> CheckForMissingVSCodeExtensions(HashSet<string> vsCodeExtensions)
     {
@@ -99,7 +99,7 @@ public class InstalledAppsService : IInstalledAppsService
                 throw new TimeoutException("code.cmd --list-extensions command didn't return after 30 seconds.");
             }
 
-            var extensions = output.Split(Separator, StringSplitOptions.RemoveEmptyEntries);
+            var extensions = output.Split(_separator, StringSplitOptions.RemoveEmptyEntries);
 
             // Check if any of the desired extensions are in the list.
             foreach (var extension in missingExtensions)

@@ -45,9 +45,9 @@ public sealed class ExtensionInitializationUIController : IExtensionAdaptiveCard
 
     private ProviderOperationResult RenderAdaptiveCard()
     {
-        var adpativeCardResult = _adaptiveCardsToDisplay[_currentCardIndex];
-        adpativeCardResult.AdaptiveCardSession.Stopped += AdaptiveCardSessionStopped;
-        return adpativeCardResult.AdaptiveCardSession.Initialize(_extensionUI);
+        var adaptiveCardResult = _adaptiveCardsToDisplay[_currentCardIndex];
+        adaptiveCardResult.AdaptiveCardSession.Stopped += AdaptiveCardSessionStopped;
+        return adaptiveCardResult.AdaptiveCardSession.Initialize(_extensionUI);
     }
 
     private void AdaptiveCardSessionStopped(IExtensionAdaptiveCardSession2 sender, ExtensionAdaptiveCardSessionStoppedEventArgs args)

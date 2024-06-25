@@ -13,26 +13,26 @@ namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed partial class DependencyUIController : IExtensionAdaptiveCardSession2
 {
-    private static readonly Dictionary<string, Tuple<string, string>> Dependencies = new()
+    private static readonly Dictionary<string, Tuple<string, string>> _dependencies = new()
     {
         { "Docker Desktop", new("Docker Desktop", "https://docs.docker.com/desktop/install/windows-install") },
         { "Microsoft Visual Studio Code", new("Visual Studio Code", "https://code.visualstudio.com/Download") },
         { "ms-vscode-remote.remote-containers", new("Visual Studio Code Remote Containers Extension", "https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers") },
     };
 
-    private static readonly Dictionary<string, List<string>> DockerAndVSCodePathEntries = new()
+    private static readonly Dictionary<string, List<string>> _dockerAndVSCodePathEntries = new()
     {
         { "Docker Desktop", new() { "docker.exe" } },
         { "Microsoft Visual Studio Code", new() { "code.cmd", "code-insiders.cmd" } },
     };
 
-    private static readonly HashSet<string> DockerAndVSCode =
+    private static readonly HashSet<string> _dockerAndVSCode =
     [
         "Docker Desktop",
         "Microsoft Visual Studio Code",
     ];
 
-    private static readonly HashSet<string> DevContainerExtension =
+    private static readonly HashSet<string> _devContainerExtension =
     [
         "ms-vscode-remote.remote-containers",
     ];
@@ -45,7 +45,7 @@ public sealed partial class DependencyUIController : IExtensionAdaptiveCardSessi
 
     public static QuickStartProjectAdaptiveCardResult GetAdaptiveCard(IInstalledAppsService installedAppsService)
     {
-        var missingDependencies = installedAppsService.CheckForMissingDependencies([], DockerAndVSCode, DevContainerExtension, DockerAndVSCodePathEntries).Result;
+        var missingDependencies = installedAppsService.CheckForMissingDependencies([], _dockerAndVSCode, _devContainerExtension, _dockerAndVSCodePathEntries).Result;
         if (missingDependencies.Count == 0)
         {
             return null!;
@@ -63,7 +63,7 @@ public sealed partial class DependencyUIController : IExtensionAdaptiveCardSessi
     public ProviderOperationResult Initialize(IExtensionAdaptiveCard extensionUI)
     {
         _extensionUI = extensionUI;
-        var missingDependenciesJson = CreateMissingDependenciesJson(_missingDependencies, Dependencies);
+        var missingDependenciesJson = CreateMissingDependenciesJson(_missingDependencies, _dependencies);
 
         return _extensionUI.Update(GetTemplate(), missingDependenciesJson, string.Empty);
     }
@@ -205,22 +205,22 @@ public sealed partial class DependencyUIController : IExtensionAdaptiveCardSessi
     {
         return Task.Run(() =>
         {
-            var adapativeCardPayload = JsonSerializer.Deserialize(action, DependencyAdaptiveCardPayloadSourceGeneration.Default.DependencyAdaptiveCardPayload);
-            if (adapativeCardPayload is not null)
+            var adaptiveCardPayload = JsonSerializer.Deserialize(action, DependencyAdaptiveCardPayloadSourceGeneration.Default.DependencyAdaptiveCardPayload);
+            if (adaptiveCardPayload is not null)
             {
-                if (adapativeCardPayload.IsCancelAction)
+                if (adaptiveCardPayload.IsCancelAction)
                 {
                     // Inform Dev Home using the stopped event that the user canceled,
                     // but the result of OnAction is we successfully handled the user clicking cancel.
                     Stopped?.Invoke(this, new(new ProviderOperationResult(ProviderOperationStatus.Failure, new OperationCanceledException(), string.Empty, string.Empty), string.Empty));
                     return new ProviderOperationResult(ProviderOperationStatus.Success, null, string.Empty, string.Empty);
                 }
-                else if (adapativeCardPayload.IsRefreshAction)
+                else if (adaptiveCardPayload.IsRefreshAction)
                 {
-                    // Requery the installed apps service to see what dependencies are missing (if any) and update the UI.
+                    // Re-query the installed apps service to see what dependencies are missing (if any) and update the UI.
                     if (_installedAppsService is not null)
                     {
-                        _missingDependencies = _installedAppsService.CheckForMissingDependencies([], DockerAndVSCode, DevContainerExtension, DockerAndVSCodePathEntries).Result;
+                        _missingDependencies = _installedAppsService.CheckForMissingDependencies([], _dockerAndVSCode, _devContainerExtension, _dockerAndVSCodePathEntries).Result;
                         if (_missingDependencies.Count == 0)
                         {
                             var result = new ProviderOperationResult(ProviderOperationStatus.Success, null, "All dependencies are installed", string.Empty);
@@ -229,22 +229,22 @@ public sealed partial class DependencyUIController : IExtensionAdaptiveCardSessi
                             return result;
                         }
 
-                        var missingDependenciesJson = CreateMissingDependenciesJson(_missingDependencies, Dependencies);
+                        var missingDependenciesJson = CreateMissingDependenciesJson(_missingDependencies, _dependencies);
 
                         _extensionUI?.Update(GetTemplate(), missingDependenciesJson, string.Empty);
                     }
 
                     return new ProviderOperationResult(ProviderOperationStatus.Failure, null, "OnAction() failed during Refresh", "InstalledApps service is null");
                 }
-                else if (adapativeCardPayload.IsOpenUrlAction)
+                else if (adaptiveCardPayload.IsOpenUrlAction)
                 {
-                    if (adapativeCardPayload.Url is null)
+                    if (adaptiveCardPayload.Url is null)
                     {
                         return new ProviderOperationResult(ProviderOperationStatus.Failure, null, "OnAction() for opening URL failed", "url is null");
                     }
 
                     // Open the URL in the default browser.
-                    var browser = Process.Start(new ProcessStartInfo(adapativeCardPayload.Url) { UseShellExecute = true });
+                    var browser = Process.Start(new ProcessStartInfo(adaptiveCardPayload.Url) { UseShellExecute = true });
                     if (browser is null)
                     {
                         return new ProviderOperationResult(ProviderOperationStatus.Failure, null, "OnAction() for opening URL failed", "Process.Start returned null");
@@ -259,7 +259,7 @@ public sealed partial class DependencyUIController : IExtensionAdaptiveCardSessi
             }
             else
             {
-                return new ProviderOperationResult(ProviderOperationStatus.Failure, null, "OnAction() called with invalid action", "adapativeCardPayload is null");
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, null, "OnAction() called with invalid action", "adaptiveCardPayload is null");
             }
         }).AsAsyncOperation();
     }

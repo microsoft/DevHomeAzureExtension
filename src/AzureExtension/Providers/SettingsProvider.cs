@@ -10,17 +10,17 @@ namespace DevHomeAzureExtension.Providers;
 
 public class SettingsProvider(IAICredentialService aiCredentialService) : ISettingsProvider
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsProvider)));
+    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", nameof(SettingsProvider)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
-    string ISettingsProvider.DisplayName => Resources.GetResource(@"SettingsProviderDisplayName", Log);
+    string ISettingsProvider.DisplayName => Resources.GetResource(@"SettingsProviderDisplayName", _log);
 
     private readonly IAICredentialService _aiCredentialService = aiCredentialService;
 
     public AdaptiveCardSessionResult GetSettingsAdaptiveCardSession()
     {
-        Log.Information($"GetSettingsAdaptiveCardSession");
+        _log.Information($"GetSettingsAdaptiveCardSession");
         return new AdaptiveCardSessionResult(new SettingsUIController(_aiCredentialService));
     }
 

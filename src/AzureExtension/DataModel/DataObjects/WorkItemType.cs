@@ -17,14 +17,14 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("WorkItemType")]
 public class WorkItemType
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(WorkItemType)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(WorkItemType)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     // This is the time between seeing a potential updated WorkItemType record and updating it.
     // This value / 2 is the average time between WorkItemType updating their WorkItemType data
     // and having it reflected in the datastore.
-    private static readonly long UpdateThreshold = TimeSpan.FromHours(4).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromHours(4).Ticks;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -82,7 +82,7 @@ public class WorkItemType
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Failed to deserialize Json object into WorkItemType: {json}");
+            _log.Error(ex, $"Failed to deserialize Json object into WorkItemType: {json}");
             return null;
         }
     }
@@ -110,7 +110,7 @@ public class WorkItemType
             // avoid unnecessary updating and database operations for data that
             // is extremely unlikely to have changed in any significant way, we
             // will only update every UpdateThreshold amount of time.
-            if ((workItemType.TimeUpdated - existingWorkItemType.TimeUpdated) > UpdateThreshold)
+            if ((workItemType.TimeUpdated - existingWorkItemType.TimeUpdated) > _updateThreshold)
             {
                 workItemType.Id = existingWorkItemType.Id;
                 dataStore.Connection!.Update(workItemType);
@@ -184,8 +184,8 @@ public class WorkItemType
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
+        _log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        _log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

@@ -50,11 +50,34 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
 
-    private JsonSerializerOptions _taskJsonSerializerOptions = new()
+    private readonly JsonSerializerOptions _taskJsonSerializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
+
+    private readonly string _taskAPI;
+
+    private readonly string _baseAPI;
+
+    private readonly IDevBoxManagementService _managementService;
+
+    private readonly IDeveloperId _devId;
+
+    private readonly Serilog.ILogger _log;
+
+    private readonly ManualResetEvent _launchEvent = new(false);
+
+    private readonly ManualResetEvent _resumeEvent = new(false);
+
+    private readonly ComputeSystemState _computeSystemState;
+
+    private readonly Func<string, IAsyncOperation<ComputeSystemOperationResult>> _connectAsync;
+
+    // Using a common failure result for all the tasks
+    // since we don't get any other information from the REST API
+    private readonly ConfigurationUnitResultInformation _commonFailureResult = new(
+            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
 
     private string _fullTaskJSON = string.Empty;
 
@@ -64,34 +87,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private ApplyConfigurationSetResult _applyConfigurationSetResult = new(null, null);
 
-    private string _taskAPI;
-
-    private string _baseAPI;
-
-    private IDevBoxManagementService _managementService;
-
-    private IDeveloperId _devId;
-
-    private Serilog.ILogger _log;
-
     private string[] _oldUnitState = Array.Empty<string>();
 
     private bool _pendingNotificationShown;
 
-    private ManualResetEvent _launchEvent = new(false);
-
-    private ManualResetEvent _resumeEvent = new(false);
-
-    private ComputeSystemState _computeSystemState;
-
-    private Func<string, IAsyncOperation<ComputeSystemOperationResult>> _connectAsync;
-
     private bool _alreadyUpdatedUI;
-
-    // Using a common failure result for all the tasks
-    // since we don't get any other information from the REST API
-    private ConfigurationUnitResultInformation _commonfailureResult = new ConfigurationUnitResultInformation(
-            new WingetConfigurationException("Runtime Failure"), string.Empty, string.Empty, ConfigurationUnitResultSource.UnitProcessing);
 
     public WingetConfigWrapper(
         string configuration,
@@ -190,7 +190,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
             }
             else
             {
-                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, _commonfailureResult));
+                unitResults.Add(new(task, ConfigurationUnitState.Completed, false, false, _commonFailureResult));
             }
         }
 
@@ -216,8 +216,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                 break;
 
             case "Running":
-                bool isAnyTaskRunning = false;
-                bool isWaitingForUserSession = false;
+                var isAnyTaskRunning = false;
+                var isWaitingForUserSession = false;
                 for (var i = 0; i < _units.Count; i++)
                 {
                     var responseStatus = response.Tasks[i].Status;

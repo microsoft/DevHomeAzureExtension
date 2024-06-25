@@ -10,7 +10,6 @@ namespace DevHomeAzureExtension.QuickStartPlayground;
 /// This class contains helper methods to perform vector database-like operations on the
 /// sample projects. The extension uses this class to help find the reference sample that should
 /// be used for the user's prompt.
-/// </summary>
 public static class EmbeddingsCalc
 {
     private static double CalcCosineSimilarity(ReadOnlyMemory<float> a, ReadOnlyMemory<float> b)

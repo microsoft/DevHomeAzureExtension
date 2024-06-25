@@ -8,7 +8,7 @@ using Microsoft.Windows.DevHome.SDK;
 namespace DevHomeAzureExtension.Contracts;
 
 /// <summary>
-/// Inteface used to watch Dev Box operations asynchronously that take place in the Dev Center.
+/// Interface used to watch Dev Box operations asynchronously that take place in the Dev Center.
 /// </summary>
 public interface IDevBoxOperationWatcher
 {

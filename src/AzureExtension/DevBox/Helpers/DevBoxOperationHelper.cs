@@ -1,11 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Text;
-using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace DevHomeAzureExtension.DevBox.Helpers;
 

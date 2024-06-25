@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Drawing;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -14,23 +13,23 @@ namespace DevHomeAzureExtension.DevBox.Helpers;
 
 public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
 {
+    private readonly ManualResetEvent _resumeEvent;
+
+    private readonly ManualResetEvent _launchEvent;
+
     private IExtensionAdaptiveCard? _extensionAdaptiveCard;
 
     private string? _template;
 
-    private ManualResetEvent _resumeEvent;
+    private const string WaitingForUserSessionState = "WaitingForUserSession";
 
-    private ManualResetEvent _launchEvent;
+    private const string LaunchAction = "launchAction";
 
-    private const string _waitingForUserSessionState = "WaitingForUserSession";
-
-    private const string _launchAction = "launchAction";
-
-    private const string _resumeAction = "resumeAction";
+    private const string ResumeAction = "resumeAction";
 
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(WaitingForUserAdaptiveCardSession));
 
-    private JsonSerializerOptions _serializerOptions = new()
+    private readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -96,16 +95,16 @@ public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2,
                 var state = _extensionAdaptiveCard?.State;
                 ProviderOperationResult operationResult;
                 var data = JsonSerializer.Deserialize<AdaptiveCardJSONToCSClass>(action, _serializerOptions);
-                if (state != null && state.Equals(_waitingForUserSessionState, StringComparison.OrdinalIgnoreCase) && data != null)
+                if (state != null && state.Equals(WaitingForUserSessionState, StringComparison.OrdinalIgnoreCase) && data != null)
                 {
                     switch (data.Id)
                     {
-                        case _launchAction:
+                        case LaunchAction:
                             operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
                             _launchEvent.Set();
                             _resumeEvent.Set();
                             break;
-                        case _resumeAction:
+                        case ResumeAction:
                             operationResult = new ProviderOperationResult(ProviderOperationStatus.Success, null, null, null);
                             _resumeEvent.Set();
                             break;

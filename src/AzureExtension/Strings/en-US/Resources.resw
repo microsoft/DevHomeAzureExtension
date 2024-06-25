@@ -431,7 +431,7 @@
     <value>User session expired. Please login again from the settings page.</value>
     <comment>Error shown when user session has expired and re-login is needed.</comment>
   </data>
-  <data name="DevBox_RetrivalFailKey" xml:space="preserve">
+  <data name="DevBox_RetrievalFailKey" xml:space="preserve">
     <value>Unable to retrieve all Dev Boxes for {0}. </value>
     <comment>Error shown when Dev Boxes retrival failed.</comment>
   </data>

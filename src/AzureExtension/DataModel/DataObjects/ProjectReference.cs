@@ -14,11 +14,11 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("ProjectReference")]
 public class ProjectReference
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(ProjectReference)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(ProjectReference)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
-    private static readonly long WeightPullRequest = 1;
+    private static readonly long _weightPullRequest = 1;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -32,7 +32,7 @@ public class ProjectReference
 
     [Write(false)]
     [Computed]
-    public long Value => PullRequestCount * WeightPullRequest;
+    public long Value => PullRequestCount * _weightPullRequest;
 
     [Write(false)]
     [Computed]
@@ -97,7 +97,7 @@ public class ProjectReference
         var sql = @"DELETE FROM ProjectReference WHERE (ProjectId NOT IN (SELECT Id FROM Project)) OR (DeveloperId NOT IN (SELECT Id FROM Identity))";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
-        Log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        _log.Verbose(DataStore.GetCommandLogMessage(sql, command));
         command.ExecuteNonQuery();
     }
 }

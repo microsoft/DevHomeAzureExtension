@@ -13,13 +13,13 @@ namespace DevHomeAzureExtension.Widgets;
 
 internal sealed class AzureQueryTilesWidget : AzureWidget
 {
-    private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
+    private readonly string _sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
-    private readonly int maxNumLines = 3;
-    private readonly int maxNumColumns = 2;
+    private readonly int _maxNumLines = 3;
+    private readonly int _maxNumColumns = 2;
 
     // Widget data
-    private readonly List<QueryTile> tiles = [];
+    private readonly List<QueryTile> _tiles = [];
 
     // Creation and destruction methods
     public AzureQueryTilesWidget()
@@ -39,7 +39,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         else
         {
             // Start with one initial tile.
-            tiles.Add(new QueryTile(
+            _tiles.Add(new QueryTile(
               string.Empty,
               string.Empty));
         }
@@ -60,7 +60,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
         UpdateAllTiles(args.Data);
 
-        tiles.Add(new QueryTile(
+        _tiles.Add(new QueryTile(
               string.Empty,
               string.Empty));
 
@@ -74,8 +74,8 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     {
         var dataObject = JsonObject.Parse(data)!.AsObject();
 
-        dataObject.Remove($"tileTitle{tiles.Count}");
-        dataObject.Remove($"query{tiles.Count}");
+        dataObject.Remove($"tileTitle{_tiles.Count}");
+        dataObject.Remove($"query{_tiles.Count}");
 
         return dataObject.ToJsonString();
     }
@@ -85,9 +85,9 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         Page = WidgetPageState.Loading;
         UpdateWidget();
 
-        if (tiles.Count != 0)
+        if (_tiles.Count != 0)
         {
-            tiles.RemoveAt(tiles.Count - 1);
+            _tiles.RemoveAt(_tiles.Count - 1);
         }
 
         UpdateAllTiles(RemoveLastTileFromData(args.Data));
@@ -208,7 +208,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
         }
 
         var queryList = new List<AzureUri>();
-        foreach (var tile in tiles)
+        foreach (var tile in _tiles)
         {
             queryList.Add(tile.AzureUri);
         }
@@ -247,23 +247,23 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
             return;
         }
 
-        for (var i = 0; i < maxNumLines; ++i)
+        for (var i = 0; i < _maxNumLines; ++i)
         {
             var tilesArray = new JsonArray();
-            for (var j = 0; j < maxNumColumns; ++j)
+            for (var j = 0; j < _maxNumColumns; ++j)
             {
                 var pos = (2 * i) + j;
 
-                if (pos < tiles.Count)
+                if (pos < _tiles.Count)
                 {
                     var workItemCount = 0;
                     try
                     {
-                        var queryInfo = DataManager!.GetQuery(tiles[pos].AzureUri.Query, developerId.LoginId);
+                        var queryInfo = DataManager!.GetQuery(_tiles[pos].AzureUri.Query, developerId.LoginId);
                         if (queryInfo == null)
                         {
                             // Failing this query doesn't mean the other queries won't fail.
-                            Log.Information($"No query information found for query: {tiles[pos].AzureUri.Query}");
+                            Log.Information($"No query information found for query: {_tiles[pos].AzureUri.Query}");
                         }
                         else
                         {
@@ -272,10 +272,10 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
                         var tile = new JsonObject
                         {
-                            { "title", tiles[pos].Title },
+                            { "title", _tiles[pos].Title },
                             { "counter", workItemCount },
                             { "backgroundImage", IconLoader.GetIconAsBase64("BlueBackground.png") },
-                            { "url", tiles[pos].AzureUri.ToString() },
+                            { "url", _tiles[pos].AzureUri.ToString() },
                         };
 
                         tilesArray.Add(tile);
@@ -312,14 +312,14 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
             return false;
         }
 
-        if (tiles.Count == 0)
+        if (_tiles.Count == 0)
         {
             return false;
         }
 
-        for (var i = 0; i < tiles.Count; ++i)
+        for (var i = 0; i < _tiles.Count; ++i)
         {
-            var tile = tiles[i];
+            var tile = _tiles[i];
             if (tile.Validated)
             {
                 // Skip tiles that have already been validated.
@@ -343,7 +343,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                 tile.Title = queryInfo.Name;
             }
 
-            tiles[i] = tile;
+            _tiles[i] = tile;
         }
 
         CanSave = !pinIssueFound;
@@ -360,13 +360,13 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
             return;
         }
 
-        tiles.Clear();
+        _tiles.Clear();
 
         for (var i = 0; i < 6; ++i)
         {
             if (dataObject[$"query{i}"] != null && dataObject[$"tileTitle{i}"] != null)
             {
-                tiles.Add(new QueryTile());
+                _tiles.Add(new QueryTile());
             }
         }
     }
@@ -376,7 +376,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     protected override void SetDefaultDeveloperLoginId()
     {
         base.SetDefaultDeveloperLoginId();
-        var azureOrg = tiles.Where(i => i.AzureUri.IsValid).FirstOrDefault().AzureUri?.Organization ?? string.Empty;
+        var azureOrg = _tiles.Where(i => i.AzureUri.IsValid).FirstOrDefault().AzureUri?.Organization ?? string.Empty;
         if (!string.IsNullOrEmpty(azureOrg))
         {
             var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
@@ -392,13 +392,13 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
     private void UpdateAllTiles(string data)
     {
         var dataObject = JsonObject.Parse(data);
-        var nTiles = tiles.Count;
+        var nTiles = _tiles.Count;
 
         if (dataObject != null)
         {
             for (var i = 0; i < nTiles; ++i)
             {
-                var tile = tiles[i];
+                var tile = _tiles[i];
                 var queryFromData = dataObject[$"query{i}"]?.GetValue<string>() ?? string.Empty;
                 var titleFromData = dataObject[$"tileTitle{i}"]?.GetValue<string>() ?? string.Empty;
 
@@ -409,13 +409,13 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
                     if (tile.Title != titleFromData)
                     {
                         tile.Title = titleFromData;
-                        tiles[i] = tile;
+                        _tiles[i] = tile;
                     }
                 }
                 else
                 {
                     // The Uri was changed in the ux, we need to recreate the tile with the new Uri.
-                    tiles[i] = new QueryTile(queryFromData, titleFromData);
+                    _tiles[i] = new QueryTile(queryFromData, titleFromData);
                 }
             }
 
@@ -451,13 +451,13 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
         var tilesArray = new JsonArray();
 
-        for (var i = 0; i < tiles.Count; ++i)
+        for (var i = 0; i < _tiles.Count; ++i)
         {
             tilesArray.Add(new JsonObject
             {
-                { "url", tiles[i].AzureUri.ToString() },
-                { "title", tiles[i].Title },
-                { "message", tiles[i].Message.Length != 0 ? tiles[i].Message : null },
+                { "url", _tiles[i].AzureUri.ToString() },
+                { "title", _tiles[i].Title },
+                { "message", _tiles[i].Message.Length != 0 ? _tiles[i].Message : null },
             });
         }
 

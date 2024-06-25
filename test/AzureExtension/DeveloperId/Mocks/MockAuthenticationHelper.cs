@@ -9,7 +9,7 @@ namespace DevHomeAzureExtension.Test.DeveloperId.Mocks;
 
 internal sealed class MockAuthenticationHelper : IAuthenticationHelper
 {
-    private readonly List<string> loginIds = new();
+    private readonly List<string> _loginIds = new();
 
     private static readonly string[] _scopes = new[] { "scope1", "scope2" };
 
@@ -27,13 +27,13 @@ internal sealed class MockAuthenticationHelper : IAuthenticationHelper
 
     public void PopulateCache()
     {
-        loginIds.Add("testAccount");
+        _loginIds.Add("testAccount");
     }
 
     public async Task<IEnumerable<string>> GetAllStoredLoginIdsAsync()
     {
         await Task.Run(() => { });
-        return loginIds;
+        return _loginIds;
     }
 
     public async void InitializePublicClientAppForWAMBrokerAsync()
@@ -55,7 +55,7 @@ internal sealed class MockAuthenticationHelper : IAuthenticationHelper
     public async Task<IAccount?> LoginDeveloperAccount(string[] scopes)
     {
         await Task.Run(() => { });
-        AuthenticationResult authResult = new AuthenticationResult(
+        var authResult = new AuthenticationResult(
                 accessToken: string.Empty,
                 isExtendedLifeTimeToken: false,
                 uniqueId: string.Empty,

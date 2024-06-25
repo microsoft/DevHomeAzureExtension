@@ -11,7 +11,7 @@ namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// Implementation of the Azure Resource Manager (ARM) token service.
-/// It is a wrapper leveraging Developer ID's silent token aquiring
+/// It is a wrapper leveraging Developer ID's silent token acquiring
 /// function, with the scope needed for ARM
 /// </summary>
 public class ARMTokenService : IArmTokenService

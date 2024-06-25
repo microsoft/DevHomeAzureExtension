@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System.Globalization;
@@ -9,7 +9,6 @@ using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.Helpers;
 using DevHomeAzureExtension.QuickStartPlayground;
-using Microsoft.Windows.ApplicationModel.Resources;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
@@ -18,9 +17,9 @@ namespace DevHomeAzureExtension.Providers;
 
 internal sealed class SettingsUIController(IAICredentialService aiCredentialService) : IExtensionAdaptiveCardSession
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
+    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", nameof(SettingsUIController)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     private readonly IAICredentialService _aiCredentialService = aiCredentialService;
 
@@ -32,13 +31,13 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
 
     public void Dispose()
     {
-        Log.Debug($"Dispose");
+        _log.Debug($"Dispose");
         _settingsUI?.Update(null, null, null);
     }
 
     public ProviderOperationResult Initialize(IExtensionAdaptiveCard extensionUI)
     {
-        Log.Debug($"Initialize");
+        _log.Debug($"Initialize");
         CacheManager.GetInstance().OnUpdate += HandleCacheUpdate;
         _settingsUI = extensionUI;
         return UpdateCard();
@@ -46,7 +45,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
 
     private void HandleCacheUpdate(object? source, CacheManagerUpdateEventArgs e)
     {
-        Log.Debug("Cache was updated, updating settings UI.");
+        _log.Debug("Cache was updated, updating settings UI.");
         UpdateCard();
     }
 
@@ -56,26 +55,26 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
         {
             try
             {
-                Log.Information($"OnAction() called with {action}");
-                Log.Debug($"inputs: {inputs}");
+                _log.Information($"OnAction() called with {action}");
+                _log.Debug($"inputs: {inputs}");
                 var actionObject = JsonNode.Parse(action);
                 var verb = actionObject?["verb"]?.GetValue<string>() ?? string.Empty;
-                Log.Debug($"Verb: {verb}");
+                _log.Debug($"Verb: {verb}");
                 switch (verb)
                 {
                     case "ClearOpenAIKey":
-                        Log.Information("Clearing OpenAI key");
+                        _log.Information("Clearing OpenAI key");
                         _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);
                         break;
 
                     case "ToggleNotifications":
                         var currentNotificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
                         await LocalSettings.SaveSettingAsync(_notificationsEnabledString, currentNotificationsEnabled == "true" ? "false" : "true");
-                        Log.Information($"Changed notification state to: {(currentNotificationsEnabled == "true" ? "false" : "true")}");
+                        _log.Information($"Changed notification state to: {(currentNotificationsEnabled == "true" ? "false" : "true")}");
                         break;
 
                     case "UpdateData":
-                        Log.Information($"Refreshing data for organizations.");
+                        _log.Information($"Refreshing data for organizations.");
                         _ = CacheManager.GetInstance().Refresh();
                         break;
 
@@ -84,7 +83,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
                         break;
 
                     default:
-                        Log.Warning($"Unknown verb: {verb}");
+                        _log.Warning($"Unknown verb: {verb}");
                         break;
                 }
 
@@ -92,7 +91,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Unexpected failure handling settings action.");
+                _log.Error(ex, "Unexpected failure handling settings action.");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
             }
         }).AsAsyncOperation();
@@ -105,7 +104,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
             var hasOpenAIKey = _aiCredentialService.GetCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId) is not null;
 
             var notificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
-            var notificationsEnabledString = (notificationsEnabled == "true") ? Resources.GetResource("Settings_NotificationsEnabled", Log) : Resources.GetResource("Settings_NotificationsDisabled", Log);
+            var notificationsEnabledString = (notificationsEnabled == "true") ? Resources.GetResource("Settings_NotificationsEnabled", _log) : Resources.GetResource("Settings_NotificationsDisabled", _log);
 
             var lastUpdated = CacheManager.GetInstance().LastUpdated;
             var lastUpdatedString = $"Last updated: {lastUpdated.ToString(CultureInfo.InvariantCulture)}";
@@ -114,7 +113,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
                 lastUpdatedString = "Last updated: never";
             }
 
-            var updateAzureDataString = Resources.GetResource("Settings_UpdateData", Log);
+            var updateAzureDataString = Resources.GetResource("Settings_UpdateData", _log);
             if (CacheManager.GetInstance().UpdateInProgress)
             {
                 updateAzureDataString = "Update in progress";
@@ -135,7 +134,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to update settings card");
+            _log.Error(ex, "Failed to update settings card");
             return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
         }
     }
@@ -144,7 +143,7 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
     {
         if (_template is not null)
         {
-            Log.Debug("Using cached template.");
+            _log.Debug("Using cached template.");
             return _template;
         }
 
@@ -152,14 +151,14 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
         {
             var path = Path.Combine(AppContext.BaseDirectory, @"Providers\SettingsCardTemplate.json");
             var template = File.ReadAllText(path, Encoding.Default) ?? throw new FileNotFoundException(path);
-            template = Resources.ReplaceIdentifiers(template, GetSettingsCardResourceIdentifiers(), Log);
-            Log.Debug($"Caching template");
+            template = Resources.ReplaceIdentifiers(template, GetSettingsCardResourceIdentifiers(), _log);
+            _log.Debug($"Caching template");
             _template = template;
             return _template;
         }
         catch (Exception e)
         {
-            Log.Error(e, "Error getting template.");
+            _log.Error(e, "Error getting template.");
             return string.Empty;
         }
     }

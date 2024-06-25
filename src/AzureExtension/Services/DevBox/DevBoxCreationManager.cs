@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Collections.Generic;
 using System.Text.Json;
 using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DevBox;
@@ -10,6 +9,7 @@ using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+
 using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
 namespace DevHomeAzureExtension.Services.DevBox;

@@ -27,15 +27,15 @@ public static class Constants
     /// <summary>
     /// API version used for enumeration and start, stop, and restart APIs
     /// </summary>
-    /// For stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
-    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
+    /// For stable APIs <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes?view=rest-devcenter-developer-2023-04-01"/>
+    /// for preview APIs <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
     public const string APIVersion = "api-version=2024-05-01-preview";
 
     /// <summary>
     /// DevCenter API to get all devboxes
     /// </summary>
-    /// for stable api's <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
-    /// for preview api's <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
+    /// for stable APIs <seealso href="https://learn.microsoft.com/rest/api/devcenter/developer/dev-boxes/list-dev-boxes-by-user"/>
+    /// for preview APIs <seealso cref="https://github.com/Azure/azure-rest-api-specs/tree/main/specification/devcenter/data-plane/Microsoft.DevCenter/preview"/>
     public const string DevBoxAPI = "/users/me/devboxes?" + APIVersion;
 
     public const string DevBoxUserSegmentOfUri = "/users/me/devboxes";
@@ -179,7 +179,7 @@ public static class Constants
     /// Icons should be located in an extensions resource.pri file which is generated at build time.
     /// See the MakePri.exe documentation for how you can view what is in the resource.pri file, so you can find the location of your icon.
     /// https://learn.microsoft.com/en-us/windows/uwp/app-resources/makepri-exe-command-options. (use MakePri.exe in a VS Developer Command Prompt or
-    /// Powershell window)
+    /// PowerShell window)
     /// </remarks>
 #if CANARY_BUILD
     public const string ProviderIcon = "ms-resource://Microsoft.Windows.DevHomeAzureExtension.Canary/Files/AzureExtension/Assets/DevBoxProvider.png";
@@ -227,9 +227,9 @@ public static class Constants
     public const string DevBoxCheckLogsKey = "DevBox_CheckLogs";
 
     /// <summary>
-    /// Resource key for the error message when Dev Boxes retrival failed.
+    /// Resource key for the error message when Dev Boxes retrieval failed.
     /// </summary>
-    public const string RetrivalFailKey = "DevBox_RetrivalFailKey";
+    public const string RetrievalFailKey = "DevBox_RetrievalFailKey";
 
     /// <summary>
     /// Resource key for the error message when there is no default user logged in.
@@ -237,7 +237,7 @@ public static class Constants
     public const string NoDefaultUserFailKey = "DevBox_NoDefaultUserFailKey";
 
     /// <summary>
-    /// Resource key for the error message when Dev Boxes retrival failed.
+    /// Resource key for the error message when Dev Boxes retrieval failed.
     /// </summary>
     public const string SessionExpiredKey = "DevBox_SessionExpired";
 
