@@ -12,7 +12,7 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Project")]
 public class Project
 {
-    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(Project)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Project)}"));
 
     private static readonly ILogger _log = _logger.Value;
 

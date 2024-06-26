@@ -2,13 +2,11 @@
 // Licensed under the MIT License.
 
 using System.Collections.Concurrent;
-using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DevHomeAzureExtension.Contracts;
-using DevHomeAzureExtension.DevBox;
 using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 using DevHomeAzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.DevBox.Models;

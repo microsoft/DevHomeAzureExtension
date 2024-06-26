@@ -32,7 +32,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     public const string WingetTaskJsonTaskStart = @"{
             ""name"": ""winget"",
-			""runAs"": ""User"",
+            ""runAs"": ""User"",
             ""parameters"": {
                 ""inlineConfigurationBase64"": """;
 

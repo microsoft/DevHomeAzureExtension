@@ -17,7 +17,7 @@ namespace DevHomeAzureExtension.Providers;
 
 internal sealed class SettingsUIController(IAICredentialService aiCredentialService) : IExtensionAdaptiveCardSession
 {
-    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", nameof(SettingsUIController)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
 
     private static readonly ILogger _log = _logger.Value;
 

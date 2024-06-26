@@ -12,7 +12,7 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("PullRequests")]
 public class PullRequests
 {
-    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(PullRequests)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(PullRequests)}"));
 
     private static readonly ILogger _log = _logger.Value;
 

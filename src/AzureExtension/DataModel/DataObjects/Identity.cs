@@ -16,7 +16,7 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Identity")]
 public class Identity
 {
-    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
 
     private static readonly ILogger _log = _logger.Value;
 

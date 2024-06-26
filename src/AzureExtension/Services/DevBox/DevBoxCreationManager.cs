@@ -9,7 +9,6 @@ using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
-
 using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
 namespace DevHomeAzureExtension.Services.DevBox;

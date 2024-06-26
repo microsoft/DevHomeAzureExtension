@@ -17,7 +17,7 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("WorkItemType")]
 public class WorkItemType
 {
-    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(WorkItemType)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(WorkItemType)}"));
 
     private static readonly ILogger _log = _logger.Value;
 

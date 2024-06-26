@@ -17,7 +17,7 @@ namespace DevHomeAzureExtension.Helpers;
 /// </summary>
 public class AzureRepositoryHierarchy
 {
-    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
 
     private static readonly ILogger _log = _logger.Value;
 
