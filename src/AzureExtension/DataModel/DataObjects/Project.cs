@@ -12,9 +12,9 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Project")]
 public class Project
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Project)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Project)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     // This is the time between seeing a potential updated Project record and updating it.
     // This value / 2 is the average time between Project updating their Project data and having
@@ -130,7 +130,7 @@ public class Project
             Org = organizationName,
         };
 
-        Log.Debug(DataStore.GetSqlLogMessage(sql, param));
+        _log.Debug(DataStore.GetSqlLogMessage(sql, param));
         var project = dataStore.Connection!.QueryFirstOrDefault<Project>(sql, param, null);
         if (project is not null)
         {

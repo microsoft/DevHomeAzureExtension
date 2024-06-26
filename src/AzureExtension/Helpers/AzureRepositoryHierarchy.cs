@@ -17,9 +17,9 @@ namespace DevHomeAzureExtension.Helpers;
 /// </summary>
 public class AzureRepositoryHierarchy
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     private readonly object _getOrganizationsLock = new();
 
@@ -156,7 +156,7 @@ public class AzureRepositoryHierarchy
         }
         catch (Exception e)
         {
-            Log.Error(e, e.Message);
+            _log.Error(e, e.Message);
         }
 
         return new List<TeamProjectReference>();

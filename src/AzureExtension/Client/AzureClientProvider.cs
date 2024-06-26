@@ -10,22 +10,22 @@ namespace DevHomeAzureExtension.Client;
 
 public class AzureClientProvider
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureClientProvider)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureClientProvider)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     private static VssConnection? CreateConnection(Uri uri, DeveloperId.DeveloperId developerId)
     {
         var azureUri = new AzureUri(uri);
         if (!azureUri.IsValid)
         {
-            Log.Information($"Cannot Create Connection: invalid uri argument value i.e. {uri}");
+            _log.Information($"Cannot Create Connection: invalid uri argument value i.e. {uri}");
             return null;
         }
 
         if (developerId == null)
         {
-            Log.Information($"Cannot Create Connection: null developer id argument");
+            _log.Information($"Cannot Create Connection: null developer id argument");
             return null;
         }
 
@@ -38,41 +38,41 @@ public class AzureClientProvider
 
                 if (credentials == null)
                 {
-                    Log.Error($"Unable to get credentials for developerId");
+                    _log.Error($"Unable to get credentials for developerId");
                     return null;
                 }
             }
             catch (MsalUiRequiredException ex)
             {
-                Log.Error($"Unable to get credentials for developerId failed and requires user interaction {ex}");
+                _log.Error($"Unable to get credentials for developerId failed and requires user interaction {ex}");
                 return null;
             }
             catch (MsalServiceException ex)
             {
-                Log.Error($"Unable to get credentials for developerId: failed with MSAL service error: {ex}");
+                _log.Error($"Unable to get credentials for developerId: failed with MSAL service error: {ex}");
                 return null;
             }
             catch (MsalClientException ex)
             {
-                Log.Error($"Unable to get credentials for developerId: failed with MSAL client error: {ex}");
+                _log.Error($"Unable to get credentials for developerId: failed with MSAL client error: {ex}");
                 return null;
             }
             catch (Exception ex)
             {
-                Log.Error($"Unable to get credentials for developerId {ex}");
+                _log.Error($"Unable to get credentials for developerId {ex}");
                 return null;
             }
 
             var connection = new VssConnection(azureUri.Connection, credentials);
             if (connection != null)
             {
-                Log.Debug($"Connection created for developer id");
+                _log.Debug($"Connection created for developer id");
                 return connection;
             }
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Failed creating connection for developer id and {uri} with exception:");
+            _log.Error(ex, $"Failed creating connection for developer id and {uri} with exception:");
         }
 
         return null;
@@ -83,13 +83,13 @@ public class AzureClientProvider
         var azureUri = new AzureUri(uri);
         if (!azureUri.IsValid)
         {
-            Log.Information($"Cannot Create Connection: invalid uri argument value i.e. {uri}");
+            _log.Information($"Cannot Create Connection: invalid uri argument value i.e. {uri}");
             return new ConnectionResult(ResultType.Failure, ErrorType.InvalidArgument, false);
         }
 
         if (developerId == null)
         {
-            Log.Information($"Cannot Create Connection: invalid developer id argument");
+            _log.Information($"Cannot Create Connection: invalid developer id argument");
             return new ConnectionResult(ResultType.Failure, ErrorType.InvalidArgument, false);
         }
 
@@ -99,28 +99,28 @@ public class AzureClientProvider
             credentials = developerId.GetCredentials();
             if (credentials == null)
             {
-                Log.Error($"Unable to get credentials for developerId");
+                _log.Error($"Unable to get credentials for developerId");
                 return new ConnectionResult(ResultType.Failure, ErrorType.InvalidDeveloperId, false);
             }
         }
         catch (MsalUiRequiredException ex)
         {
-            Log.Error($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed and requires user interaction {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.CredentialUIRequired, false, ex);
         }
         catch (MsalServiceException ex)
         {
-            Log.Error($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed with MSAL service error: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.MsalServiceError, false, ex);
         }
         catch (MsalClientException ex)
         {
-            Log.Error($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed with MSAL client error: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.MsalClientError, false, ex);
         }
         catch (Exception ex)
         {
-            Log.Error($"AcquireDeveloperAccountToken failed with error: {ex}");
+            _log.Error($"AcquireDeveloperAccountToken failed with error: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.GenericCredentialFailure, true);
         }
 
@@ -134,18 +134,18 @@ public class AzureClientProvider
 
             if (connection != null)
             {
-                Log.Debug($"Created new connection to {azureUri.Connection} for {developerId.LoginId}");
+                _log.Debug($"Created new connection to {azureUri.Connection} for {developerId.LoginId}");
                 return new ConnectionResult(azureUri.Connection, null, connection);
             }
             else
             {
-                Log.Error($"Connection to {azureUri.Connection} was null.");
+                _log.Error($"Connection to {azureUri.Connection} was null.");
                 return new ConnectionResult(ResultType.Failure, ErrorType.NullConnection, false);
             }
         }
         catch (Exception ex)
         {
-            Log.Error($"Unable to establish VssConnection: {ex}");
+            _log.Error($"Unable to establish VssConnection: {ex}");
             return new ConnectionResult(ResultType.Failure, ErrorType.InitializeVssConnectionFailure, true, ex);
         }
     }
@@ -164,20 +164,20 @@ public class AzureClientProvider
         var azureUri = new AzureUri(uri);
         if (!azureUri.IsValid)
         {
-            Log.Error($"Uri is an invalid Azure Uri: {uri}");
+            _log.Error($"Uri is an invalid Azure Uri: {uri}");
             throw new ArgumentException(uri.ToString());
         }
 
         if (developerId == null)
         {
-            Log.Error($"No logged in developer for which connection needs to be retrieved");
+            _log.Error($"No logged in developer for which connection needs to be retrieved");
             throw new ArgumentNullException(null);
         }
 
         var connection = CreateConnection(azureUri.Connection, developerId);
         if (connection == null)
         {
-            Log.Error($"Failed creating connection for developer id");
+            _log.Error($"Failed creating connection for developer id");
             throw new AzureClientException($"Failed creating Vss connection: {azureUri.Connection} for {developerId.LoginId}");
         }
 
@@ -188,7 +188,7 @@ public class AzureClientProvider
     {
         if (developerId == null)
         {
-            Log.Error($"No logged in developer for which connection needs to be retrieved");
+            _log.Error($"No logged in developer for which connection needs to be retrieved");
             return new ConnectionResult(ResultType.Failure, ErrorType.InvalidDeveloperId, false);
         }
 
@@ -200,14 +200,14 @@ public class AzureClientProvider
     {
         if (string.IsNullOrEmpty(uri))
         {
-            Log.Information($"Cannot GetClient: invalid uri argument value i.e. {uri}");
+            _log.Information($"Cannot GetClient: invalid uri argument value i.e. {uri}");
             return null;
         }
 
         var azureUri = new AzureUri(uri);
         if (!azureUri.IsValid)
         {
-            Log.Information($"Cannot GetClient as uri validation failed: value of uri {uri}");
+            _log.Information($"Cannot GetClient as uri validation failed: value of uri {uri}");
             return null;
         }
 
@@ -232,7 +232,7 @@ public class AzureClientProvider
         var azureUri = new AzureUri(uri);
         if (!azureUri.IsValid)
         {
-            Log.Information($"Cannot GetClient as uri validation failed: value of uri {uri}");
+            _log.Information($"Cannot GetClient as uri validation failed: value of uri {uri}");
             return new ConnectionResult(ResultType.Failure, ErrorType.InvalidArgument, false);
         }
 
