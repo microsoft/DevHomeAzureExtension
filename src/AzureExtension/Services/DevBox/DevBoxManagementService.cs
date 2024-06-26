@@ -129,28 +129,27 @@ public class DevBoxManagementService : IDevBoxManagementService
     }
 
     // Filter out projects that the user does not have write access to
-    private async Task<bool> FilterOutProjectAsync(DevBoxProject project, IDeveloperId developerId)
+    private bool DeveloperHasWriteAbility(DevBoxProject project, IDeveloperId developerId)
     {
         try
         {
             var uri = $"{project.Properties.DevCenterUri}{Constants.Projects}/{project.Name}/users/me/abilities?{Constants.APIVersion}";
-            var result = await HttpsRequestToDataPlane(new Uri(uri), developerId, HttpMethod.Get, null);
+            var result = HttpsRequestToDataPlane(new Uri(uri), developerId, HttpMethod.Get, null).Result;
             var rawResponse = result.JsonResponseRoot.ToString();
             var abilities = JsonSerializer.Deserialize<AbilitiesJSONToCSClasses.BaseClass>(rawResponse, _jsonOptions);
             _log.Debug($"Response from abilities: {rawResponse}");
 
-            if (abilities!.AbilitiesAsDeveloper.Contains(_writeAbility)
-                || abilities!.AbilitiesAsAdmin.Contains(_writeAbility))
+            if (abilities!.AbilitiesAsDeveloper.Contains(_writeAbility) || abilities!.AbilitiesAsAdmin.Contains(_writeAbility))
             {
-                return false;
+                return true;
             }
 
-            return true;
+            return false;
         }
         catch (Exception ex)
         {
             _log.Error(ex, $"Unable to get abilities for {project.Name}");
-            return false;
+            return true;
         }
     }
 
@@ -172,7 +171,7 @@ public class DevBoxManagementService : IDevBoxManagementService
 
         await Parallel.ForEachAsync(projects.Data!, async (project, token) =>
         {
-            if (await FilterOutProjectAsync(project, developerId))
+            if (!DeveloperHasWriteAbility(project, developerId))
             {
                 return;
             }
@@ -184,7 +183,7 @@ public class DevBoxManagementService : IDevBoxManagementService
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
                 var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions);
 
-                // Sort the pools by name
+                // Sort the pools by name, case insensitive
                 if (pools?.Value != null)
                 {
                     pools.Value = new(pools.Value.OrderBy(x => x.Name));
@@ -199,7 +198,7 @@ public class DevBoxManagementService : IDevBoxManagementService
             }
         });
 
-        // Sort the mapping by project name
+        // Sort the mapping by project name, case insensitive
         projectsToPoolsMapping = new(projectsToPoolsMapping.OrderByDescending(x => x.Project?.Name));
 
         _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
