@@ -13,7 +13,7 @@ public partial class DataStoreTests
     [TestCategory("Unit")]
     public void DateTimeExtension()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         TestContext?.WriteLine($"Now: {now}");
         var nowAsInteger = now.ToDataStoreInteger();
         TestContext?.WriteLine($"NowAsDataStoreInteger: {nowAsInteger}");

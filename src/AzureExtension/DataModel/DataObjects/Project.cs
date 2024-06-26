@@ -69,7 +69,7 @@ public class Project
             Name = project.Name ?? string.Empty,
             Description = project.Description ?? string.Empty,
             OrganizationId = organizationId,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 
@@ -81,7 +81,7 @@ public class Project
             Name = project.Name ?? string.Empty,
             Description = project.Description ?? string.Empty,
             OrganizationId = organizationId,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 

@@ -463,7 +463,7 @@ public abstract class AzureWidget : WidgetImpl
     {
         // Only update per the update interval.
         // This is intended to be dynamic in the future.
-        if (DateTime.Now - _lastUpdateRequest < WidgetRefreshRate)
+        if (DateTime.UtcNow - _lastUpdateRequest < WidgetRefreshRate)
         {
             return;
         }
@@ -482,7 +482,7 @@ public abstract class AzureWidget : WidgetImpl
             Log.Error(ex, "Failed Requesting Update");
         }
 
-        _lastUpdateRequest = DateTime.Now;
+        _lastUpdateRequest = DateTime.UtcNow;
     }
 
     // This method will attempt to select a DeveloperId if one is not already selected. By default

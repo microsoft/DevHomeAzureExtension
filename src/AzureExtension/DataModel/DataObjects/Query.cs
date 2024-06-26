@@ -68,7 +68,7 @@ public class Query
             DisplayName = displayName,
             QueryResults = queryResults,
             QueryResultCount = queryResultCount,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 

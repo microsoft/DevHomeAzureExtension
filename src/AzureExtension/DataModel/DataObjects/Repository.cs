@@ -14,9 +14,9 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Repository")]
 public class Repository
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Repository)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Repository)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -83,7 +83,7 @@ public class Repository
             CloneUrl = gitRepository.WebUrl,
             IsPrivate = gitRepository.ProjectReference.Visibility == Microsoft.TeamFoundation.Core.WebApi.ProjectVisibility.Private ? 1L : 0L,
             ProjectId = projectId,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 
@@ -138,7 +138,7 @@ public class Repository
             repository.DataStore = dataStore;
         }
 
-        Log.Information("Getting all repositories.");
+        _log.Information("Getting all repositories.");
         return repositories;
     }
 
@@ -168,7 +168,7 @@ public class Repository
     public static IEnumerable<Repository> GetAllWithReference(DataStore dataStore)
     {
         var sql = @"SELECT * FROM Repository AS R WHERE R.Id IN (SELECT RepositoryId FROM RepositoryReference)";
-        Log.Verbose(DataStore.GetSqlLogMessage(sql));
+        _log.Verbose(DataStore.GetSqlLogMessage(sql));
         var repositories = dataStore.Connection!.Query<Repository>(sql) ?? [];
         foreach (var repository in repositories)
         {
@@ -184,7 +184,7 @@ public class Repository
         var sql = @"DELETE FROM Repository WHERE ProjectId NOT IN (SELECT Id FROM Project)";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
-        Log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        _log.Verbose(DataStore.GetCommandLogMessage(sql, command));
         command.ExecuteNonQuery();
     }
 }

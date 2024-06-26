@@ -37,7 +37,7 @@ public static class FileHelper
 
     public static void Delete(string folderPath, string fileName)
     {
-        if (fileName != null && File.Exists(Path.Combine(folderPath, fileName)))
+        if (!string.IsNullOrEmpty(fileName) && File.Exists(Path.Combine(folderPath, fileName)))
         {
             File.Delete(Path.Combine(folderPath, fileName));
         }

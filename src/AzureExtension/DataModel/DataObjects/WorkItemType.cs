@@ -96,7 +96,7 @@ public class WorkItemType
             Icon = workItemType.Icon.Url.ToString() ?? string.Empty,
             Color = workItemType.Color ?? string.Empty,
             ProjectId = projectId,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 

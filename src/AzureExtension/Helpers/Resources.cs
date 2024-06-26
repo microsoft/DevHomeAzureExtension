@@ -63,7 +63,7 @@ public static class Resources
     // such as a JSON string with resource identifiers embedded.
     public static string ReplaceIdentifiers(string str, string[] resourceIdentifiers, ILogger? log = null)
     {
-        var start = DateTime.Now;
+        var start = DateTime.UtcNow;
         foreach (var identifier in resourceIdentifiers)
         {
             // What is faster, String.Replace, RegEx, or StringBuilder.Replace? It is String.Replace().
@@ -72,7 +72,7 @@ public static class Resources
             str = str.Replace($"%{identifier}%", resourceString);
         }
 
-        var elapsed = DateTime.Now - start;
+        var elapsed = DateTime.UtcNow - start;
         log?.Debug($"Replaced identifiers in {elapsed.TotalMilliseconds}ms");
         return str;
     }

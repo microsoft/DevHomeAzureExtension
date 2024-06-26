@@ -1,13 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using DevHomeAzureExtension.Providers;
@@ -18,12 +11,12 @@ namespace DevHomeAzureExtension.DataManager;
 
 public class CacheManager : IDisposable
 {
-    private static readonly string CacheManagerLastUpdatedMetaDataKey = "CacheManagerLastUpdated";
+    private static readonly string _cacheManagerLastUpdatedMetaDataKey = "CacheManagerLastUpdated";
 
     // Frequency the CacheManager checks for an update.
-    private static readonly TimeSpan UpdateInterval = TimeSpan.FromHours(4);
+    private static readonly TimeSpan _updateInterval = TimeSpan.FromHours(4);
 
-    private static readonly TimeSpan DefaultAccountUpdateFrequency = TimeSpan.FromDays(3);
+    private static readonly TimeSpan _defaultAccountUpdateFrequency = TimeSpan.FromDays(3);
 
     private static readonly object _instanceLock = new();
 
@@ -150,7 +143,7 @@ public class CacheManager : IDisposable
     {
         // Only update per the update interval.
         // This is intended to be dynamic in the future.
-        if (DateTime.Now - LastUpdateTime < UpdateInterval)
+        if (DateTime.UtcNow - LastUpdateTime < _updateInterval)
         {
             return;
         }
@@ -158,14 +151,14 @@ public class CacheManager : IDisposable
         try
         {
             _log.Debug("Starting account data update.");
-            await Update(DefaultAccountUpdateFrequency);
+            await Update(_defaultAccountUpdateFrequency);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Update failed unexpectedly.");
         }
 
-        LastUpdateTime = DateTime.Now;
+        LastUpdateTime = DateTime.UtcNow;
         return;
     }
 
@@ -189,7 +182,7 @@ public class CacheManager : IDisposable
 
         _log.Debug("Starting account data update.");
         SendUpdateEvent(this, CacheManagerUpdateKind.Started);
-        await DataManager.UpdateDataForAccountsAsync(olderThan ?? DefaultAccountUpdateFrequency, options, Id);
+        await DataManager.UpdateDataForAccountsAsync(olderThan ?? _defaultAccountUpdateFrequency, options, Id);
     }
 
     private void HandleDataManagerUpdate(object? source, DataManagerUpdateEventArgs e)
@@ -208,7 +201,7 @@ public class CacheManager : IDisposable
                         if (e.Context.AccountsUpdated > 0)
                         {
                             // We will update this anytime we update any organization data.
-                            LastUpdated = DateTime.Now;
+                            LastUpdated = DateTime.UtcNow;
                         }
                     }
 
@@ -253,9 +246,6 @@ public class CacheManager : IDisposable
                     _log.Error(e.Exception, "Update failed.");
                     SendUpdateEvent(this, CacheManagerUpdateKind.Error, e.Exception);
                     break;
-
-                default:
-                    break;
             }
         }
     }
@@ -280,7 +270,7 @@ public class CacheManager : IDisposable
 
     private DateTime GetLastUpdated()
     {
-        var lastCacheUpdate = DataManager.GetMetaData(CacheManagerLastUpdatedMetaDataKey);
+        var lastCacheUpdate = DataManager.GetMetaData(_cacheManagerLastUpdatedMetaDataKey);
         if (string.IsNullOrEmpty(lastCacheUpdate))
         {
             return DateTime.MinValue;
@@ -291,14 +281,14 @@ public class CacheManager : IDisposable
 
     private void SetLastUpdated(DateTime time)
     {
-        DataManager?.SetMetaData(CacheManagerLastUpdatedMetaDataKey, time.ToDataStoreString());
+        DataManager?.SetMetaData(_cacheManagerLastUpdatedMetaDataKey, time.ToDataStoreString());
     }
 
-    private bool disposed; // To detect redundant calls.
+    private bool _disposed; // To detect redundant calls.
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposed)
+        if (!_disposed)
         {
             _log.Debug("Disposing of all cacheManager resources.");
 
@@ -319,7 +309,7 @@ public class CacheManager : IDisposable
                 }
             }
 
-            disposed = true;
+            _disposed = true;
         }
     }
 

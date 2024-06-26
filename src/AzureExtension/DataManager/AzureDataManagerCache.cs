@@ -18,11 +18,11 @@ namespace DevHomeAzureExtension;
 
 public partial class AzureDataManager
 {
-    private static readonly Uri VSAccountUri = new(@"https://app.vssps.visualstudio.com/");
+    private static readonly Uri _vSAccountUri = new(@"https://app.vssps.visualstudio.com/");
 
-    private static readonly int PullRequestProjectLimit = 50;
+    private static readonly int _pullRequestProjectLimit = 50;
 
-    private static readonly int PullRequestRepositoryLimit = 25;
+    private static readonly int _pullRequestRepositoryLimit = 25;
 
     public async Task UpdateDataForAccountsAsync(RequestOptions? options = null, Guid? requestor = null)
     {
@@ -39,7 +39,7 @@ public partial class AzureDataManager
         var errors = 0;
         var accountsUpdated = 0;
         var accountsSkipped = 0;
-        var startTime = DateTime.Now;
+        var startTime = DateTime.UtcNow;
         Exception? firstException = null;
 
         // Refresh option will clear all sync data, effectively forcing every row to be updated.
@@ -60,7 +60,19 @@ public partial class AzureDataManager
             tx.Commit();
         }
 
-        var developerIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIdsInternal();
+        IEnumerable<DeveloperId.DeveloperId>? developerIds;
+        try
+        {
+            developerIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIdsInternal();
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "Failed getting logged in developer ids.");
+            firstException = ex;
+            ++errors;
+            developerIds = [];
+        }
+
         foreach (var developerId in developerIds)
         {
             _log.Debug($"Updating accounts for {developerId.LoginId}, older than {olderThan}");
@@ -70,7 +82,7 @@ public partial class AzureDataManager
                 var org = Organization.Get(DataStore, account.AccountUri.ToString());
                 if (org is not null)
                 {
-                    if ((DateTime.Now - org.LastSyncAt) < olderThan)
+                    if ((DateTime.UtcNow - org.LastSyncAt) < olderThan)
                     {
                         _log.Debug($"Organization: {org.Name} has recently been updated, skipping.");
                         ++accountsSkipped;
@@ -85,6 +97,15 @@ public partial class AzureDataManager
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(account.AccountUri, developerId);
+
+                    // If connection is null the organization is disabled
+                    if (connection is null)
+                    {
+                        ++accountsSkipped;
+                        _log.Information($"Account {account.AccountName} had a null connection, treating as disabled.");
+                        tx.Rollback();
+                        continue;
+                    }
 
                     // Update account identity information:
                     var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, true);
@@ -141,7 +162,7 @@ public partial class AzureDataManager
                     cancelContextDict.Add("AccountsUpdated", accountsUpdated);
                     cancelContextDict.Add("AccountsSkipped", accountsSkipped);
                     cancelContextDict.Add("Errors", errors);
-                    cancelContextDict.Add("TimeElapsed", DateTime.Now - startTime);
+                    cancelContextDict.Add("TimeElapsed", DateTime.UtcNow - startTime);
                     SendCancelUpdateEvent(_log, this, requestorGuid, cancelContext, firstException);
                     return;
                 }
@@ -155,7 +176,7 @@ public partial class AzureDataManager
             }
         }
 
-        var elapsed = DateTime.Now - startTime;
+        var elapsed = DateTime.UtcNow - startTime;
         _log.Information($"Updating all account data complete. Elapsed: {elapsed.TotalSeconds}s");
         dynamic context = new ExpandoObject();
         var contextDict = (IDictionary<string, object>)context;
@@ -170,7 +191,7 @@ public partial class AzureDataManager
     {
         try
         {
-            var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(VSAccountUri, developerId);
+            var connection = AzureClientProvider.GetConnectionForLoggedInDeveloper(_vSAccountUri, developerId);
             var client = connection.GetClient<AccountHttpClient>();
             return client.GetAccountsByMemberAsync(memberId: connection.AuthorizedIdentity.Id, cancellationToken: cancellationToken).Result;
         }
@@ -185,13 +206,6 @@ public partial class AzureDataManager
     {
         try
         {
-            // If the organization is disabled the connection will be null.
-            if (connection is null)
-            {
-                _log.Debug($"Account {account.AccountName} had a null connection, treating as disabled.");
-                return [];
-            }
-
             var client = connection.GetClient<ProjectHttpClient>();
             var projects = client.GetProjects().Result;
             return [.. projects];
@@ -239,7 +253,7 @@ public partial class AzureDataManager
             };
 
             // We expect most results will be empty but for the sake of performance we will limit the number.
-            var pullRequests = gitClient.GetPullRequestsByProjectAsync(project.Id, searchCriteria, null, null, PullRequestProjectLimit, null, cancellationToken).Result;
+            var pullRequests = gitClient.GetPullRequestsByProjectAsync(project.Id, searchCriteria, null, null, _pullRequestProjectLimit, null, cancellationToken).Result;
             return [..pullRequests];
         }
         catch (VssServiceException vssEx)
@@ -269,7 +283,7 @@ public partial class AzureDataManager
             };
 
             // We expect most results will be empty but for the sake of performance we will limit the number.
-            var pullRequests = gitClient.GetPullRequestsAsync(repository.Id, searchCriteria, null, null, PullRequestRepositoryLimit, null, cancellationToken).Result;
+            var pullRequests = gitClient.GetPullRequestsAsync(repository.Id, searchCriteria, null, null, _pullRequestRepositoryLimit, null, cancellationToken).Result;
             return [.. pullRequests];
         }
         catch (AggregateException aggEx) when (aggEx.InnerException is VssServiceException)

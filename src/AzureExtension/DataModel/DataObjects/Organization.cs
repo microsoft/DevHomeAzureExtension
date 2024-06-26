@@ -59,7 +59,7 @@ public class Organization
 
     public void SetSynced()
     {
-        TimeLastSync = DateTime.Now.ToDataStoreInteger();
+        TimeLastSync = DateTime.UtcNow.ToDataStoreInteger();
         if (DataStore?.Connection is not null)
         {
             DataStore.Connection.Update(this);
@@ -69,7 +69,6 @@ public class Organization
     // Sets updated and sync time for all organization rows to 0, causing them to qualify for updating.
     public static void ClearAllSynced(DataStore dataStore)
     {
-        // Delete queries older than the date listed.
         var sql = @"UPDATE Organization SET (TimeLastSync, TimeUpdated) = ($Time, $Time);";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
@@ -91,7 +90,7 @@ public class Organization
         {
             Name = azureUri.Organization,
             Connection = azureUri.Connection.ToString(),
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
             TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
         };
     }

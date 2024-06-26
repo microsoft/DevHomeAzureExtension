@@ -803,7 +803,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Sets a last-updated in the MetaData.
     private void SetLastUpdatedInMetaData()
     {
-        MetaData.AddOrUpdate(DataStore, _lastUpdatedKeyName, DateTime.Now.ToDataStoreString());
+        MetaData.AddOrUpdate(DataStore, _lastUpdatedKeyName, DateTime.UtcNow.ToDataStoreString());
     }
 
     private void ValidateDataStore()

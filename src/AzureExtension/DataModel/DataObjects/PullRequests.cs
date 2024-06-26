@@ -66,7 +66,7 @@ public class PullRequests
             DeveloperLogin = developerLogin,
             Results = pullRequests,
             ViewId = (long)view,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 
