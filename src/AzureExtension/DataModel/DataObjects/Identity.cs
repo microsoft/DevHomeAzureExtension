@@ -16,9 +16,9 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("Identity")]
 public class Identity
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(Identity)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     // This is the time between seeing a potential updated Identity record and updating it.
     // This value / 2 is the average time between Identity updating their Identity data and having
@@ -60,12 +60,12 @@ public class Identity
         {
             var client = connection.GetClient<ProfileHttpClient>();
             var avatar = client.GetAvatarAsync(identity, AvatarSize.Small).Result;
-            Log.Debug($"Avatar found: {avatar.Value.Length} bytes.");
+            _log.Debug($"Avatar found: {avatar.Value.Length} bytes.");
             return Convert.ToBase64String(avatar.Value);
         }
         catch (Exception ex)
         {
-            Log.Warning(ex, $"Failed getting Avatar for {identity}.");
+            _log.Warning(ex, $"Failed getting Avatar for {identity}.");
             return string.Empty;
         }
     }
@@ -90,7 +90,7 @@ public class Identity
         }
         catch (Exception ex)
         {
-            Log.Error(ex, $"Failed to deserialize Json object into Identity: {json}");
+            _log.Error(ex, $"Failed to deserialize Json object into Identity: {json}");
             return null;
         }
     }
@@ -198,8 +198,8 @@ public class Identity
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
+        _log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        _log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

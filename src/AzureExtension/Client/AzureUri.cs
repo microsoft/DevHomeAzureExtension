@@ -47,9 +47,9 @@ public class AzureUri
     /// </summary>
     private readonly Lazy<Uri> _organizationLink;
 
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureUri)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureUri)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     // Original input string, similar to Uri, but in cases of an invalid Uri they will be different.
     public string OriginalString { get; } = string.Empty;
@@ -256,7 +256,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error(e, $"InitializeOrganization failed for Uri: {Uri}");
+            _log.Error(e, $"InitializeOrganization failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -340,7 +340,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error(e, $"InitializeProject failed for Uri: {Uri}");
+            _log.Error(e, $"InitializeProject failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -387,7 +387,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error(e, $"InitializeRepository failed for Uri: {Uri}");
+            _log.Error(e, $"InitializeRepository failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -453,7 +453,7 @@ public class AzureUri
         }
         catch (Exception e)
         {
-            Log.Error(e, $"InitializeQuery failed for Uri: {Uri}");
+            _log.Error(e, $"InitializeQuery failed for Uri: {Uri}");
             return string.Empty;
         }
     }
@@ -473,7 +473,7 @@ public class AzureUri
                 legacyUriString = legacyUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(legacyUriString, UriKind.Absolute, out newUri))
                 {
-                    Log.Error($"Failed creating legacy Uri: {Uri}   UriString: {legacyUriString}");
+                    _log.Error($"Failed creating legacy Uri: {Uri}   UriString: {legacyUriString}");
                 }
 
                 break;
@@ -485,7 +485,7 @@ public class AzureUri
                 modernUriString = modernUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(modernUriString, UriKind.Absolute, out newUri))
                 {
-                    Log.Error($"Failed creating modern Uri: {Uri}   UriString: {modernUriString}");
+                    _log.Error($"Failed creating modern Uri: {Uri}   UriString: {modernUriString}");
                 }
 
                 break;
@@ -496,7 +496,7 @@ public class AzureUri
                 onpremUriString = onpremUriString.TrimEnd('/') + '/';
                 if (!Uri.TryCreate(onpremUriString, UriKind.Absolute, out newUri))
                 {
-                    Log.Error($"Failed creating On-Prem Uri: {Uri}   UriString: {onpremUriString}");
+                    _log.Error($"Failed creating On-Prem Uri: {Uri}   UriString: {onpremUriString}");
                 }
 
                 break;
@@ -529,7 +529,7 @@ public class AzureUri
                 var legacyOrgUri = Uri.Scheme + "://" + Uri.Host;
                 if (!Uri.TryCreate(legacyOrgUri, UriKind.Absolute, out orgUri))
                 {
-                    Log.Error("Could not make Org Uri");
+                    _log.Error("Could not make Org Uri");
                 }
 
                 break;
@@ -541,7 +541,7 @@ public class AzureUri
                 var modernOrgUri = Uri.Scheme + "://" + Uri.Host + "/" + Organization;
                 if (!Uri.TryCreate(modernOrgUri, UriKind.Absolute, out orgUri))
                 {
-                    Log.Error("Could not make Org Uri");
+                    _log.Error("Could not make Org Uri");
                 }
 
                 break;
@@ -550,7 +550,7 @@ public class AzureUri
                 var onpremOrgUri = Uri.Scheme + "://" + Uri.Host;
                 if (!Uri.TryCreate(onpremOrgUri, UriKind.Absolute, out orgUri))
                 {
-                    Log.Error("Could not make Org Uri");
+                    _log.Error("Could not make Org Uri");
                 }
 
                 break;

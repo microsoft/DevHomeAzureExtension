@@ -14,9 +14,9 @@ namespace DevHomeAzureExtension.Providers;
 
 internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSession
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     private readonly IAICredentialService _aiCredentialService;
 
@@ -55,7 +55,7 @@ internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSessi
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Failed to update settings card");
+            _log.Error(ex, "Failed to update settings card");
             return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
         }
     }
@@ -97,7 +97,7 @@ internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSessi
                 {
                     if (adaptiveCardPayload.IsClearOpenAIKeyAction)
                     {
-                        Log.Information("Clearing OpenAI key");
+                        _log.Information("Clearing OpenAI key");
                         _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);
                         return UpdateCard();
                     }
@@ -105,7 +105,7 @@ internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSessi
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to clear OpenAI key");
+                _log.Error(ex, "Failed to clear OpenAI key");
                 return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
             }
 

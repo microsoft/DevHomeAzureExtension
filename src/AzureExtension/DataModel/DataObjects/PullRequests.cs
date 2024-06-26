@@ -12,9 +12,9 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("PullRequests")]
 public class PullRequests
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(PullRequests)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(PullRequests)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     // This is the time between seeing a search and updating it's TimeUpdated.
     private static readonly long _updateThreshold = TimeSpan.FromMinutes(2).Ticks;
@@ -156,8 +156,8 @@ public class PullRequests
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
-        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
+        _log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
+        _log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }
