@@ -2,12 +2,12 @@
 // Licensed under the MIT License.
 
 using System.Diagnostics;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Serilog;
 using Windows.Management.Deployment;
 using Windows.System.Inventory;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public class InstalledAppsService : IInstalledAppsService
 {

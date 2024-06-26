@@ -7,18 +7,18 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Web;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Helpers;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Helpers;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
+using DevHomeAzureExtension.Services.DevBox;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.ApplicationModel;
 using Windows.Foundation;
 
-namespace AzureExtension.DevBox;
+namespace DevHomeAzureExtension.DevBox;
 
 public delegate DevBoxInstance DevBoxInstanceFactory(IDeveloperId developerId, DevBoxMachineState devBoxJson);
 

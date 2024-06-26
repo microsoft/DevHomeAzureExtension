@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public static class Completions
 {

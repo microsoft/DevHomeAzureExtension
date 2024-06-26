@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 /// <summary>
 /// The status of a DevCenter operation.

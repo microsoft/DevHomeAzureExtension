@@ -9,7 +9,7 @@ using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 public enum SessionState
 {

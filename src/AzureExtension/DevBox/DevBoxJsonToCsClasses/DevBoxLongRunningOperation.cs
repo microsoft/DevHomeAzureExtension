@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox.Models;
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// https://azure.github.io/typespec-azure/docs/howtos/Azure%20Core/long-running-operations

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Windows.ApplicationModel;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 public class PackagesService : IPackagesService
 {

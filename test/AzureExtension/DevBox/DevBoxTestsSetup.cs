@@ -3,11 +3,11 @@
 
 using System.Net;
 using System.Net.Http.Headers;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
-using AzureExtension.Test.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;

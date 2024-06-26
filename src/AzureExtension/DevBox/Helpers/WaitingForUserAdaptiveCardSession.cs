@@ -9,7 +9,7 @@ using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 public class WaitingForUserAdaptiveCardSession : IExtensionAdaptiveCardSession2, IDisposable
 {

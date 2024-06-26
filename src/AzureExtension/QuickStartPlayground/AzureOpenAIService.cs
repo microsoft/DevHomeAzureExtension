@@ -5,12 +5,12 @@ using System.Diagnostics;
 using System.Reflection;
 using Azure;
 using Azure.AI.OpenAI;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Microsoft.ML.Tokenizers;
 using Newtonsoft.Json;
 using Serilog;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class AzureOpenAIService : IAzureOpenAIService
 {

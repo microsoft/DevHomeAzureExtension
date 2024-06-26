@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Numerics.Tensors;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 /// <summary>
 /// This class contains helper methods to perform vector database-like operations on the

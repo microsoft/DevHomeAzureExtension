@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.Client;
-using DevHomeAzureExtension.DeveloperId;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.Account.Client;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -11,7 +10,7 @@ using Serilog;
 // In the past, an organization was known as an account.  Typedef to organization to make the code easier to read.
 using Organization = Microsoft.VisualStudio.Services.Account.Account;
 
-namespace AzureExtension.Helpers;
+namespace DevHomeAzureExtension.Helpers;
 
 /// <summary>
 /// Handles the hierarchy between organizations and projects.  Handles querying for both as well.
@@ -29,7 +28,7 @@ public class AzureRepositoryHierarchy
     // 1:N Organization to project.
     private readonly Dictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects = new();
 
-    private readonly DeveloperId _developerId;
+    private readonly DeveloperId.DeveloperId _developerId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureRepositoryHierarchy"/> class.
@@ -41,7 +40,7 @@ public class AzureRepositoryHierarchy
     /// Additionally, organizations and projects need to be fetched from the network.
     /// This class handles fetching the data, caching it, and searching it.
     /// </remarks>
-    public AzureRepositoryHierarchy(DeveloperId developerId)
+    public AzureRepositoryHierarchy(DeveloperId.DeveloperId developerId)
     {
         _developerId = developerId;
     }

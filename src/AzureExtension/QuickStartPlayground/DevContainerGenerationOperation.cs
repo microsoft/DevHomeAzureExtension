@@ -4,14 +4,14 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 using Windows.Storage;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerationOperation
 {

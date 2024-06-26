@@ -3,7 +3,7 @@
 
 using System.Security;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 public interface IAICredentialService
 {

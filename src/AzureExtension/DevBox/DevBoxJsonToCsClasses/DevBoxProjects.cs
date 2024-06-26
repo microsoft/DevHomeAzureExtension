@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// Represents a List of DevBoxProject objects within a response from a Dev Box rest API call.

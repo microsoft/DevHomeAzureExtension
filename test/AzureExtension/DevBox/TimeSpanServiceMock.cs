@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
 
-namespace AzureExtension.Test.DevBox;
+namespace DevHomeAzureExtension.Test.DevBox;
 
 public class TimeSpanServiceMock : ITimeSpanService
 {

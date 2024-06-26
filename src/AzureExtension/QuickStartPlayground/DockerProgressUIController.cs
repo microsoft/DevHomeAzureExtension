@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed partial class DockerProgressUIController : IExtensionAdaptiveCardSession2
 {

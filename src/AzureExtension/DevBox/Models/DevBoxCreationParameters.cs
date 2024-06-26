@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 /// <summary>
 /// These parameters are the parameters we'll expect to be passed in from Dev Home to create a Dev Box.

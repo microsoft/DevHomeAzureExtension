@@ -4,7 +4,7 @@
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 // This class serves as a wrapper around multiple adaptive cards which are displayed one after
 // another but don't know about each other.  After each adaptive card is done, the next is displayed.

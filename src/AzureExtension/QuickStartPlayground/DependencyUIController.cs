@@ -4,12 +4,12 @@
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed partial class DependencyUIController : IExtensionAdaptiveCardSession2
 {

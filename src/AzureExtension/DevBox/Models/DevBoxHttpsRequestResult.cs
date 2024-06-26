@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 /// <summary>
 /// Represents the result of an HTTPS request result from the Dev Center. For Dev Box operations

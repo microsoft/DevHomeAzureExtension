@@ -3,7 +3,7 @@
 
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 public interface IDataTokenService
 {

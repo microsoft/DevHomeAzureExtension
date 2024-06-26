@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 public interface IDevBoxManagementService
 {

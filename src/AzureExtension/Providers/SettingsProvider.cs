@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Providers;
+namespace DevHomeAzureExtension.Providers;
 
 public sealed class SettingsProvider : ISettingsProvider
 {

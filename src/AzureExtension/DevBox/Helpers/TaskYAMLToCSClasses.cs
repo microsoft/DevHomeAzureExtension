@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 // Note: For every addition of a new resource type, the corresponding classes should be added here.
 // Example of a YAML file that will be deserialized
