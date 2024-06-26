@@ -2,11 +2,10 @@
 // Licensed under the MIT License.
 
 using System.Runtime.InteropServices;
-using AzureExtension.DevBox;
-using AzureExtension.Providers;
-using AzureExtension.QuickStartPlayground;
+using DevHomeAzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Providers;
+using DevHomeAzureExtension.QuickStartPlayground;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;

@@ -3,7 +3,7 @@
 
 using System.Net.Http.Headers;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 /// <summary>
 /// Represents the header for a Dev Box long running operation. The Dev Box APIs run a Location and an Operation-Location

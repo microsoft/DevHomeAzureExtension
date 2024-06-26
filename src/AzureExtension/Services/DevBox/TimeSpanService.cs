@@ -1,17 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// Service to provide time spans for different operations.
 /// </summary>
 public class TimeSpanService : ITimeSpanService
 {
-    public TimeSpan DevBoxOperationDeadline { get; private set; } = Constants.OperationDeadline;
+    public TimeSpan DevBoxOperationDeadline { get; private set; } = DevBoxConstants.OperationDeadline;
 
     /// <summary>
     /// Get the period interval based on the action to perform.
@@ -28,9 +29,9 @@ public class TimeSpanService : ITimeSpanService
         switch (actionToPerform)
         {
             case DevBoxActionToPerform.Create:
-                return Constants.ThreeMinutePeriod;
+                return DevBoxConstants.ThreeMinutePeriod;
             default:
-                return Constants.OneMinutePeriod;
+                return DevBoxConstants.OneMinutePeriod;
         }
     }
 }

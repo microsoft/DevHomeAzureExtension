@@ -1,14 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Providers;
-using AzureExtension.QuickStartPlayground;
-using AzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DataModel;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.DeveloperId;
+using DevHomeAzureExtension.Providers;
+using DevHomeAzureExtension.QuickStartPlayground;
+using DevHomeAzureExtension.Services.DevBox;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

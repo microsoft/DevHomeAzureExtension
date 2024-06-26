@@ -3,16 +3,16 @@
 
 using System.Text;
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Exceptions;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Exceptions;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 {
@@ -32,7 +32,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     public const string WingetTaskJsonTaskStart = @"{
             ""name"": ""winget"",
-			""runAs"": ""User"",
+            ""runAs"": ""User"",
             ""parameters"": {
                 ""inlineConfigurationBase64"": """;
 

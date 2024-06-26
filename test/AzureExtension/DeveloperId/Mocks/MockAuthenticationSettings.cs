@@ -3,7 +3,7 @@
 
 using DevHomeAzureExtension.DeveloperId;
 
-namespace AzureExtension.Test.DeveloperId.Mocks;
+namespace DevHomeAzureExtension.Test.DeveloperId.Mocks;
 
 public class MockAuthenticationSettings : IAuthenticationSettings
 {

@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// Represents the HardwareProfile object within a response from a Dev Box rest API call.

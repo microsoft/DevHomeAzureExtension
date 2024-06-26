@@ -3,14 +3,14 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AzureExtension.Contracts;
-using AzureExtension.QuickStartPlayground;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
+using DevHomeAzureExtension.QuickStartPlayground;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 
-namespace AzureExtension.Providers;
+namespace DevHomeAzureExtension.Providers;
 
 internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSession
 {

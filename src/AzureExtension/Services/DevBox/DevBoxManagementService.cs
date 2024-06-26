@@ -2,20 +2,19 @@
 // Licensed under the MIT License.
 
 using System.Collections.Concurrent;
-using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Exceptions;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Exceptions;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// The DevBoxManagementService is responsible for making calls to the Azure Resource Graph API.
@@ -141,9 +140,9 @@ public class DevBoxManagementService : IDevBoxManagementService
             try
             {
                 var properties = project.Properties;
-                var uriToRetrievePools = $"{properties.DevCenterUri}{Constants.Projects}/{project.Name}/{Constants.Pools}?{Constants.APIVersion}";
+                var uriToRetrievePools = $"{properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/{DevBoxConstants.Pools}?{DevBoxConstants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
-                var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), Constants.JsonOptions);
+                var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions);
                 var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
 
                 projectsToPoolsMapping.Add(container);
@@ -161,17 +160,17 @@ public class DevBoxManagementService : IDevBoxManagementService
     /// <inheritdoc cref="IDevBoxManagementService.CreateDevBox"/>
     public async Task<DevBoxHttpsRequestResult> CreateDevBox(DevBoxCreationParameters parameters, IDeveloperId developerId)
     {
-        if (!Regex.IsMatch(parameters.NewEnvironmentName, Constants.NameRegexPattern))
+        if (!Regex.IsMatch(parameters.NewEnvironmentName, DevBoxConstants.NameRegexPattern))
         {
             throw new DevBoxNameInvalidException($"Unable to create Dev Box due to Invalid Dev Box name: {parameters.NewEnvironmentName}");
         }
 
-        if (!Regex.IsMatch(parameters.ProjectName, Constants.NameRegexPattern))
+        if (!Regex.IsMatch(parameters.ProjectName, DevBoxConstants.NameRegexPattern))
         {
             throw new DevBoxProjectNameInvalidException($"Unable to create Dev Box due to Invalid project name: {parameters.ProjectName}");
         }
 
-        var uriToCreateDevBox = $"{parameters.DevCenterUri}{Constants.Projects}/{parameters.ProjectName}{Constants.DevBoxUserSegmentOfUri}/{parameters.NewEnvironmentName}?{Constants.APIVersion}";
+        var uriToCreateDevBox = $"{parameters.DevCenterUri}{DevBoxConstants.Projects}/{parameters.ProjectName}{DevBoxConstants.DevBoxUserSegmentOfUri}/{parameters.NewEnvironmentName}?{DevBoxConstants.APIVersion}";
         var contentJson = JsonSerializer.Serialize(new DevBoxCreationPoolName(parameters.PoolName));
         var content = new StringContent(contentJson, Encoding.UTF8, "application/json");
         return await HttpsRequestToDataPlane(new Uri(uriToCreateDevBox), developerId, HttpMethod.Put, content);

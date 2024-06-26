@@ -4,15 +4,15 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 
-namespace AzureExtension.DevBox;
+namespace DevHomeAzureExtension.DevBox;
 
 /// <summary>
 /// Implements the IComputeSystemProvider interface to provide DevBoxes as ComputeSystems.

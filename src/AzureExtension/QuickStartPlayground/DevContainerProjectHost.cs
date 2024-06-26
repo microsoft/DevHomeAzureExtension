@@ -5,7 +5,7 @@ using System.Diagnostics;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class DevContainerProjectHost : IQuickStartProjectHost
 {

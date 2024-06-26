@@ -3,7 +3,7 @@
 
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 public static class DevBoxOperationHelper
 {

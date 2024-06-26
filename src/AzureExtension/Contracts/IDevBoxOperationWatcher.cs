@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 /// <summary>
 /// Interface used to watch Dev Box operations asynchronously that take place in the Dev Center.

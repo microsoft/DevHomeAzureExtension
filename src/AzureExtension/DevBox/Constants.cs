@@ -2,13 +2,13 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Helpers;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Helpers;
 using DevHomeAzureExtension.Helpers;
 using Windows.ApplicationModel;
 using Windows.Storage;
 
-namespace AzureExtension.DevBox;
+namespace DevHomeAzureExtension.DevBox;
 
 public static class Constants
 {
