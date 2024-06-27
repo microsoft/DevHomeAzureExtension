@@ -49,7 +49,7 @@ public partial class AzureDataManager
             try
             {
                 _log.Debug("Clearing sync data.");
-                Organization.ClearAllSynced(DataStore);
+                Organization.ClearAllSyncData(DataStore);
             }
             catch (Exception ex)
             {

@@ -67,7 +67,7 @@ public class Organization
     }
 
     // Sets updated and sync time for all organization rows to 0, causing them to qualify for updating.
-    public static void ClearAllSynced(DataStore dataStore)
+    public static void ClearAllSyncData(DataStore dataStore)
     {
         var sql = @"UPDATE Organization SET (TimeLastSync, TimeUpdated) = ($Time, $Time);";
         var command = dataStore.Connection!.CreateCommand();
