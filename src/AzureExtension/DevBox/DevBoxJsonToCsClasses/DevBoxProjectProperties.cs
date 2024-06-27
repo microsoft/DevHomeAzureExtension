@@ -16,4 +16,6 @@ public class DevBoxProjectProperties
     public string DevCenterId { get; set; } = string.Empty;
 
     public string Description { get; set; } = string.Empty;
+
+    public string DisplayName { get; set; } = string.Empty;
 }

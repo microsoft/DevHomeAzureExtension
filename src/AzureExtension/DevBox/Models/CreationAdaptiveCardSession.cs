@@ -341,7 +341,7 @@ public class CreationAdaptiveCardSession : IExtensionAdaptiveCardSession2
             // Add information for the specific project to the project array
             var projectInfo = new JsonObject
                 {
-                    { "title", container.Project!.Name },
+                    { "title", container.Project!.Properties.DisplayName.Length > 0 ? container.Project!.Properties.DisplayName : container.Project!.Name },
                     { "value", $"{i}" },
                 };
 
