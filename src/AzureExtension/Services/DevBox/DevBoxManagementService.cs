@@ -9,6 +9,7 @@ using System.Text.RegularExpressions;
 using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 using DevHomeAzureExtension.DevBox.Exceptions;
+using DevHomeAzureExtension.DevBox.Helpers;
 using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
@@ -31,6 +32,14 @@ public class DevBoxManagementService : IDevBoxManagementService
     public DevBoxManagementService(IDevBoxAuthService authService) => _authService = authService;
 
     private const string DevBoxManagementServiceName = nameof(DevBoxManagementService);
+
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private const string _writeAbility = "WriteDevBoxes";
 
     /// <inheritdoc cref="IDevBoxManagementService.HttpRequestToManagementPlane"/>/>
     public async Task<DevBoxHttpsRequestResult> HttpsRequestToManagementPlane(Uri webUri, IDeveloperId developerId, HttpMethod method, HttpContent? requestContent = null)
@@ -119,6 +128,31 @@ public class DevBoxManagementService : IDevBoxManagementService
         }
     }
 
+    // Filter out projects that the user does not have write access to
+    private bool DeveloperHasWriteAbility(DevBoxProject project, IDeveloperId developerId)
+    {
+        try
+        {
+            var uri = $"{project.Properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/users/me/abilities?{DevBoxConstants.APIVersion}";
+            var result = HttpsRequestToDataPlane(new Uri(uri), developerId, HttpMethod.Get, null).Result;
+            var rawResponse = result.JsonResponseRoot.ToString();
+            var abilities = JsonSerializer.Deserialize<AbilitiesJSONToCSClasses.BaseClass>(rawResponse, _jsonOptions);
+            _log.Debug($"Response from abilities: {rawResponse}");
+
+            if (abilities!.AbilitiesAsDeveloper.Contains(_writeAbility) || abilities!.AbilitiesAsAdmin.Contains(_writeAbility))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, $"Unable to get abilities for {project.Name}");
+            return true;
+        }
+    }
+
     /// <inheritdoc cref="IDevBoxManagementService.GetAllProjectsToPoolsMappingAsync"/>
     public async Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(DevBoxProjects projects, IDeveloperId developerId)
     {
@@ -137,14 +171,25 @@ public class DevBoxManagementService : IDevBoxManagementService
 
         await Parallel.ForEachAsync(projects.Data!, async (project, token) =>
         {
+            if (!DeveloperHasWriteAbility(project, developerId))
+            {
+                return;
+            }
+
             try
             {
                 var properties = project.Properties;
                 var uriToRetrievePools = $"{properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/{DevBoxConstants.Pools}?{DevBoxConstants.APIVersion}";
                 var result = await HttpsRequestToDataPlane(new Uri(uriToRetrievePools), developerId, HttpMethod.Get);
                 var pools = JsonSerializer.Deserialize<DevBoxPoolRoot>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions);
-                var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
 
+                // Sort the pools by name, case insensitive
+                if (pools?.Value != null)
+                {
+                    pools.Value = new(pools.Value.OrderBy(x => x.Name));
+                }
+
+                var container = new DevBoxProjectAndPoolContainer { Project = project, Pools = pools };
                 projectsToPoolsMapping.Add(container);
             }
             catch (Exception ex)
@@ -152,6 +197,9 @@ public class DevBoxManagementService : IDevBoxManagementService
                 _log.Error(ex, $"unable to get pools for {project.Name}");
             }
         });
+
+        // Sort the mapping by project name, case insensitive
+        projectsToPoolsMapping = new(projectsToPoolsMapping.OrderByDescending(x => x.Project?.Name));
 
         _projectAndPoolContainerMap.Add(uniqueUserId, projectsToPoolsMapping.ToList());
         return projectsToPoolsMapping.ToList();
