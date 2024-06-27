@@ -133,7 +133,7 @@ public class DevBoxManagementService : IDevBoxManagementService
     {
         try
         {
-            var uri = $"{project.Properties.DevCenterUri}{Constants.Projects}/{project.Name}/users/me/abilities?{Constants.APIVersion}";
+            var uri = $"{project.Properties.DevCenterUri}{DevBoxConstants.Projects}/{project.Name}/users/me/abilities?{DevBoxConstants.APIVersion}";
             var result = HttpsRequestToDataPlane(new Uri(uri), developerId, HttpMethod.Get, null).Result;
             var rawResponse = result.JsonResponseRoot.ToString();
             var abilities = JsonSerializer.Deserialize<AbilitiesJSONToCSClasses.BaseClass>(rawResponse, _jsonOptions);
