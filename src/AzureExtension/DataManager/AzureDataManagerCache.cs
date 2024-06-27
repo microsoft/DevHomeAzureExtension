@@ -107,47 +107,8 @@ public partial class AzureDataManager
                         continue;
                     }
 
-                    // Update account identity information:
-                    var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, true);
+                    UpdateOrganization(account, developerId, connection, cancellationToken);
 
-                    _log.Verbose($"Updating organization: {account.AccountName}");
-                    var organization = Organization.GetOrCreate(DataStore, account.AccountUri);
-                    var projects = GetProjects(account, connection);
-                    foreach (var project in projects)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        _log.Verbose($"Updating project: {project.Name}");
-                        var dsProject = Project.GetOrCreateByTeamProject(DataStore, project, organization.Id);
-
-                        // Get the project's pull request count for this developer, add it.
-                        var projectPullRequestCount = GetPullRequestsForProject(project, connection, developerId, cancellationToken).Count;
-                        if (projectPullRequestCount > 0)
-                        {
-                            ProjectReference.GetOrCreate(DataStore, dsProject.Id, identity.Id, projectPullRequestCount);
-                        }
-
-                        var repositories = GetGitRepositories(project, connection, cancellationToken);
-                        foreach (var repository in repositories)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            _log.Verbose($"Updating repository: {repository.Name}");
-                            var dsRepository = Repository.GetOrCreate(DataStore, repository, dsProject.Id);
-
-                            // If the project had pull requests, we need to check if this repository has any.
-                            // We don't waste rest calls on every repository unless we know the project had at least one.
-                            if (projectPullRequestCount > 0)
-                            {
-                                var repositoryPullRequestCount = GetPullRequestsForRepository(repository, connection, developerId, cancellationToken).Count;
-                                if (repositoryPullRequestCount > 0)
-                                {
-                                    // If non-zero, add a repository reference.
-                                    RepositoryReference.GetOrCreate(DataStore, dsRepository.Id, identity.Id, repositoryPullRequestCount);
-                                }
-                            }
-                        }
-                    }
-
-                    organization.SetSynced();
                     tx.Commit();
                     _log.Information($"Updated organization: {account.AccountName}");
                     ++accountsUpdated;
@@ -185,6 +146,51 @@ public partial class AzureDataManager
         contextDict.Add("Errors", errors);
         contextDict.Add("TimeElapsed", elapsed);
         SendCacheUpdateEvent(_log, this, requestorGuid, context, firstException);
+    }
+
+    private void UpdateOrganization(Account account, DeveloperId.DeveloperId developerId, VssConnection connection, CancellationToken cancellationToken)
+    {
+        // Update account identity information:
+        var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, true);
+
+        _log.Verbose($"Updating organization: {account.AccountName}");
+        var organization = Organization.GetOrCreate(DataStore, account.AccountUri);
+        var projects = GetProjects(account, connection);
+        foreach (var project in projects)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _log.Verbose($"Updating project: {project.Name}");
+            var dsProject = Project.GetOrCreateByTeamProject(DataStore, project, organization.Id);
+
+            // Get the project's pull request count for this developer, add it.
+            var projectPullRequestCount = GetPullRequestsForProject(project, connection, developerId, cancellationToken).Count;
+            if (projectPullRequestCount > 0)
+            {
+                ProjectReference.GetOrCreate(DataStore, dsProject.Id, identity.Id, projectPullRequestCount);
+            }
+
+            var repositories = GetGitRepositories(project, connection, cancellationToken);
+            foreach (var repository in repositories)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                _log.Verbose($"Updating repository: {repository.Name}");
+                var dsRepository = Repository.GetOrCreate(DataStore, repository, dsProject.Id);
+
+                // If the project had pull requests, we need to check if this repository has any.
+                // We don't waste rest calls on every repository unless we know the project had at least one.
+                if (projectPullRequestCount > 0)
+                {
+                    var repositoryPullRequestCount = GetPullRequestsForRepository(repository, connection, developerId, cancellationToken).Count;
+                    if (repositoryPullRequestCount > 0)
+                    {
+                        // If non-zero, add a repository reference.
+                        RepositoryReference.GetOrCreate(DataStore, dsRepository.Id, identity.Id, repositoryPullRequestCount);
+                    }
+                }
+            }
+        }
+
+        organization.SetSynced();
     }
 
     private List<Account> GetAccounts(DeveloperId.DeveloperId developerId, CancellationToken cancellationToken = default)

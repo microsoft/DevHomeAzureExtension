@@ -55,7 +55,7 @@ public class Identity
     [Write(false)]
     [Computed]
     [JsonIgnore]
-    public bool Developer => IsDeveloper != 0L;
+    public bool IsLoggedInDeveloper => IsDeveloper != 0L;
 
     public string ToJson() => JsonSerializer.Serialize(this);
 
@@ -208,7 +208,7 @@ public class Identity
         // We don't want to create an identity object and download a new avatar unless it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
-        if (existing is null || (isDeveloper && !existing.Developer) || ((DateTime.UtcNow - existing.UpdatedAt) > _updateThreshold)
+        if (existing is null || (isDeveloper && !existing.IsLoggedInDeveloper) || ((DateTime.UtcNow - existing.UpdatedAt) > _updateThreshold)
             || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.UtcNow - existing.UpdatedAt) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
@@ -230,7 +230,7 @@ public class Identity
         // We don't want to create an identity object and download a new avatar unlesss it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
-        if (existing is null || (isDeveloper && !existing.Developer) || ((DateTime.UtcNow - existing.UpdatedAt) > _updateThreshold)
+        if (existing is null || (isDeveloper && !existing.IsLoggedInDeveloper) || ((DateTime.UtcNow - existing.UpdatedAt) > _updateThreshold)
             || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.UtcNow - existing.UpdatedAt) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentity(identity, connection);
