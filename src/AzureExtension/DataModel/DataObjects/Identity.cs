@@ -42,6 +42,8 @@ public class Identity
 
     public string Avatar { get; set; } = string.Empty;
 
+    // Represents whether this identity is associated with a DeveloperId that is logged in.
+    // This is the backing database column for the IsLoggedInDeveloper property.
     public long IsDeveloper { get; set; } = DataStore.NoForeignKey;
 
     [JsonIgnore]

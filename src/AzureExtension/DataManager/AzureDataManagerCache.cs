@@ -80,14 +80,11 @@ public partial class AzureDataManager
             foreach (var account in accounts)
             {
                 var org = Organization.Get(DataStore, account.AccountUri.ToString());
-                if (org is not null)
+                if (org is not null && ((DateTime.UtcNow - org.LastSyncAt) < olderThan))
                 {
-                    if ((DateTime.UtcNow - org.LastSyncAt) < olderThan)
-                    {
-                        _log.Debug($"Organization: {org.Name} has recently been updated, skipping.");
-                        ++accountsSkipped;
-                        continue;
-                    }
+                    _log.Debug($"Organization: {org.Name} has recently been updated, skipping.");
+                    ++accountsSkipped;
+                    continue;
                 }
 
                 // Transactional unit is the account (organization), which chains down to Project
@@ -113,17 +110,12 @@ public partial class AzureDataManager
                     _log.Information($"Updated organization: {account.AccountName}");
                     ++accountsUpdated;
                 }
-                catch (OperationCanceledException cancelException)
+                catch (Exception ex) when (IsCancelException(ex))
                 {
-                    firstException ??= cancelException;
+                    firstException ??= ex;
                     tx.Rollback();
                     _log.Information("Operation was cancelled.");
-                    dynamic cancelContext = new ExpandoObject();
-                    var cancelContextDict = (IDictionary<string, object>)cancelContext;
-                    cancelContextDict.Add("AccountsUpdated", accountsUpdated);
-                    cancelContextDict.Add("AccountsSkipped", accountsSkipped);
-                    cancelContextDict.Add("Errors", errors);
-                    cancelContextDict.Add("TimeElapsed", DateTime.UtcNow - startTime);
+                    var cancelContext = CreateUpdateEventContext(errors, accountsUpdated, accountsSkipped, DateTime.UtcNow - startTime);
                     SendCancelUpdateEvent(_log, this, requestorGuid, cancelContext, firstException);
                     return;
                 }
@@ -139,13 +131,19 @@ public partial class AzureDataManager
 
         var elapsed = DateTime.UtcNow - startTime;
         _log.Information($"Updating all account data complete. Elapsed: {elapsed.TotalSeconds}s");
+        var context = CreateUpdateEventContext(errors, accountsUpdated, accountsSkipped, elapsed);
+        SendCacheUpdateEvent(_log, this, requestorGuid, context, firstException);
+    }
+
+    private dynamic CreateUpdateEventContext(int errors, int accountsUpdated, int accountsSkipped, TimeSpan elapsed)
+    {
         dynamic context = new ExpandoObject();
         var contextDict = (IDictionary<string, object>)context;
         contextDict.Add("AccountsUpdated", accountsUpdated);
         contextDict.Add("AccountsSkipped", accountsSkipped);
         contextDict.Add("Errors", errors);
         contextDict.Add("TimeElapsed", elapsed);
-        SendCacheUpdateEvent(_log, this, requestorGuid, context, firstException);
+        return context;
     }
 
     private void UpdateOrganization(Account account, DeveloperId.DeveloperId developerId, VssConnection connection, CancellationToken cancellationToken)
@@ -201,7 +199,7 @@ public partial class AzureDataManager
             var client = connection.GetClient<AccountHttpClient>();
             return client.GetAccountsByMemberAsync(memberId: connection.AuthorizedIdentity.Id, cancellationToken: cancellationToken).Result;
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (!IsCancelException(ex))
         {
             _log.Error(ex, "Failed querying for organizations.");
             return [];
@@ -236,7 +234,7 @@ public partial class AzureDataManager
             var repositories = gitClient.GetRepositoriesAsync(project.Id, false, false, cancellationToken).Result;
             return [.. repositories];
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (!IsCancelException(ex))
         {
             _log.Error(ex, $"Failed getting repositories for project: {project.Name}");
         }
@@ -266,7 +264,7 @@ public partial class AzureDataManager
         {
             _log.Debug($"Unable to access project pull requests: {project.Name}: {vssEx.Message}");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (!IsCancelException(ex))
         {
             _log.Error(ex, $"Failed getting pull requests for project: {project.Name}");
         }
@@ -301,7 +299,7 @@ public partial class AzureDataManager
             // Specific error is: TF401019
             _log.Debug($"Unable to access repository pull requests: {repository.Name}: {aggEx.InnerException?.Message}");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (!IsCancelException(ex))
         {
             _log.Error(ex, $"Failed getting pull requests for repository: {repository.Name}");
         }
@@ -312,5 +310,10 @@ public partial class AzureDataManager
     private static void SendCacheUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex)
     {
         SendUpdateEvent(logger, source, DataManagerUpdateKind.Cache, requestor, context, ex);
+    }
+
+    private static bool IsCancelException(Exception ex)
+    {
+        return (ex is OperationCanceledException) || (ex is TaskCanceledException);
     }
 }

@@ -107,6 +107,8 @@ public class CacheManager : IDisposable
 
     public async Task Refresh()
     {
+        CancelUpdateInProgress();
+
         lock (_stateLock)
         {
             if (_pendingRefresh)
@@ -119,7 +121,6 @@ public class CacheManager : IDisposable
             _clearNextDataUpdate = true;
         }
 
-        CancelUpdateInProgress();
         await Update(TimeSpan.MinValue);
     }
 
@@ -237,7 +238,7 @@ public class CacheManager : IDisposable
                 case DataManagerUpdateKind.Error:
                     lock (_stateLock)
                     {
-                        // Error condition means we dont' know what state we are in, but we want to clear everything so retries
+                        // Error condition means we don't know what state we are in, but we want to clear everything so retries
                         // can be allowed.
                         UpdateInProgress = false;
                         _pendingRefresh = false;
@@ -261,10 +262,30 @@ public class CacheManager : IDisposable
 
     private void HandleDeveloperIdChange(IDeveloperIdProvider sender, IDeveloperId args)
     {
-        if (DeveloperIdProvider.GetInstance().GetDeveloperIdState(args) == AuthenticationState.LoggedIn)
+        try
         {
-            // New login means we trigger a new sync.
-            _log.Information("New developer account logged in, syncing data...");
+            // Use switch here in case new states get added later to ensure we handle all cases.
+            switch (DeveloperIdProvider.GetInstance().GetDeveloperIdState(args))
+            {
+                case AuthenticationState.LoggedIn:
+                    // New developer logging in could change some of the data, so we will do a refresh.
+                    // This will cancel any sync in progress and start over.
+                    _log.Information("New developer account logged in, refreshing data.");
+                    _ = Refresh();
+                    return;
+
+                case AuthenticationState.LoggedOut:
+                    // When a developer account logs out the datastore will be re-created on next startup.
+                    // Any data sync we do here will be discarded on next startup, but we can try to make
+                    // the remainder of this session consistent with the current set of developer ids.
+                    _log.Information("Developer account logged in, refreshing data.");
+                    _ = Refresh();
+                    return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "Failed getting DeveloperId state while trying to handle DeveloperId change.");
         }
     }
 
