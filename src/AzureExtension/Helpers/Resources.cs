@@ -63,7 +63,7 @@ public static class Resources
     // such as a JSON string with resource identifiers embedded.
     public static string ReplaceIdentifiers(string str, string[] resourceIdentifiers, ILogger? log = null)
     {
-        var start = DateTime.Now;
+        var start = DateTime.UtcNow;
         foreach (var identifier in resourceIdentifiers)
         {
             // What is faster, String.Replace, RegEx, or StringBuilder.Replace? It is String.Replace().
@@ -72,7 +72,7 @@ public static class Resources
             str = str.Replace($"%{identifier}%", resourceString);
         }
 
-        var elapsed = DateTime.Now - start;
+        var elapsed = DateTime.UtcNow - start;
         log?.Debug($"Replaced identifiers in {elapsed.TotalMilliseconds}ms");
         return str;
     }
@@ -80,8 +80,8 @@ public static class Resources
     // These are all the string identifiers that appear in widgets.
     public static string[] GetWidgetResourceIdentifiers()
     {
-        return new string[]
-        {
+        return
+        [
             "Extension_Name/Azure",
             "Widget_Template/Loading",
             "Widget_Template/Updated",
@@ -119,7 +119,7 @@ public static class Resources
             "Widget_Template/EmptyWorkItems",
             "Widget_Template/NotShownItems",
             "Widget_Template/ContentLoading",
-        };
+        ];
     }
 
     /// <summary>

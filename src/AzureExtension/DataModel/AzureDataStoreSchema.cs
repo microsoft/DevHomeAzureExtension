@@ -14,7 +14,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     }
 
     // Update this anytime incompatible changes happen with a released version.
-    private const long SchemaVersionValue = 0x0003;
+    private const long SchemaVersionValue = 0x0006;
 
     private const string Metadata =
     @"CREATE TABLE Metadata (" +
@@ -30,6 +30,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "Name TEXT NOT NULL COLLATE NOCASE," +
         "InternalId TEXT NOT NULL," +
         "Avatar TEXT NOT NULL COLLATE NOCASE," +
+        "IsDeveloper INTEGER NOT NULL," +
         "TimeUpdated INTEGER NOT NULL" +
     ");" +
 
@@ -50,12 +51,24 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // Project Name can be renamed and reused per DevOps documentation, so it is not safe.
     "CREATE UNIQUE INDEX IDX_Project_InternalId ON Project (InternalId);";
 
+    private const string ProjectReference =
+    @"CREATE TABLE ProjectReference (" +
+        "Id INTEGER PRIMARY KEY NOT NULL," +
+        "ProjectId INTEGER NOT NULL," +
+        "DeveloperId INTEGER NOT NULL," +
+        "PullRequestCount INTEGER NOT NULL" +
+    ");" +
+
+    // Project references are unique by DeveloperId and ProjectId
+    "CREATE UNIQUE INDEX IDX_ProjectReference_ProjectIdDeveloperId ON ProjectReference (ProjectId, DeveloperId);";
+
     private const string Organization =
     @"CREATE TABLE Organization (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
         "Name TEXT NOT NULL COLLATE NOCASE," +
         "Connection TEXT NOT NULL COLLATE NOCASE," +
-        "TimeUpdated INTEGER NOT NULL" +
+        "TimeUpdated INTEGER NOT NULL," +
+        "TimeLastSync INTEGER NOT NULL" +
     ");" +
 
     // Connections should be unique per organization. We do not appear to have
@@ -64,6 +77,31 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // constructor, so while the same organization may have multiple connections,
     // each connection should correspond to only one organization.
     "CREATE UNIQUE INDEX IDX_Organization_Connection ON Organization (Connection);";
+
+    private const string Repository =
+    @"CREATE TABLE Repository (" +
+        "Id INTEGER PRIMARY KEY NOT NULL," +
+        "Name TEXT NOT NULL COLLATE NOCASE," +
+        "InternalId TEXT NOT NULL," +
+        "ProjectId INTEGER NOT NULL," +
+        "CloneUrl TEXT NOT NULL COLLATE NOCASE," +
+        "IsPrivate INTEGER NOT NULL," +
+        "TimeUpdated INTEGER NOT NULL" +
+    ");" +
+
+    // Repository InternalId is a Guid, so by definition is unique.
+    "CREATE UNIQUE INDEX IDX_Repository_InternalId ON Repository (InternalId);";
+
+    private const string RepositoryReference =
+    @"CREATE TABLE RepositoryReference (" +
+        "Id INTEGER PRIMARY KEY NOT NULL," +
+        "RepositoryId INTEGER NOT NULL," +
+        "DeveloperId INTEGER NOT NULL," +
+        "PullRequestCount INTEGER NOT NULL" +
+    ");" +
+
+    // Repository references are unique by DeveloperId and ProjectId
+    "CREATE UNIQUE INDEX IDX_RepositoryReference_RepositoryIdDeveloperId ON RepositoryReference (RepositoryId, DeveloperId);";
 
     private const string Query =
     @"CREATE TABLE Query (" +
@@ -113,14 +151,17 @@ public class AzureDataStoreSchema : IDataStoreSchema
     "CREATE UNIQUE INDEX IDX_PullRequests_ProjectIdRepositoryNameDeveloperLoginViewId ON PullRequests (ProjectId, RepositoryName, DeveloperLogin, ViewId);";
 
     // All Sqls together.
-    private static readonly List<string> _schemaSqlsValue = new()
-    {
+    private static readonly List<string> _schemaSqlsValue =
+    [
         Metadata,
         Identity,
         Project,
+        ProjectReference,
         Organization,
+        Repository,
+        RepositoryReference,
         Query,
         WorkItemType,
         PullRequests,
-    };
+    ];
 }

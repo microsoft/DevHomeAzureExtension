@@ -156,6 +156,10 @@ public sealed class Program
         var widgetProviderInstance = new Widgets.WidgetProvider();
         widgetServer.RegisterWidget(() => widgetProviderInstance);
 
+        // Cache manager updates account data.
+        using var cacheManager = DataManager.CacheManager.GetInstance();
+        cacheManager?.Start();
+
         // This will make the main thread wait until the event is signaled by the extension class.
         // Since we have single instance of the extension object, we exit as soon as it is disposed.
         extensionDisposedEvent.WaitOne();
@@ -226,7 +230,7 @@ public sealed class Program
 
     private static IHost CreateHost()
     {
-        var host = Microsoft.Extensions.Hosting.Host.
+        var host = Host.
             CreateDefaultBuilder().
             UseContentRoot(AppContext.BaseDirectory).
             UseDefaultServiceProvider((context, options) =>

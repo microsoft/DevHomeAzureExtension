@@ -1,9 +1,12 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.Helpers;
 using DevHomeAzureExtension.QuickStartPlayground;
 using Microsoft.Windows.DevHome.SDK;
@@ -12,30 +15,86 @@ using Windows.Foundation;
 
 namespace DevHomeAzureExtension.Providers;
 
-internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSession
+internal sealed class SettingsUIController(IAICredentialService aiCredentialService) : IExtensionAdaptiveCardSession
 {
     private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
 
     private static readonly ILogger _log = _logger.Value;
 
-    private readonly IAICredentialService _aiCredentialService;
+    private readonly IAICredentialService _aiCredentialService = aiCredentialService;
 
-    private IExtensionAdaptiveCard? _extensionUI;
+    private static readonly string _notificationsEnabledString = "NotificationsEnabled";
 
-    public SettingsUIController(IAICredentialService aiCredentialService)
-    {
-        _aiCredentialService = aiCredentialService;
-        _extensionUI = null;
-    }
+    private string? _template;
+
+    private IExtensionAdaptiveCard? _settingsUI;
 
     public void Dispose()
     {
+        _log.Debug($"Dispose");
+        _settingsUI?.Update(null, null, null);
     }
 
     public ProviderOperationResult Initialize(IExtensionAdaptiveCard extensionUI)
     {
-        _extensionUI = extensionUI;
+        _log.Debug($"Initialize");
+        CacheManager.GetInstance().OnUpdate += HandleCacheUpdate;
+        _settingsUI = extensionUI;
         return UpdateCard();
+    }
+
+    private void HandleCacheUpdate(object? source, CacheManagerUpdateEventArgs e)
+    {
+        _log.Debug("Cache was updated, updating settings UI.");
+        UpdateCard();
+    }
+
+    public IAsyncOperation<ProviderOperationResult> OnAction(string action, string inputs)
+    {
+        return Task.Run(async () =>
+        {
+            try
+            {
+                _log.Information($"OnAction() called with {action}");
+                _log.Debug($"inputs: {inputs}");
+                var actionObject = JsonNode.Parse(action);
+                var verb = actionObject?["verb"]?.GetValue<string>() ?? string.Empty;
+                _log.Debug($"Verb: {verb}");
+                switch (verb)
+                {
+                    case "ClearOpenAIKey":
+                        _log.Information("Clearing OpenAI key");
+                        _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);
+                        break;
+
+                    case "ToggleNotifications":
+                        var currentNotificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
+                        await LocalSettings.SaveSettingAsync(_notificationsEnabledString, currentNotificationsEnabled == "true" ? "false" : "true");
+                        _log.Information($"Changed notification state to: {(currentNotificationsEnabled == "true" ? "false" : "true")}");
+                        break;
+
+                    case "UpdateData":
+                        _log.Information($"Refreshing data for organizations.");
+                        _ = CacheManager.GetInstance().Refresh();
+                        break;
+
+                    case "OpenLogs":
+                        FileHelper.OpenLogsLocation();
+                        break;
+
+                    default:
+                        _log.Warning($"Unknown verb: {verb}");
+                        break;
+                }
+
+                return UpdateCard();
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Unexpected failure handling settings action.");
+                return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
+            }
+        }).AsAsyncOperation();
     }
 
     private ProviderOperationResult UpdateCard()
@@ -43,15 +102,35 @@ internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSessi
         try
         {
             var hasOpenAIKey = _aiCredentialService.GetCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId) is not null;
-            SettingsAdaptiveCardInputPayload settingsAdaptiveCardInputPayload = new()
+
+            var notificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
+            var notificationsEnabledString = (notificationsEnabled == "true") ? Resources.GetResource("Settings_NotificationsEnabled", _log) : Resources.GetResource("Settings_NotificationsDisabled", _log);
+
+            var lastUpdated = CacheManager.GetInstance().LastUpdated;
+            var lastUpdatedString = $"Last updated: {lastUpdated.ToString(CultureInfo.InvariantCulture)}";
+            if (lastUpdated == DateTime.MinValue)
+            {
+                lastUpdatedString = "Last updated: never";
+            }
+
+            var updateAzureDataString = Resources.GetResource("Settings_UpdateData", _log);
+            if (CacheManager.GetInstance().UpdateInProgress)
+            {
+                updateAzureDataString = "Update in progress";
+            }
+
+            var settingsCardData = new SettingsCardData
             {
                 HasOpenAIKey = hasOpenAIKey,
+                NotificationsEnabled = notificationsEnabledString,
+                CacheLastUpdated = lastUpdatedString,
+                UpdateAzureData = updateAzureDataString,
             };
 
-            return _extensionUI!.Update(
+            return _settingsUI!.Update(
                 GetTemplate(),
-                JsonSerializer.Serialize(settingsAdaptiveCardInputPayload, SettingsAdaptiveCardPayloadSourceGeneration.Default.SettingsAdaptiveCardInputPayload),
-                string.Empty);
+                JsonSerializer.Serialize(settingsCardData, SettingsCardSerializerContext.Default.SettingsCardData),
+                "SettingsPage");
         }
         catch (Exception ex)
         {
@@ -60,78 +139,36 @@ internal sealed partial class SettingsUIController : IExtensionAdaptiveCardSessi
         }
     }
 
-    private static string GetTemplate()
+    private string GetTemplate()
     {
-        var settingsUI = @"
-{
-    ""type"": ""AdaptiveCard"",
-    ""body"": [
+        if (_template is not null)
         {
-            ""type"": ""ActionSet"",
-            ""actions"": [
-                {
-                    ""type"": ""Action.Execute"",
-                    ""title"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_ClearKey") + @""",
-                    ""id"": ""clearOpenAIKey"",
-                    ""isEnabled"": ""${HasOpenAIKey}""
-                }
-            ]
-        }
-    ],
-    ""$schema"": ""http://adaptivecards.io/schemas/adaptive-card.json"",
-    ""version"": ""1.5"",
-    ""minHeight"": ""200px""
-}
-";
-        return settingsUI;
-    }
-
-    public IAsyncOperation<ProviderOperationResult> OnAction(string action, string inputs)
-    {
-        return Task.Run(() =>
-        {
-            try
-            {
-                var adaptiveCardPayload = JsonSerializer.Deserialize(action, SettingsAdaptiveCardPayloadSourceGeneration.Default.SettingsActionAdaptiveCardActionPayload);
-                if (adaptiveCardPayload is not null)
-                {
-                    if (adaptiveCardPayload.IsClearOpenAIKeyAction)
-                    {
-                        _log.Information("Clearing OpenAI key");
-                        _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);
-                        return UpdateCard();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(ex, "Failed to clear OpenAI key");
-                return new ProviderOperationResult(ProviderOperationStatus.Failure, ex, ex.Message, ex.Message);
-            }
-
-            return new ProviderOperationResult(ProviderOperationStatus.Failure, null, string.Empty, "Unexpected state");
-        }).AsAsyncOperation();
-    }
-
-    internal sealed class SettingsActionAdaptiveCardActionPayload
-    {
-        public string? Id
-        {
-            get; set;
+            _log.Debug("Using cached template.");
+            return _template;
         }
 
-        public bool IsClearOpenAIKeyAction => Id == "clearOpenAIKey";
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, @"Providers\SettingsCardTemplate.json");
+            var template = File.ReadAllText(path, Encoding.Default) ?? throw new FileNotFoundException(path);
+            template = Resources.ReplaceIdentifiers(template, GetSettingsCardResourceIdentifiers(), _log);
+            _log.Debug($"Caching template");
+            _template = template;
+            return _template;
+        }
+        catch (Exception e)
+        {
+            _log.Error(e, "Error getting template.");
+            return string.Empty;
+        }
     }
 
-    internal sealed class SettingsAdaptiveCardInputPayload
+    private static string[] GetSettingsCardResourceIdentifiers()
     {
-        public bool HasOpenAIKey { get; set; }
-    }
-
-    [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
-    [JsonSerializable(typeof(SettingsActionAdaptiveCardActionPayload))]
-    [JsonSerializable(typeof(SettingsAdaptiveCardInputPayload))]
-    internal sealed partial class SettingsAdaptiveCardPayloadSourceGeneration : JsonSerializerContext
-    {
+        return
+        [
+            "QuickstartPlayground_OpenAI_ClearKey",
+            "Settings_ViewLogs",
+        ];
     }
 }

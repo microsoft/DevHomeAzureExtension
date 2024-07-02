@@ -297,8 +297,8 @@ internal sealed class AzureQueryListWidget : AzureWidget
                 if (workItem != null)
                 {
                     // If we can't get the real date, it is better better to show a recent
-                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                    var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.UtcNow.
+                    var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.UtcNow.Ticks;
                     var dateTime = dateTicks.ToDateTime();
 
                     var item = new JsonObject

@@ -52,4 +52,13 @@ public class DevHomeRepository : Microsoft.Windows.DevHome.SDK.IRepository
         _isPrivate = gitRepository.ProjectReference.Visibility == Microsoft.TeamFoundation.Core.WebApi.ProjectVisibility.Private;
         _lastUpdated = DateTimeOffset.UtcNow;
     }
+
+    public DevHomeRepository(DataModel.Repository repository)
+    {
+        _name = repository.Name;
+        _owningAccountName = Path.Join(repository.Clone.Connection.Host, repository.Clone.Organization, repository.Clone.Project);
+        _cloneUrl = repository.Clone.Uri;
+        _isPrivate = repository.Private;
+        _lastUpdated = new(repository.UpdatedAt);
+    }
 }

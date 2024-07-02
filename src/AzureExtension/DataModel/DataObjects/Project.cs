@@ -34,6 +34,7 @@ public class Project
     // Key in the Organization table.
     public long OrganizationId { get; set; } = DataStore.NoForeignKey;
 
+    // When this record was updated
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
 
     [Write(false)]
@@ -42,6 +43,10 @@ public class Project
     [Write(false)]
     [Computed]
     public DateTime UpdatedAt => TimeUpdated.ToDateTime();
+
+    [Write(false)]
+    [Computed]
+    public DateTime LastSyncAt => TimeUpdated.ToDateTime();
 
     [Write(false)]
     [Computed]
@@ -64,7 +69,19 @@ public class Project
             Name = project.Name ?? string.Empty,
             Description = project.Description ?? string.Empty,
             OrganizationId = organizationId,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
+        };
+    }
+
+    private static Project CreateFromTeamProject(TeamProjectReference project, long organizationId)
+    {
+        return new Project
+        {
+            InternalId = project.Id.ToString(),
+            Name = project.Name ?? string.Empty,
+            Description = project.Description ?? string.Empty,
+            OrganizationId = organizationId,
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 
@@ -91,7 +108,7 @@ public class Project
             }
         }
 
-        // No existing pull request, add it.
+        // No existing project, add it.
         project.Id = dataStore.Connection!.Insert(project);
         project.DataStore = dataStore;
         return project;
@@ -178,9 +195,38 @@ public class Project
         return project;
     }
 
+    public static IEnumerable<Project> GetAllWithReference(DataStore dataStore)
+    {
+        var sql = @"SELECT * FROM Project AS P WHERE P.Id IN (SELECT ProjectId FROM ProjectReference)";
+        _log.Verbose(DataStore.GetSqlLogMessage(sql));
+        var projects = dataStore.Connection!.Query<Project>(sql, null, null) ?? [];
+        foreach (var project in projects)
+        {
+            project.DataStore = dataStore;
+        }
+
+        return projects;
+    }
+
     public static Project GetOrCreateByTeamProject(DataStore dataStore, TeamProject project, long organizationId)
     {
         var newProject = CreateFromTeamProject(project, organizationId);
         return AddOrUpdateProject(dataStore, newProject);
+    }
+
+    public static Project GetOrCreateByTeamProject(DataStore dataStore, TeamProjectReference project, long organizationId)
+    {
+        var newProject = CreateFromTeamProject(project, organizationId);
+        return AddOrUpdateProject(dataStore, newProject);
+    }
+
+    public static void DeleteUnreferenced(DataStore dataStore)
+    {
+        // Delete any Projects that have no matching Organization.
+        var sql = @"DELETE FROM Project WHERE OrganizationId NOT IN (SELECT Id FROM Organization)";
+        var command = dataStore.Connection!.CreateCommand();
+        command.CommandText = sql;
+        _log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        command.ExecuteNonQuery();
     }
 }

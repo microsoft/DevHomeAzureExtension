@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using Dapper;
@@ -68,7 +68,7 @@ public class Query
             DisplayName = displayName,
             QueryResults = queryResults,
             QueryResultCount = queryResultCount,
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
         };
     }
 

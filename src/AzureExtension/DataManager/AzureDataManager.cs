@@ -696,6 +696,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         SendUpdateEvent(logger, source, DataManagerUpdateKind.Error, requestor, context, ex);
     }
 
+    private static void SendCancelUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex = null)
+    {
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.Cancel, requestor, context, ex);
+    }
+
     private static void SendUpdateEvent(ILogger logger, object? source, DataManagerUpdateKind kind, Guid requestor, dynamic context, Exception? ex = null)
     {
         if (OnUpdate != null)
@@ -757,6 +762,30 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         return result;
     }
 
+    public IEnumerable<Repository> GetRepositories()
+    {
+        ValidateDataStore();
+        return Repository.GetAllWithReference(DataStore);
+    }
+
+    public string GetMetaData(string key)
+    {
+        var metaData = MetaData.GetByKey(DataStore, key);
+        if (metaData is null)
+        {
+            return string.Empty;
+        }
+        else
+        {
+            return metaData.Value;
+        }
+    }
+
+    public void SetMetaData(string key, string value)
+    {
+        MetaData.AddOrUpdate(DataStore, key, value);
+    }
+
     // Removes unused data from the datastore.
     private void PruneObsoleteData()
     {
@@ -774,7 +803,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Sets a last-updated in the MetaData.
     private void SetLastUpdatedInMetaData()
     {
-        MetaData.AddOrUpdate(DataStore, _lastUpdatedKeyName, DateTime.Now.ToDataStoreString());
+        MetaData.AddOrUpdate(DataStore, _lastUpdatedKeyName, DateTime.UtcNow.ToDataStoreString());
     }
 
     private void ValidateDataStore()
