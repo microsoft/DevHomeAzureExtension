@@ -135,6 +135,7 @@ public partial class AzureDataManager
         SendCacheUpdateEvent(_log, this, requestorGuid, context, firstException);
     }
 
+    // Returns a dynamic object with event context for reporting.
     private dynamic CreateUpdateEventContext(int errors, int accountsUpdated, int accountsSkipped, TimeSpan elapsed)
     {
         dynamic context = new ExpandoObject();
