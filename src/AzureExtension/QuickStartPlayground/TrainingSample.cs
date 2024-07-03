@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class TrainingSample
 {

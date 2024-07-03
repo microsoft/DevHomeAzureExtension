@@ -13,13 +13,13 @@ namespace DevHomeAzureExtension.Widgets;
 
 internal sealed class AzureQueryListWidget : AzureWidget
 {
-    private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
+    private readonly string _sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
     // Widget Data
-    private string widgetTitle = string.Empty;
-    private string selectedQueryUrl = string.Empty;
-    private string selectedQueryId = string.Empty;
-    private string? message;
+    private string _widgetTitle = string.Empty;
+    private string _selectedQueryUrl = string.Empty;
+    private string _selectedQueryId = string.Empty;
+    private string? _message;
 
     // Creation and destruction methods
     public AzureQueryListWidget()
@@ -78,13 +78,13 @@ internal sealed class AzureQueryListWidget : AzureWidget
         Page = WidgetPageState.Configure;
         var data = args.Data;
         var dataObject = JsonObject.Parse(data);
-        message = null;
+        _message = null;
 
         if (dataObject != null && dataObject["account"] != null && dataObject["query"] != null)
         {
             CanSave = false;
-            widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
-            selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
+            _widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
+            _selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
             DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
             SetDefaultDeveloperLoginId();
             if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
@@ -98,16 +98,16 @@ internal sealed class AzureQueryListWidget : AzureWidget
             var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
-                message = Resources.GetResource(@"Widget_Template/DevIDError");
+                _message = Resources.GetResource(@"Widget_Template/DevIDError");
                 UpdateActivityState();
                 return false;
             }
 
-            var queryInfo = AzureClientHelpers.GetQueryInfo(selectedQueryUrl, developerId);
-            selectedQueryId = queryInfo.AzureUri.Query;   // This will be empty string if invalid query.
+            var queryInfo = AzureClientHelpers.GetQueryInfo(_selectedQueryUrl, developerId);
+            _selectedQueryId = queryInfo.AzureUri.Query;   // This will be empty string if invalid query.
             if (queryInfo.Result != ResultType.Success)
             {
-                message = GetMessageForError(queryInfo.Error, queryInfo.ErrorMessage);
+                _message = GetMessageForError(queryInfo.Error, queryInfo.ErrorMessage);
                 UpdateActivityState();
                 return false;
             }
@@ -115,9 +115,9 @@ internal sealed class AzureQueryListWidget : AzureWidget
             {
                 CanSave = true;
                 Pinned = true;
-                if (string.IsNullOrEmpty(widgetTitle))
+                if (string.IsNullOrEmpty(_widgetTitle))
                 {
-                    widgetTitle = queryInfo.Name;
+                    _widgetTitle = queryInfo.Name;
                 }
 
                 Page = WidgetPageState.Content;
@@ -143,7 +143,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
     {
         base.SetDefaultDeveloperLoginId();
 
-        var azureOrg = new AzureUri(selectedQueryUrl).Organization;
+        var azureOrg = new AzureUri(_selectedQueryUrl).Organization;
         if (!string.IsNullOrEmpty(azureOrg))
         {
             var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
@@ -193,7 +193,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
 
         try
         {
-            var azureUri = new AzureUri(selectedQueryUrl);
+            var azureUri = new AzureUri(_selectedQueryUrl);
             DataManager!.UpdateDataForQueryAsync(azureUri, developerId.LoginId, requestOptions, new Guid(Id));
         }
         catch (Exception ex)
@@ -211,10 +211,10 @@ internal sealed class AzureQueryListWidget : AzureWidget
             return;
         }
 
-        widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
+        _widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
         DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
-        selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
-        message = null;
+        _selectedQueryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
+        _message = null;
 
         var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
@@ -222,8 +222,8 @@ internal sealed class AzureQueryListWidget : AzureWidget
             return;
         }
 
-        var azureUri = new AzureUri(selectedQueryUrl);
-        selectedQueryId = azureUri.Query;
+        var azureUri = new AzureUri(_selectedQueryUrl);
+        _selectedQueryId = azureUri.Query;
         if (!azureUri.IsQuery)
         {
             Log.Error("Selected Query Url from ResetDataFromState is not a valid query.");
@@ -249,9 +249,9 @@ internal sealed class AzureQueryListWidget : AzureWidget
         configurationData.Add("accounts", developerIdsData);
 
         configurationData.Add("selectedDevId", DeveloperLoginId);
-        configurationData.Add("url", selectedQueryUrl);
-        configurationData.Add("message", message);
-        configurationData.Add("widgetTitle", widgetTitle);
+        configurationData.Add("url", _selectedQueryUrl);
+        configurationData.Add("message", _message);
+        configurationData.Add("widgetTitle", _widgetTitle);
 
         configurationData.Add("pinned", Pinned);
         configurationData.Add("arrow", IconLoader.GetIconAsBase64("arrow.png"));
@@ -273,12 +273,12 @@ internal sealed class AzureQueryListWidget : AzureWidget
                 return;
             }
 
-            var azureUri = new AzureUri(selectedQueryUrl);
+            var azureUri = new AzureUri(_selectedQueryUrl);
 
             if (!azureUri.IsQuery)
             {
                 // This should never happen. Already was validated on configuration.
-                Log.Error($"Invalid Uri: {selectedQueryUrl}");
+                Log.Error($"Invalid Uri: {_selectedQueryUrl}");
                 return;
             }
 
@@ -297,8 +297,8 @@ internal sealed class AzureQueryListWidget : AzureWidget
                 if (workItem != null)
                 {
                     // If we can't get the real date, it is better better to show a recent
-                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                    var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.UtcNow.
+                    var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.UtcNow.Ticks;
                     var dateTime = dateTicks.ToDateTime();
 
                     var item = new JsonObject
@@ -321,7 +321,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
             itemsData.Add("workItemCount", queryInfo is null ? 0 : (int)queryInfo.QueryResultCount);
             itemsData.Add("maxItemsDisplayed", AzureDataManager.QueryResultLimit);
             itemsData.Add("items", itemsArray);
-            itemsData.Add("widgetTitle", widgetTitle);
+            itemsData.Add("widgetTitle", _widgetTitle);
             itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
 
             ContentData = itemsData.ToJsonString();

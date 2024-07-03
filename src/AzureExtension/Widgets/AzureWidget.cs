@@ -22,7 +22,7 @@ public abstract class AzureWidget : WidgetImpl
 
     protected IAzureDataManager? DataManager { get; private set; }
 
-    private DateTime lastUpdateRequest = DateTime.MinValue;
+    private DateTime _lastUpdateRequest = DateTime.MinValue;
 
     protected WidgetActivityState ActivityState { get; set; } = WidgetActivityState.Unknown;
 
@@ -394,7 +394,7 @@ public abstract class AzureWidget : WidgetImpl
         // If moving to configure, reset the throttle so when we update to Active, the first update
         // will not get throttled.
         DataUpdater?.Stop();
-        lastUpdateRequest = DateTime.MinValue;
+        _lastUpdateRequest = DateTime.MinValue;
         ActivityState = WidgetActivityState.Configure;
         Page = WidgetPageState.Configure;
         LogCurrentState();
@@ -463,7 +463,7 @@ public abstract class AzureWidget : WidgetImpl
     {
         // Only update per the update interval.
         // This is intended to be dynamic in the future.
-        if (DateTime.Now - lastUpdateRequest < WidgetRefreshRate)
+        if (DateTime.UtcNow - _lastUpdateRequest < WidgetRefreshRate)
         {
             return;
         }
@@ -482,7 +482,7 @@ public abstract class AzureWidget : WidgetImpl
             Log.Error(ex, "Failed Requesting Update");
         }
 
-        lastUpdateRequest = DateTime.Now;
+        _lastUpdateRequest = DateTime.UtcNow;
     }
 
     // This method will attempt to select a DeveloperId if one is not already selected. By default

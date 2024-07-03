@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Services.DevBox;
 using Windows.System.Threading;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 /// <summary>
 /// Used to store information about a timer that is being stored by the <see cref="DevBoxOperationWatcher"/>.

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System.Security.Authentication;
-using AzureExtension.Helpers;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
@@ -38,13 +37,13 @@ public class RepositoryProvider : IRepositoryProvider2
 
     private string _organizationToSearch = string.Empty;
 
-    private const string _defaultSearchServerName = "dev.azure.com";
+    private const string DefaultSearchServerName = "dev.azure.com";
 
-    private const string _server = "server";
+    private const string Server = "server";
 
-    private const string _organization = "organization";
+    private const string Organization = "organization";
 
-    private const string _project = "project";
+    private const string Project = "project";
 
     public string DisplayName => Resources.GetResource(@"RepositoryProviderDisplayName");
 
@@ -53,7 +52,7 @@ public class RepositoryProvider : IRepositoryProvider2
         get; private set;
     }
 
-    public string[] SearchFieldNames => [_server, _organization];
+    public string[] SearchFieldNames => [Server, Organization];
 
     public string AskToSearchLabel => Resources.GetResource(@"SelectionOptionsPrompt");
 
@@ -174,11 +173,11 @@ public class RepositoryProvider : IRepositoryProvider2
                 var organizations = _azureHierarchy.GetOrganizations();
 #pragma warning disable CA1309 // Use ordinal string comparison
                 // Try to find any organizations with the modern URL format.
-                var defaultOrg = organizations.FirstOrDefault(x => x.AccountName.Equals(_defaultSearchServerName));
+                var defaultOrg = organizations.FirstOrDefault(x => x.AccountName.Equals(DefaultSearchServerName));
 #pragma warning restore CA1309 // Use ordinal string comparison
                 if (defaultOrg != null)
                 {
-                    server = _defaultSearchServerName;
+                    server = DefaultSearchServerName;
                 }
 
                 var repos = GetRepos(azureDeveloperId, false);
@@ -372,8 +371,8 @@ public class RepositoryProvider : IRepositoryProvider2
         {
             try
             {
-                _serverToSearch = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
-                _organizationToSearch = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
+                _serverToSearch = fieldValues.ContainsKey(Server) ? fieldValues[Server] : string.Empty;
+                _organizationToSearch = fieldValues.ContainsKey(Organization) ? fieldValues[Organization] : string.Empty;
 
                 // Get access token for ADO API calls.
                 if (developerId is not DeveloperId.DeveloperId azureDeveloperId)
@@ -383,9 +382,9 @@ public class RepositoryProvider : IRepositoryProvider2
                 }
 
                 var repos = GetRepos(azureDeveloperId, true);
-                var projects = await GetValuesForSearchFieldAsync(fieldValues, _project, developerId);
+                var projects = await GetValuesForSearchFieldAsync(fieldValues, Project, developerId);
 
-                return new RepositoriesSearchResult(repos, Path.Join(_serverToSearch, _organizationToSearch), projects.ToArray(), _project);
+                return new RepositoriesSearchResult(repos, Path.Join(_serverToSearch, _organizationToSearch), projects.ToArray(), Project);
             }
             catch (Exception e)
             {
@@ -410,10 +409,10 @@ public class RepositoryProvider : IRepositoryProvider2
 
         var organizations = _azureHierarchy.GetOrganizations();
         var orgsInModernUrlFormat = new List<Organization>();
-        if (_serverToSearch.Equals(_defaultSearchServerName))
+        if (_serverToSearch.Equals(DefaultSearchServerName))
         {
             // For a default search, look up all orgs with the modern URL format
-            orgsInModernUrlFormat = organizations.Where(x => x.AccountUri.Host.Equals(_defaultSearchServerName)).ToList();
+            orgsInModernUrlFormat = organizations.Where(x => x.AccountUri.Host.Equals(DefaultSearchServerName)).ToList();
         }
 
         // If the user is apart of orgs in the modern URL format, use these going forward.
@@ -427,7 +426,7 @@ public class RepositoryProvider : IRepositoryProvider2
             organizations = organizations.Where(x => x.AccountName.Equals(_organizationToSearch)).ToList();
         }
 
-        Dictionary<Organization, List<TeamProjectReference>> organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
+        var organizationsAndProjects = new Dictionary<Organization, List<TeamProjectReference>>();
 
         // Establish a connection between organizations and their projects.
         Parallel.ForEach(organizations, organization =>
@@ -472,9 +471,9 @@ public class RepositoryProvider : IRepositoryProvider2
             HashSet<string> servers = new();
             foreach (var organization in organizations)
             {
-                if (organization.AccountUri.OriginalString.Contains(_defaultSearchServerName))
+                if (organization.AccountUri.OriginalString.Contains(DefaultSearchServerName))
                 {
-                    servers.Add(_defaultSearchServerName);
+                    servers.Add(DefaultSearchServerName);
                 }
                 else
                 {
@@ -502,7 +501,7 @@ public class RepositoryProvider : IRepositoryProvider2
     /// <returns>A readonly list of search field names.</returns>
     public IReadOnlyList<string> GetSearchFieldNames()
     {
-        return new List<string> { _server, _organization };
+        return new List<string> { Server, Organization };
     }
 
 #pragma warning disable CA1309 // Use ordinal string comparison.  Make sure names match linguisticly.
@@ -512,7 +511,7 @@ public class RepositoryProvider : IRepositoryProvider2
     /// <param name="fieldValues">The inputs used to filter the results.</param>
     /// <param name="requestedSearchField">Results will be for this search field.</param>
     /// <param name="developerId">Used to access private org and project information.</param>
-    /// <returns>A list of all values for fieldName that makes snes given the input.</returns>
+    /// <returns>A list of all values for fieldName that make sense given the input.</returns>
     public IAsyncOperation<IReadOnlyList<string>> GetValuesForSearchFieldAsync(IReadOnlyDictionary<string, string> fieldValues, string requestedSearchField, IDeveloperId developerId)
     {
         // Get access token for ADO API calls.
@@ -527,15 +526,15 @@ public class RepositoryProvider : IRepositoryProvider2
         return Task.Run(() =>
         {
 #pragma warning disable IDE0059 // Unnecessary assignment of a value.  Server isn't needed until users use on prem.
-            var serverToUse = fieldValues.ContainsKey(_server) ? fieldValues[_server] : string.Empty;
+            var serverToUse = fieldValues.ContainsKey(Server) ? fieldValues[Server] : string.Empty;
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
 
-            var organizationToUse = fieldValues.ContainsKey(_organization) ? fieldValues[_organization] : string.Empty;
-            var projectToUse = fieldValues.ContainsKey(_project) ? fieldValues[_project] : string.Empty;
+            var organizationToUse = fieldValues.ContainsKey(Organization) ? fieldValues[Organization] : string.Empty;
+            var projectToUse = fieldValues.ContainsKey(Project) ? fieldValues[Project] : string.Empty;
 
             _azureHierarchy ??= new AzureRepositoryHierarchy(azureDeveloperId);
 
-            if (requestedSearchField.Equals(_server))
+            if (requestedSearchField.Equals(Server))
             {
                 var organizations = _azureHierarchy.GetOrganizations();
                 if (!string.IsNullOrEmpty(organizationToUse))
@@ -558,7 +557,7 @@ public class RepositoryProvider : IRepositoryProvider2
 
                 return servers.Order().ToList() as IReadOnlyList<string>;
             }
-            else if (requestedSearchField.Equals(_organization))
+            else if (requestedSearchField.Equals(Organization))
             {
                 // Requesting organizations and an organization is given.
                 var organizations = _azureHierarchy.GetOrganizations();
@@ -588,9 +587,9 @@ public class RepositoryProvider : IRepositoryProvider2
                     return organizationsToReturn.Order().ToList() as IReadOnlyList<string>;
                 }
             }
-            else if (requestedSearchField.Equals(_project))
+            else if (requestedSearchField.Equals(Project))
             {
-                // Because projects exist in an organization searching behavior is different for each combonation.
+                // Because projects exist in an organization searching behavior is different for each combination.
                 var isOrganizationInInput = !string.IsNullOrEmpty(organizationToUse);
                 var isProjectInInput = !string.IsNullOrEmpty(projectToUse);
 
@@ -598,7 +597,7 @@ public class RepositoryProvider : IRepositoryProvider2
                 {
                     // get all projects in the organization.
                     var organizations = _azureHierarchy.GetOrganizations().Where(x => x.AccountName.Equals(organizationToUse)).ToList();
-                    List<string> projectNames = new List<string>();
+                    var projectNames = new List<string>();
                     foreach (var organization in organizations)
                     {
                         projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
@@ -612,7 +611,7 @@ public class RepositoryProvider : IRepositoryProvider2
                     // Get all projects with the same name in all organizations.
                     // This does mean the project drop down might have duplicate names.
                     var organizations = _azureHierarchy.GetOrganizations();
-                    List<string> projectNames = new List<string>();
+                    var projectNames = new List<string>();
                     foreach (var organization in organizations)
                     {
                         projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Where(x => x.Name.Equals(projectToUse)).Select(x => x.Name));
@@ -628,7 +627,7 @@ public class RepositoryProvider : IRepositoryProvider2
                     // otherwise, return nothing.
                     var organizations = _azureHierarchy.GetOrganizations().Where(x => x.AccountName.Equals(organizationToUse)).ToList();
 
-                    List<string> projectNames = new List<string>();
+                    var projectNames = new List<string>();
                     foreach (var organization in organizations)
                     {
                         projectNames.AddRange(_azureHierarchy.GetProjectsAsync(organization).Result.Select(x => x.Name));
@@ -664,7 +663,7 @@ public class RepositoryProvider : IRepositoryProvider2
         var organizations = _azureHierarchy.GetOrganizations();
 
         // Get a default server name.
-        if (field.Equals(_server, StringComparison.OrdinalIgnoreCase))
+        if (field.Equals(Server, StringComparison.OrdinalIgnoreCase))
         {
             if (organizations.FirstOrDefault(x => x.AccountUri.OriginalString.Contains("dev.azure.com")) != null)
             {
@@ -685,7 +684,7 @@ public class RepositoryProvider : IRepositoryProvider2
         }
 
         // get the default organization
-        if (field.Equals(_organization, StringComparison.OrdinalIgnoreCase))
+        if (field.Equals(Organization, StringComparison.OrdinalIgnoreCase))
         {
             var maybeNewOrganization = organizations.FirstOrDefault(x => x.AccountUri.OriginalString.Contains("dev.azure.com", StringComparison.OrdinalIgnoreCase));
             if (maybeNewOrganization != null)

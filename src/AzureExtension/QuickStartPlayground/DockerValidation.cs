@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using Windows.Storage;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public static class DockerValidation
 {

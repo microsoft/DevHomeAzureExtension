@@ -1,13 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Text;
-using AzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 public static class DevBoxOperationHelper
 {

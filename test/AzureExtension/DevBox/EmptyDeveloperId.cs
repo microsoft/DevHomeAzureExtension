@@ -3,7 +3,7 @@
 
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Test.DevBox;
+namespace DevHomeAzureExtension.Test.DevBox;
 
 public class EmptyDeveloperId : IDeveloperId
 {

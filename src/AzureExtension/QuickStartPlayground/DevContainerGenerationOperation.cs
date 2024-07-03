@@ -4,14 +4,14 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 using Windows.Storage;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerationOperation
 {
@@ -139,9 +139,9 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
                 return new QuickStartProjectResult(ex, Resources.GetResource(@"QuickstartPlayground_FailureDuringProjectGeneration", currentStep, ex.Message), ex.Message);
             }
 
-            void ReportProgress(string step, uint progressValue, IExtensionAdaptiveCardSession2? dockerProgressAdapativeCardSession = null)
+            void ReportProgress(string step, uint progressValue, IExtensionAdaptiveCardSession2? dockerProgressAdaptiveCardSession = null)
             {
-                _adaptiveCardSession = dockerProgressAdapativeCardSession;
+                _adaptiveCardSession = dockerProgressAdaptiveCardSession;
                 progress.Report(new QuickStartProjectProgress(step, progressValue / 100.0));
                 currentStep = step;
                 currentProgress = progressValue;

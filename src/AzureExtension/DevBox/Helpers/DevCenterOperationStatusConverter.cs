@@ -3,9 +3,9 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox.Models;
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 /// <summary>
 /// Custom JSON converter for <see cref="DevCenterOperationStatus"/>.

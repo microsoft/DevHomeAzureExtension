@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.Helpers;
+namespace DevHomeAzureExtension.DevBox.Helpers;
 
 // Example of a task JSON response that will be deserialized into the BaseClass class
 //    {
@@ -37,6 +37,7 @@ namespace AzureExtension.DevBox.Helpers;
 //  "startTime": "2024-04-09T20:09:03.0136738+00:00"
 // }
 //
+
 /// <summary>
 /// Represents the classes for the customization task JSON response.
 /// </summary>

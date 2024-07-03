@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// Implementation of Dev Box Data Plane token service.
-/// It is a wrapper leveraging Developer ID's silent token aquiring
+/// It is a wrapper leveraging Developer ID's silent token acquiring
 /// function with the scope needed for the plane.
 /// </summary>
 public class DataTokenService : IDataTokenService
@@ -28,7 +28,7 @@ public class DataTokenService : IDataTokenService
 
         try
         {
-            var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { Constants.DataPlaneScope }, devId.LoginId);
+            var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { DevBoxConstants.DataPlaneScope }, devId.LoginId);
             return result?.AccessToken ?? string.Empty;
         }
         catch (Exception e)

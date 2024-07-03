@@ -5,16 +5,21 @@ using Dapper;
 using Dapper.Contrib.Extensions;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.Helpers;
+using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
 
 [Table("Organization")]
 public class Organization
 {
+    private static readonly Lazy<ILogger> _logger = new(() => Log.ForContext("SourceContext", $"DataModel/{nameof(Organization)}"));
+
+    private static readonly ILogger _log = _logger.Value;
+
     // This is the time between seeing a potential updated Organization record and updating it.
     // This value / 2 is the average time between Organization updating their Organization data and
     // having it reflected in the datastore.
-    private static readonly long UpdateThreshold = TimeSpan.FromHours(4).Ticks;
+    private static readonly long _updateThreshold = TimeSpan.FromHours(4).Ticks;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -28,7 +33,11 @@ public class Organization
     // For this extension to function currently it does not matter.
     public string Connection { get; set; } = string.Empty;
 
+    // When this record was updated.
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
+
+    // When all records related to this one (i.e. projects) were completely updated.
+    public long TimeLastSync { get; set; } = DataStore.NoForeignKey;
 
     [Write(false)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Will be used in near-future changes.")]
@@ -40,9 +49,34 @@ public class Organization
 
     [Write(false)]
     [Computed]
+    public DateTime LastSyncAt => TimeLastSync.ToDateTime();
+
+    [Write(false)]
+    [Computed]
     public Uri ConnectionUri => new(Connection);
 
     public override string ToString() => Name;
+
+    public void SetSynced()
+    {
+        TimeLastSync = DateTime.UtcNow.ToDataStoreInteger();
+        if (DataStore?.Connection is not null)
+        {
+            DataStore.Connection.Update(this);
+        }
+    }
+
+    // Sets updated and sync time for all organization rows to 0, causing them to qualify for updating.
+    public static void ClearAllSyncData(DataStore dataStore)
+    {
+        var sql = @"UPDATE Organization SET (TimeLastSync, TimeUpdated) = ($Time, $Time);";
+        var command = dataStore.Connection!.CreateCommand();
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$Time", DataStore.NoForeignKey);
+        _log.Debug(DataStore.GetCommandLogMessage(sql, command));
+        var rowsUpdated = command.ExecuteNonQuery();
+        _log.Debug($"Updated {rowsUpdated} rows.");
+    }
 
     private static Organization Create(Uri connection)
     {
@@ -56,7 +90,8 @@ public class Organization
         {
             Name = azureUri.Organization,
             Connection = azureUri.Connection.ToString(),
-            TimeUpdated = DateTime.Now.ToDataStoreInteger(),
+            TimeUpdated = DateTime.UtcNow.ToDataStoreInteger(),
+            TimeLastSync = DateTime.MinValue.ToDataStoreInteger(),
         };
     }
 
@@ -70,7 +105,7 @@ public class Organization
             // avoid unnecessary updating and database operations for data that
             // is extremely unlikely to have changed in any significant way, we
             // will only update every UpdateThreshold amount of time.
-            if ((organization.TimeUpdated - existingOrganization.TimeUpdated) > UpdateThreshold)
+            if ((organization.TimeUpdated - existingOrganization.TimeUpdated) > _updateThreshold)
             {
                 organization.Id = existingOrganization.Id;
                 dataStore.Connection!.Update(organization);

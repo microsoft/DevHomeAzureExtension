@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 public interface IDevBoxManagementService
 {
@@ -42,7 +42,7 @@ public interface IDevBoxManagementService
     /// <summary>
     /// Generates a list of objects that each contain a Dev Center project and the Dev Box pools associated with that project.
     /// </summary>
-    /// <param name="projects">The Deserialized Json recieved from a rest api that returns a list of Dev Center projects.</param>
+    /// <param name="projects">The Deserialized Json received from a rest api that returns a list of Dev Center projects.</param>
     /// <param name="developerId">The DeveloperId associated with the request.</param>
     /// <returns>A list of objects where each contain a project and its associated pools.</returns>
     public Task<List<DevBoxProjectAndPoolContainer>> GetAllProjectsToPoolsMappingAsync(DevBoxProjects projects, IDeveloperId developerId);

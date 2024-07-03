@@ -14,16 +14,16 @@ namespace DevHomeAzureExtension.Widgets;
 
 internal sealed class AzurePullRequestsWidget : AzureWidget
 {
-    private readonly string sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
+    private readonly string _sampleIconData = IconLoader.GetIconAsBase64("screenshot.png");
 
-    private static readonly string DefaultSelectedView = "Mine";
+    private const string DefaultSelectedView = "Mine";
 
     // Widget Data
-    private string widgetTitle = string.Empty;
-    private string selectedRepositoryUrl = string.Empty;
-    private string selectedRepositoryName = string.Empty;
-    private string selectedView = DefaultSelectedView;
-    private string? message;
+    private string _widgetTitle = string.Empty;
+    private string _selectedRepositoryUrl = string.Empty;
+    private string _selectedRepositoryName = string.Empty;
+    private string _selectedView = DefaultSelectedView;
+    private string? _message;
 
     // Creation and destruction methods
     public AzurePullRequestsWidget()
@@ -82,13 +82,13 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         Page = WidgetPageState.Configure;
         var data = args.Data;
         var dataObject = JsonObject.Parse(data);
-        message = null;
+        _message = null;
         if (dataObject != null && dataObject["account"] != null && dataObject["query"] != null)
         {
-            widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
+            _widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
             DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
-            selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
-            selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
+            _selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
+            _selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
             SetDefaultDeveloperLoginId();
             if (DeveloperLoginId != dataObject["account"]?.GetValue<string>())
             {
@@ -101,15 +101,15 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
             var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
-                message = Resources.GetResource(@"Widget_Template/DevIDError");
+                _message = Resources.GetResource(@"Widget_Template/DevIDError");
                 UpdateActivityState();
                 return false;
             }
 
-            var repositoryInfo = AzureClientHelpers.GetRepositoryInfo(selectedRepositoryUrl, developerId);
+            var repositoryInfo = AzureClientHelpers.GetRepositoryInfo(_selectedRepositoryUrl, developerId);
             if (repositoryInfo.Result != ResultType.Success)
             {
-                message = GetMessageForError(repositoryInfo.Error, repositoryInfo.ErrorMessage);
+                _message = GetMessageForError(repositoryInfo.Error, repositoryInfo.ErrorMessage);
                 UpdateActivityState();
                 return false;
             }
@@ -137,7 +137,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
     protected override void SetDefaultDeveloperLoginId()
     {
         base.SetDefaultDeveloperLoginId();
-        var azureOrg = new AzureUri(selectedRepositoryUrl).Organization;
+        var azureOrg = new AzureUri(_selectedRepositoryUrl).Organization;
         if (!string.IsNullOrEmpty(azureOrg))
         {
             var devIds = DeveloperIdProvider.GetInstance().GetLoggedInDeveloperIds().DeveloperIds;
@@ -186,8 +186,8 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         try
         {
             var requestOptions = RequestOptions.RequestOptionsDefault();
-            var azureUri = new AzureUri(selectedRepositoryUrl);
-            DataManager!.UpdateDataForPullRequestsAsync(azureUri, developerId.LoginId, GetPullRequestView(selectedView), requestOptions, new Guid(Id));
+            var azureUri = new AzureUri(_selectedRepositoryUrl);
+            DataManager!.UpdateDataForPullRequestsAsync(azureUri, developerId.LoginId, GetPullRequestView(_selectedView), requestOptions, new Guid(Id));
         }
         catch (Exception ex)
         {
@@ -204,11 +204,11 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
             return;
         }
 
-        widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
+        _widgetTitle = dataObject["widgetTitle"]?.GetValue<string>() ?? string.Empty;
         DeveloperLoginId = dataObject["account"]?.GetValue<string>() ?? string.Empty;
-        selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
-        selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
-        message = null;
+        _selectedRepositoryUrl = dataObject["query"]?.GetValue<string>() ?? string.Empty;
+        _selectedView = dataObject["view"]?.GetValue<string>() ?? string.Empty;
+        _message = null;
 
         var developerId = GetDevId(DeveloperLoginId);
         if (developerId == null)
@@ -216,8 +216,8 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
             return;
         }
 
-        var azureUri = new AzureUri(selectedRepositoryUrl);
-        selectedRepositoryName = azureUri.Repository;
+        var azureUri = new AzureUri(_selectedRepositoryUrl);
+        _selectedRepositoryName = azureUri.Repository;
     }
 
     public override string GetConfiguration(string data)
@@ -239,10 +239,10 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
         configurationData.Add("accounts", developerIdsData);
 
         configurationData.Add("selectedDevId", DeveloperLoginId);
-        configurationData.Add("url", selectedRepositoryUrl);
-        configurationData.Add("selectedView", selectedView);
-        configurationData.Add("message", message);
-        configurationData.Add("widgetTitle", widgetTitle);
+        configurationData.Add("url", _selectedRepositoryUrl);
+        configurationData.Add("selectedView", _selectedView);
+        configurationData.Add("message", _message);
+        configurationData.Add("widgetTitle", _widgetTitle);
 
         configurationData.Add("pinned", Pinned);
         configurationData.Add("arrow", IconLoader.GetIconAsBase64("arrow.png"));
@@ -262,17 +262,17 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                 return;
             }
 
-            var azureUri = new AzureUri(selectedRepositoryUrl);
+            var azureUri = new AzureUri(_selectedRepositoryUrl);
             if (!azureUri.IsRepository)
             {
-                Log.Error($"Invalid Uri: {selectedRepositoryUrl}");
+                Log.Error($"Invalid Uri: {_selectedRepositoryUrl}");
                 return;
             }
 
             PullRequests? pullRequests;
 
             // This can throw if DataStore is not connected.
-            pullRequests = DataManager!.GetPullRequests(azureUri, developerId.LoginId, GetPullRequestView(selectedView));
+            pullRequests = DataManager!.GetPullRequests(azureUri, developerId.LoginId, GetPullRequestView(_selectedView));
 
             var pullRequestsResults = pullRequests is null ? new Dictionary<string, object>() : JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
 
@@ -286,8 +286,8 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                 if (workItem != null)
                 {
                     // If we can't get the real date, it is better better to show a recent
-                    // closer-to-correct time than the zero value decades ago, so use DateTime.Now.
-                    var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.Now.Ticks;
+                    // closer-to-correct time than the zero value decades ago, so use DateTime.UtcNow.
+                    var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.UtcNow.Ticks;
                     var dateTime = dateTicks.ToDateTime();
 
                     var item = new JsonObject
@@ -308,7 +308,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
 
             itemsData.Add("maxItemsDisplayed", AzureDataManager.PullRequestResultLimit);
             itemsData.Add("items", itemsArray);
-            itemsData.Add("widgetTitle", widgetTitle);
+            itemsData.Add("widgetTitle", _widgetTitle);
             itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
 
             ContentData = itemsData.ToJsonString();

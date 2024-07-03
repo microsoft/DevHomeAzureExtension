@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DeveloperId;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// Implementation of the Azure Resource Manager (ARM) token service.
-/// It is a wrapper leveraging Developer ID's silent token aquiring
+/// It is a wrapper leveraging Developer ID's silent token acquiring
 /// function, with the scope needed for ARM
 /// </summary>
 public class ARMTokenService : IArmTokenService
@@ -26,7 +26,7 @@ public class ARMTokenService : IArmTokenService
             return string.Empty;
         }
 
-        var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { Constants.ManagementPlaneScope }, devId.LoginId);
+        var result = await AuthHelper.ObtainTokenForLoggedInDeveloperAccount(new string[] { DevBoxConstants.ManagementPlaneScope }, devId.LoginId);
         return result?.AccessToken ?? string.Empty;
     }
 }

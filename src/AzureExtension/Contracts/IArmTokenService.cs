@@ -3,7 +3,7 @@
 
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 // ARMTokenService is a service that provides an Azure Resource Manager (ARM) token.
 public interface IArmTokenService

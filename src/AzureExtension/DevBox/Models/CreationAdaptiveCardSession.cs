@@ -9,7 +9,7 @@ using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
 
-namespace AzureExtension.DevBox.Models;
+namespace DevHomeAzureExtension.DevBox.Models;
 
 public enum SessionState
 {
@@ -341,7 +341,7 @@ public class CreationAdaptiveCardSession : IExtensionAdaptiveCardSession2
             // Add information for the specific project to the project array
             var projectInfo = new JsonObject
                 {
-                    { "title", container.Project!.Name },
+                    { "title", container.Project!.Properties.DisplayName.Length > 0 ? container.Project!.Properties.DisplayName : container.Project!.Name },
                     { "value", $"{i}" },
                 };
 
@@ -357,7 +357,7 @@ public class CreationAdaptiveCardSession : IExtensionAdaptiveCardSession2
                 var poolHardwareSpecs = Resources.GetResource("DevBox_PoolSubtitle", pool.HardwareProfile.VCPUs, pool.HardwareProfile.MemoryGB, pool.StorageProfile.OsDisk.DiskSizeGB);
                 var poolInfo = new JsonObject
                     {
-                        { "title", $"{pool.Name}" },
+                        { "title", $"{pool.Name} ({pool.Location})" },
                         { "subtitle", $"{poolHardwareSpecs}" },
                         { "value", $"{k}" },
                     };

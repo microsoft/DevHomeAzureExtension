@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Microsoft.Windows.DevHome.SDK;
 
-namespace AzureExtension.Test.DevBox;
+namespace DevHomeAzureExtension.Test.DevBox;
 
 public class DataTestTokenService : IDataTokenService
 {

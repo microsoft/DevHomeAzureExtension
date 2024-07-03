@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// Represents the data returned from a request to retrieve the remote connection information for a Dev Box.

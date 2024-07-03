@@ -31,9 +31,9 @@
         },
         {
           "type": "Input.Text",
-          "placeholder": "%Widget_Template/QueryTitlePlaceholder%",
+          "placeholder": "%Widget_Template/WidgetTitlePlaceholder%",
           "id": "widgetTitle",
-          "label": "%Widget_Template/QueryTitleLabel%",
+          "label": "%Widget_Template/WidgetTitleLabel%",
           "value": "${widgetTitle}"
         },
         {
