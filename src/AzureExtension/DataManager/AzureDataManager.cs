@@ -43,16 +43,16 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     public static readonly int QueryResultLimit = 25;
 
     // Most data that has not been updated within this time will be removed.
-    private static readonly TimeSpan DataRetentionTime = TimeSpan.FromDays(1);
+    private static readonly TimeSpan _dataRetentionTime = TimeSpan.FromDays(1);
 
-    private static readonly string LastUpdatedKeyName = "LastUpdated";
+    private static readonly string _lastUpdatedKeyName = "LastUpdated";
 
-    private static readonly string Name = nameof(AzureDataManager);
+    private static readonly string _name = nameof(AzureDataManager);
 
-    private static readonly ConcurrentDictionary<string, Guid> Instances = new();
+    private static readonly ConcurrentDictionary<string, Guid> _instances = new();
 
     // Connections are a pairing of DeveloperId and a Uri.
-    private static readonly ConcurrentDictionary<Tuple<Uri, DeveloperId.DeveloperId>, VssConnection> Connections = new();
+    private static readonly ConcurrentDictionary<Tuple<Uri, DeveloperId.DeveloperId>, VssConnection> _connections = new();
 
     private readonly ILogger _log;
 
@@ -74,7 +74,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
         catch (Exception e)
         {
-            var log = Log.ForContext("SourceContext", Name);
+            var log = Log.ForContext("SourceContext", _name);
             log.Error(e, $"Failed creating AzureDataManager for {identifier}");
             return null;
         }
@@ -88,7 +88,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
 
         InstanceName = identifier;
-        _log = Log.ForContext("SourceContext", $"{Name}/{InstanceName}");
+        _log = Log.ForContext("SourceContext", $"{_name}/{InstanceName}");
         DataStoreOptions = dataStoreOptions;
         DataStore = new DataStore(
             "DataStore",
@@ -111,7 +111,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             _log.Warning(ex, "Failed setting DeveloperId change handler.");
         }
 
-        if (Instances.TryGetValue(InstanceName, out var instanceIdentifier))
+        if (_instances.TryGetValue(InstanceName, out var instanceIdentifier))
         {
             // We should not have duplicate AzureDataManagers, as every client should have one,
             // but the identifiers may not be unique if using partial Guids. Note in the log
@@ -121,7 +121,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
         else
         {
-            Instances.TryAdd(InstanceName, UniqueName);
+            _instances.TryAdd(InstanceName, UniqueName);
         }
 
         _log.Information($"Created AzureDataManager: {UniqueName}.");
@@ -144,7 +144,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         get
         {
             ValidateDataStore();
-            var lastUpdated = MetaData.Get(DataStore, LastUpdatedKeyName);
+            var lastUpdated = MetaData.Get(DataStore, _lastUpdatedKeyName);
             if (lastUpdated == null)
             {
                 return DateTime.MinValue;
@@ -154,7 +154,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
     }
 
-    public override string ToString() => $"{Name}/{InstanceName}";
+    public override string ToString() => $"{_name}/{InstanceName}";
 
     public async Task UpdateDataForQueriesAsync(IEnumerable<AzureUri> queryUris, string developerLogin, RequestOptions? options = null, Guid? requestor = null)
     {
@@ -696,6 +696,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         SendUpdateEvent(logger, source, DataManagerUpdateKind.Error, requestor, context, ex);
     }
 
+    private static void SendCancelUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex = null)
+    {
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.Cancel, requestor, context, ex);
+    }
+
     private static void SendUpdateEvent(ILogger logger, object? source, DataManagerUpdateKind kind, Guid requestor, dynamic context, Exception? ex = null)
     {
         if (OnUpdate != null)
@@ -710,12 +715,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // the bad connection issue can be reliably detected and solved.
     public static ConnectionResult GetConnection(Uri connectionUri, DeveloperId.DeveloperId developerId, bool forceNewConnection = true)
     {
-        var log = Log.ForContext("SourceContext", Name);
+        var log = Log.ForContext("SourceContext", _name);
         VssConnection? connection;
         var connectionKey = Tuple.Create(connectionUri, developerId);
-        if (Connections.ContainsKey(connectionKey))
+        if (_connections.ContainsKey(connectionKey))
         {
-            if (Connections.TryGetValue(connectionKey, out connection))
+            if (_connections.TryGetValue(connectionKey, out connection))
             {
                 // If not forcing a new connection and it has authenticated, reuse it.
                 if (!forceNewConnection && connection.HasAuthenticated)
@@ -726,7 +731,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 else
                 {
                     // Remove the bad connection.
-                    if (Connections.TryRemove(new KeyValuePair<Tuple<Uri, DeveloperId.DeveloperId>, VssConnection>(connectionKey, connection)))
+                    if (_connections.TryRemove(new KeyValuePair<Tuple<Uri, DeveloperId.DeveloperId>, VssConnection>(connectionKey, connection)))
                     {
                         log.Debug($"Removed bad connection to {connectionUri} with {developerId.LoginId}");
                     }
@@ -744,7 +749,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         var result = AzureClientProvider.CreateVssConnection(connectionUri, developerId);
         if (result.Result == ResultType.Success)
         {
-            if (Connections.TryAdd(connectionKey, result.Connection!))
+            if (_connections.TryAdd(connectionKey, result.Connection!))
             {
                 log.Debug($"Added connection for {connectionUri} with {developerId.LoginId}");
             }
@@ -757,13 +762,37 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         return result;
     }
 
+    public IEnumerable<Repository> GetRepositories()
+    {
+        ValidateDataStore();
+        return Repository.GetAllWithReference(DataStore);
+    }
+
+    public string GetMetaData(string key)
+    {
+        var metaData = MetaData.GetByKey(DataStore, key);
+        if (metaData is null)
+        {
+            return string.Empty;
+        }
+        else
+        {
+            return metaData.Value;
+        }
+    }
+
+    public void SetMetaData(string key, string value)
+    {
+        MetaData.AddOrUpdate(DataStore, key, value);
+    }
+
     // Removes unused data from the datastore.
     private void PruneObsoleteData()
     {
-        Query.DeleteBefore(DataStore, DateTime.UtcNow - DataRetentionTime);
-        PullRequests.DeleteBefore(DataStore, DateTime.UtcNow - DataRetentionTime);
-        WorkItemType.DeleteBefore(DataStore, DateTime.UtcNow - DataRetentionTime);
-        Identity.DeleteBefore(DataStore, DateTime.UtcNow - DataRetentionTime);
+        Query.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
+        PullRequests.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
+        WorkItemType.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
+        Identity.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
 
         // The following are not yet pruned, need to ensure there are no current key references
         // before deletion.
@@ -774,7 +803,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Sets a last-updated in the MetaData.
     private void SetLastUpdatedInMetaData()
     {
-        MetaData.AddOrUpdate(DataStore, LastUpdatedKeyName, DateTime.Now.ToDataStoreString());
+        MetaData.AddOrUpdate(DataStore, _lastUpdatedKeyName, DateTime.UtcNow.ToDataStoreString());
     }
 
     private void ValidateDataStore()
@@ -808,9 +837,9 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     // Making the default options a singleton to avoid repeatedly calling the storage APIs and
     // creating a new AzureDataStoreSchema when not necessary.
-    private static readonly Lazy<DataStoreOptions> LazyDataStoreOptions = new(DefaultOptionsInit);
+    private static readonly Lazy<DataStoreOptions> _lazyDataStoreOptions = new(DefaultOptionsInit);
 
-    public static DataStoreOptions DefaultOptions => LazyDataStoreOptions.Value;
+    public static DataStoreOptions DefaultOptions => _lazyDataStoreOptions.Value;
 
     private static DataStoreOptions DefaultOptionsInit()
     {
@@ -821,20 +850,20 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         };
     }
 
-    private bool disposed; // To detect redundant calls.
+    private bool _disposed; // To detect redundant calls.
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposed)
+        if (!_disposed)
         {
             if (disposing)
             {
                 try
                 {
                     _log.Debug("Disposing of all Disposable resources.");
-                    if (Instances.TryGetValue(InstanceName, out var instanceName) && instanceName == UniqueName)
+                    if (_instances.TryGetValue(InstanceName, out var instanceName) && instanceName == UniqueName)
                     {
-                        Instances.TryRemove(InstanceName, out _);
+                        _instances.TryRemove(InstanceName, out _);
                         _log.Information($"Removed AzureDataManager: {UniqueName}.");
                     }
 
@@ -845,7 +874,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 }
             }
 
-            disposed = true;
+            _disposed = true;
         }
     }
 

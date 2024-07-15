@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.Client;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;

@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.Client;
-using DevHomeAzureExtension.DeveloperId;
 using Microsoft.TeamFoundation.Core.WebApi;
 using Microsoft.VisualStudio.Services.Account.Client;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -11,16 +10,16 @@ using Serilog;
 // In the past, an organization was known as an account.  Typedef to organization to make the code easier to read.
 using Organization = Microsoft.VisualStudio.Services.Account.Account;
 
-namespace AzureExtension.Helpers;
+namespace DevHomeAzureExtension.Helpers;
 
 /// <summary>
 /// Handles the hierarchy between organizations and projects.  Handles querying for both as well.
 /// </summary>
 public class AzureRepositoryHierarchy
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(AzureRepositoryHierarchy)));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
     private readonly object _getOrganizationsLock = new();
 
@@ -29,7 +28,7 @@ public class AzureRepositoryHierarchy
     // 1:N Organization to project.
     private readonly Dictionary<Organization, List<TeamProjectReference>> _organizationsAndProjects = new();
 
-    private readonly DeveloperId _developerId;
+    private readonly DeveloperId.DeveloperId _developerId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureRepositoryHierarchy"/> class.
@@ -39,9 +38,9 @@ public class AzureRepositoryHierarchy
     /// <remarks>
     /// A server can have multiple organizations and each organization can have multiple projects.
     /// Additionally, organizations and projects need to be fetched from the network.
-    /// This calss handles fetching the data, caching it, and searching it.
+    /// This class handles fetching the data, caching it, and searching it.
     /// </remarks>
-    public AzureRepositoryHierarchy(DeveloperId developerId)
+    public AzureRepositoryHierarchy(DeveloperId.DeveloperId developerId)
     {
         _developerId = developerId;
     }
@@ -133,7 +132,7 @@ public class AzureRepositoryHierarchy
     /// <summary>
     /// Contacts the server to get all projects in an organization.
     /// </summary>
-    /// <param name="organization">PRojects are returned only for this organization.</param>
+    /// <param name="organization">Projects are returned only for this organization.</param>
     /// <returns>A list of projects.</returns>
     /// <remarks>
     /// the Task to get the projects is added to _organizationsAndProjectTask.
@@ -157,7 +156,7 @@ public class AzureRepositoryHierarchy
         }
         catch (Exception e)
         {
-            Log.Error(e, e.Message);
+            _log.Error(e, e.Message);
         }
 
         return new List<TeamProjectReference>();

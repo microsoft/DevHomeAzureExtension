@@ -4,12 +4,12 @@
 using System.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevContainerQuickStartProjectProvider
 {
@@ -119,10 +119,10 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
         {
             return Task.Run(() =>
             {
-                var adapativeCardPayload = JsonSerializer.Deserialize(action, AIAdaptiveCardPayloadSourceGeneration.Default.AIAdaptiveCardActionPayload);
-                if (adapativeCardPayload is not null)
+                var adaptiveCardPayload = JsonSerializer.Deserialize(action, AIAdaptiveCardPayloadSourceGeneration.Default.AIAdaptiveCardActionPayload);
+                if (adaptiveCardPayload is not null)
                 {
-                    if (adapativeCardPayload.IsSubmitAction)
+                    if (adaptiveCardPayload.IsSubmitAction)
                     {
                         var inputPayload = JsonSerializer.Deserialize(inputs, AIAdaptiveCardPayloadSourceGeneration.Default.AIAdaptiveCardInputPayload);
                         if (inputPayload is not null && !string.IsNullOrEmpty(inputPayload.Key))
@@ -145,7 +145,7 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
                             return new ProviderOperationResult(ProviderOperationStatus.Failure, null, Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_InvalidAPIKey"), "API Key is null");
                         }
                     }
-                    else if (adapativeCardPayload.IsCancelAction)
+                    else if (adaptiveCardPayload.IsCancelAction)
                     {
                         // Inform Dev Home using the stopped event that the user canceled,
                         // but the result of OnAction is we successfully handled the user clicking cancel.
@@ -159,7 +159,7 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
                 }
                 else
                 {
-                    return new ProviderOperationResult(ProviderOperationStatus.Failure, null, Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_InvalidAPIKey"), "adapativeCardPayload is null");
+                    return new ProviderOperationResult(ProviderOperationStatus.Failure, null, Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_InvalidAPIKey"), "adaptiveCardPayload is null");
                 }
             }).AsAsyncOperation();
         }

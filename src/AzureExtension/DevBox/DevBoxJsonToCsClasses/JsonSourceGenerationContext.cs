@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 using System.Text.Json.Serialization;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox.Models;
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// Used to generate the source code for the classes that we deserialize Json to objects for the DevBox feature.

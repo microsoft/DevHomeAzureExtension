@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 using System.Text.Json.Serialization;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.DevBox.Models;
 
-namespace AzureExtension.DevBox.DevBoxJsonToCsClasses;
+namespace DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
 
 /// <summary>
 /// Represents the DevBoxOperation object within a response from a Dev Box rest API call.

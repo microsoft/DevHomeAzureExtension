@@ -12,6 +12,14 @@ public interface IAzureDataManager : IDisposable
 
     DateTime LastUpdated { get; }
 
+    string GetMetaData(string key);
+
+    void SetMetaData(string key, string value);
+
+    Task UpdateDataForAccountsAsync(RequestOptions? options = null, Guid? requestor = null);
+
+    Task UpdateDataForAccountsAsync(TimeSpan olderThan, RequestOptions? options = null, Guid? requestor = null);
+
     Task UpdateDataForQueryAsync(AzureUri queryUri, string developerLogin, RequestOptions? options = null, Guid? requestor = null);
 
     Task UpdateDataForQueriesAsync(IEnumerable<AzureUri> queryUris, string developerLogin, RequestOptions? options = null, Guid? requestor = null);
@@ -21,6 +29,8 @@ public interface IAzureDataManager : IDisposable
     Query? GetQuery(string queryId, string developerId);
 
     Query? GetQuery(AzureUri queryUri, string developerId);
+
+    IEnumerable<Repository> GetRepositories();
 
     // Repository name may not be unique across projects, and projects may not be unique across
     // organizations, so we need all three to identify the repository.

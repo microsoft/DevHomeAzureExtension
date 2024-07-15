@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public static class Completions
 {
@@ -15,6 +15,9 @@ You will be shown example prompts, they are just there to show already working e
 
 Remember that VS Code dev containers automatically copy over the source code from the input folder to the repo, and do not need COPY commands.
 In your Dockerfile do not include any COPY commands.
+
+When filling in the RUN command, if there are multiple libraries to install, put them all into the same package manager install command.
+In your Dockerfile do not have multiple package manager install commands in the RUN section and do not duplicate packages.
 
 Any commands to install requirements based on repo files must be put in the devcontainer.json file as a 'postCreateCommand'. For example, do NOT put a `COPY requirements.txt .` line in the Dockerfile. Put a `'postCreateCommand': 'pip3 install -r requirements.txt'` line in devcontainer.json.
 

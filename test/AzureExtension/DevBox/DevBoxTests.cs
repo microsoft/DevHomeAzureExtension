@@ -2,15 +2,11 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using System.Threading;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
-using AzureExtension.Test.DevBox;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Test.DevBox;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
 
 namespace DevHomeAzureExtension.Test;

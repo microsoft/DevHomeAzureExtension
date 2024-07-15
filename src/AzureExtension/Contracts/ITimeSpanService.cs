@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using AzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox;
 
-namespace AzureExtension.Contracts;
+namespace DevHomeAzureExtension.Contracts;
 
 /// <summary>
 /// Interface that an operation watcher can use to get the time span based on the action to perform.

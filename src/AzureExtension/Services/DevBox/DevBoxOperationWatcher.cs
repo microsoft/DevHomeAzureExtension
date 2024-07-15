@@ -2,16 +2,17 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Exceptions;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Exceptions;
+using DevHomeAzureExtension.DevBox.Models;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.System.Threading;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 /// <summary>
 /// Represents the status of a Dev Box provisioning operation.
@@ -76,7 +77,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
 
                     // Query the Dev Center for the status of the Dev Box operation.
                     var result = await _managementService.HttpsRequestToDataPlane(operationUri, developerId, HttpMethod.Get, null);
-                    var operation = JsonSerializer.Deserialize<DevCenterOperationBase>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+                    var operation = JsonSerializer.Deserialize<DevCenterOperationBase>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions)!;
 
                     // Invoke the call back so the original requester can handle the status update of the operation.
                     completionCallback(operation.Status);
@@ -114,7 +115,7 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
     /// stops the extensions process or reboots the machine we will lose the Uri to the operation. In those cases we use this method to monitor the provisioning status of the Dev Box.
     /// When Dev Boxes are requested by Dev Home the <see cref="DevBoxMachineState"/> objects we get back from the Dev Center will have a provisioning state of "Provisioning". This indicates
     /// that the Dev Box is still being created. We use a ThreadPoolTimer to periodically query the Dev Center for the provisioning status of the Dev Box. Once this is set to
-    /// "Succeeded" we know that the Dev Box has been created and we can stop the timer and invoke the completionCallback. DevBoxInstance Id's are Guid's so we can use them as keys in for
+    /// "Succeeded" we know that the Dev Box has been created and we can stop the timer and invoke the completionCallback. DevBoxInstance Id's are GUIDs so we can use them as keys in for
     /// operationWaterTimers.
     /// </remarks>
     public void StartDevBoxProvisioningStatusMonitor(IDeveloperId developerId, DevBoxActionToPerform actionToPerform, DevBoxInstance devBoxInstance, Action<DevBoxInstance> completionCallback)
@@ -137,12 +138,12 @@ public class DevBoxOperationWatcher : IDevBoxOperationWatcher
                     _log.Information($"Starting the provisioning monitor for Dev Box with Name: '{devBoxInstance.DisplayName}' , Id: '{devBoxInstance.Id}'");
 
                     // Query the Dev Center for the provisioning status of the Dev Box. This is needed for when the Dev Box was created outside of Dev Home.
-                    var devBoxUri = $"{devBoxInstance.DevBoxState.Uri}?{Constants.APIVersion}";
+                    var devBoxUri = $"{devBoxInstance.DevBoxState.Uri}?{DevBoxConstants.APIVersion}";
                     var result = await _managementService.HttpsRequestToDataPlane(new Uri(devBoxUri), developerId, HttpMethod.Get, null);
-                    var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+                    var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions)!;
 
                     // If the Dev Box is no longer being created, update the state for Dev Homes UI and end the timer.
-                    if (!(devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Creating || devBoxState.ProvisioningState == Constants.DevBoxProvisioningStates.Provisioning))
+                    if (!(devBoxState.ProvisioningState == DevBoxConstants.DevBoxProvisioningStates.Creating || devBoxState.ProvisioningState == DevBoxConstants.DevBoxProvisioningStates.Provisioning))
                     {
                         _log.Information($"Dev Box provisioning now completed.");
                         devBoxInstance.ProvisioningMonitorCompleted(devBoxState, ProvisioningStatus.Succeeded);

@@ -17,26 +17,26 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
     public WidgetProvider()
     {
         _log.Debug("Provider Constructed");
-        widgetDefinitionRegistry.Add("Azure_QueryList", new WidgetImplFactory<AzureQueryListWidget>());
-        widgetDefinitionRegistry.Add("Azure_QueryTiles", new WidgetImplFactory<AzureQueryTilesWidget>());
-        widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsWidget>());
+        _widgetDefinitionRegistry.Add("Azure_QueryList", new WidgetImplFactory<AzureQueryListWidget>());
+        _widgetDefinitionRegistry.Add("Azure_QueryTiles", new WidgetImplFactory<AzureQueryTilesWidget>());
+        _widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsWidget>());
         RecoverRunningWidgets();
     }
 
-    private readonly Dictionary<string, IWidgetImplFactory> widgetDefinitionRegistry = new();
-    private readonly Dictionary<string, WidgetImpl> runningWidgets = new();
+    private readonly Dictionary<string, IWidgetImplFactory> _widgetDefinitionRegistry = new();
+    private readonly Dictionary<string, WidgetImpl> _runningWidgets = new();
 
     private void InitializeWidget(WidgetContext widgetContext, string state)
     {
         var widgetId = widgetContext.Id;
         var widgetDefinitionId = widgetContext.DefinitionId;
         _log.Debug($"Calling Initialize for Widget Id: {widgetId} - {widgetDefinitionId}");
-        if (widgetDefinitionRegistry.TryGetValue(widgetDefinitionId, out var widgetFactory))
+        if (_widgetDefinitionRegistry.TryGetValue(widgetDefinitionId, out var widgetFactory))
         {
-            if (!runningWidgets.ContainsKey(widgetId))
+            if (!_runningWidgets.ContainsKey(widgetId))
             {
                 var widgetImpl = widgetFactory.Create(widgetContext, state);
-                runningWidgets.Add(widgetId, widgetImpl);
+                _runningWidgets.Add(widgetId, widgetImpl);
             }
             else
             {
@@ -70,7 +70,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 
         foreach (var widgetInfo in runningWidgets)
         {
-            if (!this.runningWidgets.ContainsKey(widgetInfo.WidgetContext.Id))
+            if (!_runningWidgets.ContainsKey(widgetInfo.WidgetContext.Id))
             {
                 InitializeWidget(widgetInfo.WidgetContext, widgetInfo.CustomState);
             }
@@ -89,7 +89,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
     {
         _log.Debug($"Activate id: {widgetContext.Id} definitionId: {widgetContext.DefinitionId}");
         var widgetId = widgetContext.Id;
-        if (runningWidgets.TryGetValue(widgetId, out var widgetImpl))
+        if (_runningWidgets.TryGetValue(widgetId, out var widgetImpl))
         {
             widgetImpl.Activate(widgetContext);
         }
@@ -98,7 +98,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
             // Called to activate a widget that we don't know about, which is unexpected. Try to recover by creating it.
             _log.Warning($"Found WidgetId that was not known: {widgetContext.Id}, attempting to recover by creating it.");
             CreateWidget(widgetContext);
-            if (runningWidgets.TryGetValue(widgetId, out var widgetImplForUnknownWidget))
+            if (_runningWidgets.TryGetValue(widgetId, out var widgetImplForUnknownWidget))
             {
                 widgetImplForUnknownWidget.Activate(widgetContext);
             }
@@ -107,7 +107,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 
     public void Deactivate(string widgetId)
     {
-        if (runningWidgets.TryGetValue(widgetId, out var widgetToDeactivate))
+        if (_runningWidgets.TryGetValue(widgetId, out var widgetToDeactivate))
         {
             _log.Debug($"Deactivate id: {widgetId}");
             widgetToDeactivate.Deactivate(widgetId);
@@ -116,11 +116,11 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 
     public void DeleteWidget(string widgetId, string customState)
     {
-        if (runningWidgets.TryGetValue(widgetId, out var widgetToDelete))
+        if (_runningWidgets.TryGetValue(widgetId, out var widgetToDelete))
         {
             _log.Information($"DeleteWidget id: {widgetId}");
             widgetToDelete.DeleteWidget(widgetId, customState);
-            runningWidgets.Remove(widgetId);
+            _runningWidgets.Remove(widgetId);
         }
     }
 
@@ -129,7 +129,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         _log.Debug($"OnActionInvoked id: {actionInvokedArgs.WidgetContext.Id} definitionId: {actionInvokedArgs.WidgetContext.DefinitionId}");
         var widgetContext = actionInvokedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
-        if (runningWidgets.TryGetValue(widgetId, out var widgetToInvokeAnActionOn))
+        if (_runningWidgets.TryGetValue(widgetId, out var widgetToInvokeAnActionOn))
         {
             widgetToInvokeAnActionOn.OnActionInvoked(actionInvokedArgs);
         }
@@ -140,7 +140,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         _log.Debug($"OnCustomizationRequested id: {customizationRequestedArgs.WidgetContext.Id} definitionId: {customizationRequestedArgs.WidgetContext.DefinitionId}");
         var widgetContext = customizationRequestedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
-        if (runningWidgets.TryGetValue(widgetId, out var widgetToCustomize))
+        if (_runningWidgets.TryGetValue(widgetId, out var widgetToCustomize))
         {
             widgetToCustomize.OnCustomizationRequested(customizationRequestedArgs);
         }
@@ -151,7 +151,7 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         _log.Debug($"OnWidgetContextChanged id: {contextChangedArgs.WidgetContext.Id} definitionId: {contextChangedArgs.WidgetContext.DefinitionId}");
         var widgetContext = contextChangedArgs.WidgetContext;
         var widgetId = widgetContext.Id;
-        if (runningWidgets.TryGetValue(widgetId, out var widgetWithAChangedContext))
+        if (_runningWidgets.TryGetValue(widgetId, out var widgetWithAChangedContext))
         {
             widgetWithAChangedContext.OnWidgetContextChanged(contextChangedArgs);
         }

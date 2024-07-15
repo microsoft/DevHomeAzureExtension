@@ -4,7 +4,7 @@
 using Microsoft.Windows.DevHome.SDK;
 using Windows.Foundation;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 // This class serves as a wrapper around multiple adaptive cards which are displayed one after
 // another but don't know about each other.  After each adaptive card is done, the next is displayed.
@@ -45,9 +45,9 @@ public sealed class ExtensionInitializationUIController : IExtensionAdaptiveCard
 
     private ProviderOperationResult RenderAdaptiveCard()
     {
-        var adpativeCardResult = _adaptiveCardsToDisplay[_currentCardIndex];
-        adpativeCardResult.AdaptiveCardSession.Stopped += AdaptiveCardSessionStopped;
-        return adpativeCardResult.AdaptiveCardSession.Initialize(_extensionUI);
+        var adaptiveCardResult = _adaptiveCardsToDisplay[_currentCardIndex];
+        adaptiveCardResult.AdaptiveCardSession.Stopped += AdaptiveCardSessionStopped;
+        return adaptiveCardResult.AdaptiveCardSession.Initialize(_extensionUI);
     }
 
     private void AdaptiveCardSessionStopped(IExtensionAdaptiveCardSession2 sender, ExtensionAdaptiveCardSessionStoppedEventArgs args)

@@ -5,12 +5,12 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
-using AzureExtension.Contracts;
+using DevHomeAzureExtension.Contracts;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Security.Credentials;
 
-namespace AzureExtension.QuickStartPlayground;
+namespace DevHomeAzureExtension.QuickStartPlayground;
 
 public sealed class AICredentialService : IAICredentialService
 {

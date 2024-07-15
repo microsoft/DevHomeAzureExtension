@@ -1,18 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Collections.Generic;
 using System.Text.Json;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Models;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using DevBoxConstants = DevHomeAzureExtension.DevBox.Constants;
 
-namespace AzureExtension.Services.DevBox;
+namespace DevHomeAzureExtension.Services.DevBox;
 
 public class DevBoxCreationManager : IDevBoxCreationManager
 {
@@ -51,15 +50,15 @@ public class DevBoxCreationManager : IDevBoxCreationManager
         try
         {
             _log.Information($"Starting the create DevBox operation for new environment with new: {parameters.NewEnvironmentName}");
-            operation.UpdateProgress(Resources.GetResource(SendingCreationRequestProgressKey), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(SendingCreationRequestProgressKey), DevBoxConstants.IndefiniteProgress);
 
             var result = await _devBoxManagementService.CreateDevBox(parameters, developerId);
-            operation.UpdateProgress(Resources.GetResource(CreationResponseReceivedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(CreationResponseReceivedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), DevBoxConstants.IndefiniteProgress);
 
-            var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
+            var devBoxState = JsonSerializer.Deserialize<DevBoxMachineState>(result.JsonResponseRoot.ToString(), DevBoxConstants.JsonOptions)!;
             var devBox = _devBoxInstanceFactory(developerId, devBoxState);
 
-            operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), Constants.IndefiniteProgress);
+            operation.UpdateProgress(Resources.GetResource(DevCenterCreationStartedProgressKey, parameters.NewEnvironmentName, parameters.ProjectName), DevBoxConstants.IndefiniteProgress);
 
             var callback = DevCenterLongRunningOperationCallback(devBox);
 

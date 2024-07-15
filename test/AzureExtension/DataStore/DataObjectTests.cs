@@ -13,7 +13,7 @@ public partial class DataStoreTests
     [TestCategory("Unit")]
     public void DateTimeExtension()
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         TestContext?.WriteLine($"Now: {now}");
         var nowAsInteger = now.ToDataStoreInteger();
         TestContext?.WriteLine($"NowAsDataStoreInteger: {nowAsInteger}");
@@ -219,6 +219,39 @@ public partial class DataStoreTests
         var project2 = Project.Get(dataStore, "P2", "organization");
         Assert.IsNotNull(project2);
         Assert.AreEqual(2, project2.Id);
+    }
+
+    [TestMethod]
+    [TestCategory("Unit")]
+    public void ReadAndWriteRepository()
+    {
+        using var dataStore = new DataStore("TestStore", TestHelpers.GetDataStoreFilePath(TestOptions), TestOptions.DataStoreOptions.DataStoreSchema!);
+        Assert.IsNotNull(dataStore);
+        dataStore.Create();
+        Assert.IsNotNull(dataStore.Connection);
+
+        using var tx = dataStore.Connection.BeginTransaction();
+        var org = Organization.GetOrCreate(dataStore, new Uri("https://dev.azure.com/organization/"));
+        Assert.IsNotNull(org);
+        dataStore.Connection.Insert(new Project { Name = "project", InternalId = "11", OrganizationId = org.Id });
+
+        dataStore.Connection.Insert(new Repository { Name = "R1", InternalId = "21", CloneUrl = "https://organization/project/_git/repository1/", ProjectId = 1 });
+        dataStore.Connection.Insert(new Repository { Name = "R2", InternalId = "22", CloneUrl = "https://organization/project/_git/repository2/", ProjectId = 1 });
+        tx.Commit();
+
+        // Verify retrieval and input into data objects.
+        var dataStoreRepositories = dataStore.Connection.GetAll<Repository>().ToList();
+        Assert.AreEqual(dataStoreRepositories.Count, 2);
+        for (var i = 1; i < 3; ++i)
+        {
+            var repository = Repository.Get(dataStore, i);
+            Assert.IsNotNull(repository);
+            Assert.AreEqual($"R{i}", repository.Name);
+            Assert.AreEqual($"2{i}", repository.InternalId);
+            Assert.AreEqual("organization", repository.Project.Organization.Name);
+            Assert.AreEqual("https://dev.azure.com/organization/", repository.Project.Organization.ConnectionUri.ToString());
+            Assert.AreEqual($"https://organization/project/_git/repository{i}/", repository.Clone.Uri.ToString());
+        }
     }
 
     [TestMethod]

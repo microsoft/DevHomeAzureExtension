@@ -1,31 +1,24 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Web;
-using AzureExtension.Contracts;
-using AzureExtension.DevBox.DevBoxJsonToCsClasses;
-using AzureExtension.DevBox.Helpers;
-using AzureExtension.DevBox.Models;
-using AzureExtension.Services.DevBox;
+using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DevBox.DevBoxJsonToCsClasses;
+using DevHomeAzureExtension.DevBox.Helpers;
+using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.Helpers;
+using DevHomeAzureExtension.Services.DevBox;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.ApplicationModel;
 using Windows.Foundation;
 
-using Windows.Storage;
-using Windows.Storage.Streams;
-using Windows.Win32;
-
-namespace AzureExtension.DevBox;
+namespace DevHomeAzureExtension.DevBox;
 
 public delegate DevBoxInstance DevBoxInstanceFactory(IDeveloperId developerId, DevBoxMachineState devBoxJson);
 
@@ -72,10 +65,10 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     private const string DevBoxMultipleConcurrentOperationsNotSupportedKey = "DevBox_MultipleConcurrentOperationsNotSupport";
 
-    private static readonly CompositeFormat ProtocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
+    private static readonly CompositeFormat _protocolPinString = CompositeFormat.Parse("ms-cloudpc:pin?location={0}&request={1}&cpcid={2}&workspaceName={3}&environment={4}&username={5}&version=0.0&source=DevHome");
 
     // This is the version of the Windows App package that supports protocol associations for pinning
-    private static readonly PackageVersion MinimumWindowsAppVersion = new(1, 3, 243, 0);
+    private static readonly PackageVersion _minimumWindowsAppVersion = new(1, 3, 243, 0);
 
     // These exit codes must be kept in sync with WindowsApp
     private const int ExitCodeInvalid = -1;
@@ -243,7 +236,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         if (_packagesService.IsPackageInstalled(Constants.WindowsAppPackageFamilyName))
         {
             PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
-            if (IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+            if (IsPackageVersionGreaterThan(version, _minimumWindowsAppVersion))
             {
                 operations |= ComputeSystemOperations.PinToStartMenu | ComputeSystemOperations.PinToTaskbar;
             }
@@ -351,7 +344,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         {
             _log.Information($"Dev Box provisioning failed for '{DisplayName}'");
 
-            // If the provisioning failed, we'll set the state to failed and powerstate to unknown.
+            // If the provisioning failed, we'll set the state to failed and power state to unknown.
             // The PowerState being unknown will make the UI show the Dev Box state as unknown.
             DevBoxState.ProvisioningState = Constants.DevBoxProvisioningStates.Failed;
             DevBoxState.PowerState = Constants.DevBoxPowerStates.Unknown;
@@ -699,7 +692,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
         PackageVersion version = _packagesService.GetPackageInstalledVersion(Constants.WindowsAppPackageFamilyName);
 
-        if (!IsPackageVersionGreaterThan(version, MinimumWindowsAppVersion))
+        if (!IsPackageVersionGreaterThan(version, _minimumWindowsAppVersion))
         {
             return "Older version of Windows App installed on the system";
         }
@@ -726,10 +719,10 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     throw new InvalidDataException(errorString);
                 }
 
-                var exitcode = ExitCodeInvalid;
+                var exitCode = ExitCodeInvalid;
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
-                psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
+                psi.FileName = string.Format(CultureInfo.InvariantCulture, _protocolPinString, location, pinAction, WorkspaceId, DisplayName, Environment, Username);
 
                 Process? process = Process.Start(psi);
                 if (process != null)
@@ -738,19 +731,19 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     AllowSetForegroundWindow(process.Id);
 
                     // This signals to the WindowsApp that it has been given foreground rights
-                    EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                    var signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
                     signalForegroundSet.Set();
 
                     process.WaitForExit();
-                    exitcode = process.ExitCode;
-                    if (exitcode == ExitCodeSuccess)
+                    exitCode = process.ExitCode;
+                    if (exitCode == ExitCodeSuccess)
                     {
                         UpdateStateForUI();
                         return new ComputeSystemOperationResult();
                     }
                 }
 
-                errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitcode: {exitcode}";
+                errorString = $"DoPinActionAsync with location {location} and action {pinAction} failed with exitCode: {exitCode}";
                 throw new NotSupportedException(errorString);
             }
             catch (Exception ex)
@@ -805,7 +798,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                 var exitcode = ExitCodeInvalid;
                 var psi = new ProcessStartInfo();
                 psi.UseShellExecute = true;
-                psi.FileName = string.Format(CultureInfo.InvariantCulture, ProtocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
+                psi.FileName = string.Format(CultureInfo.InvariantCulture, _protocolPinString, location, "status", WorkspaceId, DisplayName, Environment, Username);
                 Process? process = Process.Start(psi);
                 if (process != null)
                 {
@@ -813,7 +806,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     AllowSetForegroundWindow(process.Id);
 
                     // This signals to the WindowsApp that it has been given foreground rights
-                    EventWaitHandle signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
+                    var signalForegroundSet = new EventWaitHandle(false, EventResetMode.AutoReset, WindowsAppEventName);
                     signalForegroundSet.Set();
 
                     process.WaitForExit();

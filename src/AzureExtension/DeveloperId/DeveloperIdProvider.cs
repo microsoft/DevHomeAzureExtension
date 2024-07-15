@@ -12,9 +12,9 @@ namespace DevHomeAzureExtension.DeveloperId;
 public class DeveloperIdProvider : IDeveloperIdProvider
 {
     // Locks to control access to Singleton class members.
-    private static readonly object DeveloperIdsLock = new();
+    private static readonly object _developerIdsLock = new();
 
-    private static readonly object AuthenticationProviderLock = new();
+    private static readonly object _authenticationProviderLock = new();
 
     // DeveloperId list containing all Logged in Ids.
     private List<DeveloperId> DeveloperIds
@@ -28,13 +28,13 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     }
 
     // DeveloperIdProvider uses singleton pattern.
-    private static DeveloperIdProvider? singletonDeveloperIdProvider;
+    private static DeveloperIdProvider? _singletonDeveloperIdProvider;
 
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(DeveloperIdProvider));
 
     public event TypedEventHandler<IDeveloperIdProvider, IDeveloperId>? Changed;
 
-    private readonly AuthenticationExperienceKind authenticationExperienceForAzureExtension = AuthenticationExperienceKind.CustomProvider;
+    private readonly AuthenticationExperienceKind _authenticationExperienceForAzureExtension = AuthenticationExperienceKind.CustomProvider;
 
     public string DisplayName => "Azure";
 
@@ -43,7 +43,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     {
         _log.Debug($"Creating DeveloperIdProvider singleton instance");
 
-        lock (DeveloperIdsLock)
+        lock (_developerIdsLock)
         {
             DeveloperIds ??= new List<DeveloperId>();
 
@@ -96,18 +96,18 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     {
         authenticationHelper ??= new AuthenticationHelper();
 
-        lock (AuthenticationProviderLock)
+        lock (_authenticationProviderLock)
         {
-            singletonDeveloperIdProvider ??= new DeveloperIdProvider(authenticationHelper);
+            _singletonDeveloperIdProvider ??= new DeveloperIdProvider(authenticationHelper);
         }
 
-        return singletonDeveloperIdProvider;
+        return _singletonDeveloperIdProvider;
     }
 
     public DeveloperIdsResult GetLoggedInDeveloperIds()
     {
         List<IDeveloperId> iDeveloperIds = new();
-        lock (DeveloperIdsLock)
+        lock (_developerIdsLock)
         {
             iDeveloperIds.AddRange(DeveloperIds);
         }
@@ -140,7 +140,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     public ProviderOperationResult LogoutDeveloperId(IDeveloperId developerId)
     {
         DeveloperId? developerIdToLogout;
-        lock (DeveloperIdsLock)
+        lock (_developerIdsLock)
         {
             developerIdToLogout = DeveloperIds?.Find(e => e.LoginId == developerId.LoginId);
             if (developerIdToLogout == null)
@@ -168,7 +168,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     public IEnumerable<DeveloperId> GetLoggedInDeveloperIdsInternal()
     {
         List<DeveloperId> iDeveloperIds = new();
-        lock (DeveloperIdsLock)
+        lock (_developerIdsLock)
         {
             iDeveloperIds.AddRange(DeveloperIds);
         }
@@ -223,7 +223,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         }
         else
         {
-            lock (DeveloperIdsLock)
+            lock (_developerIdsLock)
             {
                 DeveloperIds.Add(newDeveloperId);
             }
@@ -248,7 +248,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
         {
             DeveloperId developerId = new(loginId, loginId, loginId, string.Empty);
 
-            lock (DeveloperIdsLock)
+            lock (_developerIdsLock)
             {
                 DeveloperIds.Add(developerId);
             }
@@ -266,7 +266,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
 
     public AuthenticationExperienceKind GetAuthenticationExperienceKind()
     {
-        return authenticationExperienceForAzureExtension;
+        return _authenticationExperienceForAzureExtension;
     }
 
     public void Dispose()
@@ -277,7 +277,7 @@ public class DeveloperIdProvider : IDeveloperIdProvider
     public AuthenticationState GetDeveloperIdState(IDeveloperId developerId)
     {
         DeveloperId? developerIdToFind;
-        lock (DeveloperIdsLock)
+        lock (_developerIdsLock)
         {
             developerIdToFind = DeveloperIds?.Find(e => e.LoginId == developerId.LoginId);
             if (developerIdToFind == null)
