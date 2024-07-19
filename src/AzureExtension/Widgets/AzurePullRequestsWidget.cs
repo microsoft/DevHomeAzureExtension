@@ -297,7 +297,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                     // closer-to-correct time than the zero value decades ago, so use DateTime.UtcNow.
                     var dateTicks = workItem["CreationDate"]?.GetValue<long>() ?? DateTime.UtcNow.Ticks;
                     var dateTime = dateTicks.ToDateTime();
-
+                    var creator = DataManager.GetIdentity(workItem["CreatedBy"]?.GetValue<long>() ?? 0L);
                     var item = new JsonObject
                     {
                         { "title", workItem["Title"]?.GetValue<string>() ?? string.Empty },
@@ -305,9 +305,9 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                         { "status_icon", GetIconForPullRequestStatus(workItem["PolicyStatus"]?.GetValue<string>()) },
                         { "number", element.Key },
                         { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log) },
-                        { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
+                        { "user", creator.Name },
                         { "branch", workItem["TargetBranch"]?.GetValue<string>().Replace("refs/heads/", string.Empty) },
-                        { "avatar", workItem["CreatedBy"]?["Avatar"]?.GetValue<string>() },
+                        { "avatar", creator.Avatar },
                     };
 
                     itemsArray.Add(item);

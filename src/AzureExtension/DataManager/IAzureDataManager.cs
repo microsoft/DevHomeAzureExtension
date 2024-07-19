@@ -32,6 +32,10 @@ public interface IAzureDataManager : IDisposable
 
     Query? GetQuery(AzureUri queryUri, string developerId);
 
+    Identity GetIdentity(long id);
+
+    WorkItemType GetWorkItemType(long id);
+
     IEnumerable<Repository> GetRepositories();
 
     IEnumerable<Repository> GetDeveloperRepositories();

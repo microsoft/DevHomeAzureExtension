@@ -300,18 +300,19 @@ internal sealed class AzureQueryListWidget : AzureWidget
                     // closer-to-correct time than the zero value decades ago, so use DateTime.UtcNow.
                     var dateTicks = workItem["System.ChangedDate"]?.GetValue<long>() ?? DateTime.UtcNow.Ticks;
                     var dateTime = dateTicks.ToDateTime();
-
+                    var creator = DataManager.GetIdentity(workItem["System.CreatedBy"]?.GetValue<long>() ?? 0L);
+                    var workItemType = DataManager.GetWorkItemType(workItem["System.WorkItemType"]?.GetValue<long>() ?? 0L);
                     var item = new JsonObject
                     {
                         { "title", workItem["System.Title"]?.GetValue<string>() ?? string.Empty },
                         { "url", workItem[AzureDataManager.WorkItemHtmlUrlFieldName]?.GetValue<string>() ?? string.Empty },
-                        { "icon", GetIconForType(workItem["System.WorkItemType"]?["Name"]?.GetValue<string>()) },
+                        { "icon", GetIconForType(workItemType.Name) },
                         { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
                         { "number", element.Key },
                         { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log) },
-                        { "user", workItem["System.CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },
+                        { "user", creator.Avatar },
                         { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
-                        { "avatar", workItem["System.CreatedBy"]?["Avatar"]?.GetValue<string>() ?? string.Empty },
+                        { "avatar", creator.Avatar },
                     };
 
                     itemsArray.Add(item);

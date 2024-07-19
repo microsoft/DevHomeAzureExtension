@@ -247,6 +247,18 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         return GetQuery(queryUri.Query, developerId);
     }
 
+    public Identity GetIdentity(long id)
+    {
+        ValidateDataStore();
+        return Identity.Get(DataStore, id);
+    }
+
+    public WorkItemType GetWorkItemType(long id)
+    {
+        ValidateDataStore();
+        return WorkItemType.Get(DataStore, id);
+    }
+
     public PullRequests? GetPullRequests(string organization, string project, string repositoryName, string developerId, PullRequestView view)
     {
         ValidateDataStore();
@@ -453,7 +465,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     if (fieldValue == IdentityRefFieldValueName)
                     {
                         var identity = Identity.GetOrCreateIdentity(DataStore, workItem.Fields[field] as IdentityRef, result.Connection);
-                        workItemObjFields.Add(field, identity);
+                        workItemObjFields.Add(field, identity.Id);
                         continue;
                     }
 
@@ -467,7 +479,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                             workItemType = WorkItemType.GetOrCreateByTeamWorkItemType(DataStore, workItemTypeInfo, project.Id);
                         }
 
-                        workItemObjFields.Add(field, workItemType);
+                        workItemObjFields.Add(field, workItemType.Id);
                         continue;
                     }
 
@@ -612,8 +624,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     // Policy Evaluations API is this:
                     // vstfs:///CodeReview/CodeReviewId/{projectId}/{pullRequestId}
                     var artifactId = $"vstfs:///CodeReview/CodeReviewId/{project.InternalId}/{pullRequest.PullRequestId}";
-                    Log.Information($"ArtifactId: {artifactId}");
-
                     var policyEvaluations = await policyClient.GetPolicyEvaluationsAsync(project.InternalId, artifactId);
                     if (policyEvaluations != null)
                     {
@@ -629,8 +639,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                                     statusReason = policyEvaluation.Configuration.Type.DisplayName;
                                     status = evalStatus;
                                 }
-
-                                Log.Information($"  Policy: {policyEvaluation.EvaluationId}  Name: {policyEvaluation.Configuration.Type.DisplayName}  Enabled: {policyEvaluation.Configuration.IsEnabled}  Blocking: {policyEvaluation.Configuration.IsBlocking}  {policyEvaluation.Status}");
                             }
                         }
 
@@ -647,7 +655,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 }
 
                 // Set record
-                Log.Information($"PullRequest Status: {status}  Reason: {statusReason}");
+                Log.Debug($"PullRequest: {pullRequest.PullRequestId}  Status: {status}  Reason: {statusReason}");
 
                 //// If this was a developer pull request, track status for notifications.
 
@@ -661,7 +669,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 pullRequestObjFields.Add("PolicyStatusReason", statusReason);
 
                 var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy, result.Connection);
-                pullRequestObjFields.Add("CreatedBy", creator);
+                pullRequestObjFields.Add("CreatedBy", creator.Id);
                 pullRequestObjFields.Add("CreationDate", pullRequest.CreationDate.Ticks);
                 pullRequestObjFields.Add("TargetBranch", pullRequest.TargetRefName);
 
