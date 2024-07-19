@@ -62,13 +62,21 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
 
     private string GetIconForPullRequestStatus(string? prStatus)
     {
-        return prStatus switch
+        prStatus ??= string.Empty;
+        if (Enum.TryParse<PolicyStatus>(prStatus, false, out var policyStatus))
         {
-            "Approved" => IconLoader.GetIconAsBase64("PullRequestApproved.png"),
-            "Waiting" => IconLoader.GetIconAsBase64("PullRequestWaiting.png"),
-            "Rejected" => IconLoader.GetIconAsBase64("PullRequestRejected.png"),
-            _ => IconLoader.GetIconAsBase64("PullRequestReviewNotStarted.png"),
-        };
+            return policyStatus switch
+            {
+                PolicyStatus.Approved => IconLoader.GetIconAsBase64("PullRequestApproved.png"),
+                PolicyStatus.Running => IconLoader.GetIconAsBase64("PullRequestWaiting.png"),
+                PolicyStatus.Queued => IconLoader.GetIconAsBase64("PullRequestWaiting.png"),
+                PolicyStatus.Rejected => IconLoader.GetIconAsBase64("PullRequestRejected.png"),
+                PolicyStatus.Broken => IconLoader.GetIconAsBase64("PullRequestRejected.png"),
+                _ => IconLoader.GetIconAsBase64("PullRequestReviewNotStarted.png"),
+            };
+        }
+
+        return string.Empty;
     }
 
     protected override bool ValidateConfiguration(WidgetActionInvokedArgs args)
@@ -294,7 +302,7 @@ internal sealed class AzurePullRequestsWidget : AzureWidget
                     {
                         { "title", workItem["Title"]?.GetValue<string>() ?? string.Empty },
                         { "url", workItem["HtmlUrl"]?.GetValue<string>() ?? string.Empty },
-                        { "status_icon", GetIconForPullRequestStatus(workItem["Status"]?.GetValue<string>()) },
+                        { "status_icon", GetIconForPullRequestStatus(workItem["PolicyStatus"]?.GetValue<string>()) },
                         { "number", element.Key },
                         { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log) },
                         { "user", workItem["CreatedBy"]?["Name"]?.GetValue<string>() ?? string.Empty },

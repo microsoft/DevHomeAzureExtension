@@ -345,9 +345,11 @@ public partial class DataStoreTests
         var org = Organization.GetOrCreate(dataStore, new Uri("https://dev.azure.com/organization/"));
         Assert.IsNotNull(org);
         dataStore.Connection.Insert(new Project { Name = "project", InternalId = "11", OrganizationId = org.Id });
+        dataStore.Connection.Insert(new Repository { Name = "repository1", InternalId = "21", CloneUrl = "https://organization/project/_git/repository1/", ProjectId = 1 });
+        dataStore.Connection.Insert(new Repository { Name = "repository2", InternalId = "22", CloneUrl = "https://organization/project/_git/repository2/", ProjectId = 1 });
 
-        var p1 = PullRequests.GetOrCreate(dataStore, "repository1", 1, "foo@bar", PullRequestView.Mine, "Results");
-        var p2 = PullRequests.GetOrCreate(dataStore, "repository2", 1, "foo@bar", PullRequestView.Mine, "Results");
+        var p1 = PullRequests.GetOrCreate(dataStore, 1, 1, "foo@bar", PullRequestView.Mine, "Results");
+        var p2 = PullRequests.GetOrCreate(dataStore, 2, 1, "foo@bar", PullRequestView.Mine, "Results");
         tx.Commit();
 
         // Verify retrieval and input into data objects.
@@ -358,15 +360,15 @@ public partial class DataStoreTests
             var pull = PullRequests.Get(dataStore, i);
             Assert.IsNotNull(pull);
             Assert.AreEqual($"foo@bar", pull.DeveloperLogin);
-            Assert.AreEqual($"repository{i}", pull.RepositoryName);
+            Assert.AreEqual($"repository{i}", pull.Repository.Name);
             Assert.AreEqual("organization", pull.Project.Organization.Name);
             Assert.AreEqual(PullRequestView.Mine, pull.View);
-            TestContext?.WriteLine($"  Name: {pull.RepositoryName}  Results: {pull.Results}");
+            TestContext?.WriteLine($"  Name: {pull.Repository.Name}  Results: {pull.Results}");
         }
 
         var findPull = PullRequests.Get(dataStore, "organization", "project", "repository2", "foo@bar", PullRequestView.Mine);
         Assert.IsNotNull(findPull);
-        Assert.AreEqual("repository2", findPull.RepositoryName);
+        Assert.AreEqual("repository2", findPull.Repository.Name);
         Assert.AreEqual(PullRequestView.Mine, findPull.View);
         Assert.AreEqual("project", findPull.Project.Name);
     }

@@ -26,15 +26,21 @@ public interface IAzureDataManager : IDisposable
 
     Task UpdateDataForPullRequestsAsync(AzureUri repositoryUri, string developerLogin, PullRequestView view, RequestOptions? options = null, Guid? requestor = null);
 
+    Task UpdatePullRequestsForLoggedInDeveloperIdsAsync(RequestOptions? options = null, Guid? requestor = null);
+
     Query? GetQuery(string queryId, string developerId);
 
     Query? GetQuery(AzureUri queryUri, string developerId);
 
     IEnumerable<Repository> GetRepositories();
 
+    IEnumerable<Repository> GetDeveloperRepositories();
+
     // Repository name may not be unique across projects, and projects may not be unique across
     // organizations, so we need all three to identify the repository.
     PullRequests? GetPullRequests(string organization, string project, string repositoryName, string developerId, PullRequestView view);
 
     PullRequests? GetPullRequests(AzureUri repositoryUri, string developerId, PullRequestView view);
+
+    PullRequests? GetPullRequestsForLoggedInDeveloperIds();
 }

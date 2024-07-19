@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dapper;
 using Dapper.Contrib.Extensions;
+using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.VisualStudio.Services.Profile;
 using Microsoft.VisualStudio.Services.Profile.Client;
@@ -13,6 +14,7 @@ using Serilog;
 
 namespace DevHomeAzureExtension.DataModel;
 
+// This represents an Azure DevOps Identity or IdentityRef.
 [Table("Identity")]
 public class Identity
 {
@@ -42,9 +44,9 @@ public class Identity
 
     public string Avatar { get; set; } = string.Empty;
 
-    // Represents whether this identity is associated with a DeveloperId that is logged in.
-    // This is the backing database column for the IsLoggedInDeveloper property.
-    public long IsDeveloper { get; set; } = DataStore.NoForeignKey;
+    // The DeveloperLoginId associated with this identity, if one exists.
+    // Empty means there is no associated LoggedInDeveloperId.
+    public string DeveloperLoginId { get; set; } = string.Empty;
 
     [JsonIgnore]
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
@@ -57,7 +59,23 @@ public class Identity
     [Write(false)]
     [Computed]
     [JsonIgnore]
-    public bool IsLoggedInDeveloper => IsDeveloper != 0L;
+    public bool IsLoggedInDeveloper => !string.IsNullOrEmpty(DeveloperLoginId);
+
+    [Write(false)]
+    [Computed]
+    public DeveloperId.DeveloperId? DeveloperId
+    {
+        get
+        {
+            if (!IsLoggedInDeveloper)
+            {
+                return null;
+            }
+
+            var devIdProvider = DeveloperIdProvider.GetInstance();
+            return devIdProvider.GetDeveloperIdFromAccountIdentifier(DeveloperLoginId);
+        }
+    }
 
     public string ToJson() => JsonSerializer.Serialize(this);
 
@@ -145,7 +163,7 @@ public class Identity
         };
     }
 
-    public static Identity AddOrUpdateIdentity(DataStore dataStore, Identity identity, bool isDeveloper = false)
+    public static Identity AddOrUpdateIdentity(DataStore dataStore, Identity identity, string developerLoginId = "")
     {
         // Check for existing Identity data.
         var existingIdentity = GetByInternalId(dataStore, identity.InternalId);
@@ -153,11 +171,11 @@ public class Identity
         {
             identity.Id = existingIdentity.Id;
 
-            // If this is a developer, set to developer, but do not set to false.
+            // If this is a developer, set to developer, but do not set it.
             // We presume not a developer unless it is explicitly set.
-            if (isDeveloper)
+            if (!string.IsNullOrEmpty(developerLoginId))
             {
-                identity.IsDeveloper = 1;
+                identity.DeveloperLoginId = developerLoginId;
             }
 
             dataStore.Connection!.Update(identity);
@@ -192,7 +210,7 @@ public class Identity
     }
 
     // Creation from an Azure IdentityRef object.
-    public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef, VssConnection connection, bool isDeveloper = false)
+    public static Identity GetOrCreateIdentity(DataStore dataStore, IdentityRef? identityRef, VssConnection connection, string developerLoginId = "")
     {
         ArgumentNullException.ThrowIfNull(identityRef);
 
@@ -210,18 +228,19 @@ public class Identity
         // We don't want to create an identity object and download a new avatar unless it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
+        var isDeveloper = !string.IsNullOrEmpty(developerLoginId);
         if (existing is null || (isDeveloper && !existing.IsLoggedInDeveloper) || ((DateTime.UtcNow - existing.UpdatedAt) > _updateThreshold)
             || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.UtcNow - existing.UpdatedAt) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentityRef(identityRef, connection);
-            return AddOrUpdateIdentity(dataStore, newIdentity, isDeveloper);
+            return AddOrUpdateIdentity(dataStore, newIdentity, developerLoginId);
         }
 
         return existing;
     }
 
     // Creation from an Azure Identity object.
-    public static Identity GetOrCreateIdentity(DataStore dataStore, Microsoft.VisualStudio.Services.Identity.Identity? identity, VssConnection connection, bool isDeveloper = false)
+    public static Identity GetOrCreateIdentity(DataStore dataStore, Microsoft.VisualStudio.Services.Identity.Identity? identity, VssConnection connection, string developerLoginId = "")
     {
         ArgumentNullException.ThrowIfNull(identity);
 
@@ -232,11 +251,12 @@ public class Identity
         // We don't want to create an identity object and download a new avatar unlesss it needs to
         // be updated. In the event of an empty avatar we will retry more frequently to update it,
         // but not every time.
+        var isDeveloper = !string.IsNullOrEmpty(developerLoginId);
         if (existing is null || (isDeveloper && !existing.IsLoggedInDeveloper) || ((DateTime.UtcNow - existing.UpdatedAt) > _updateThreshold)
             || (string.IsNullOrEmpty(existing.Avatar) && ((DateTime.UtcNow - existing.UpdatedAt) > _avatarRetryDelay)))
         {
             var newIdentity = CreateFromIdentity(identity, connection);
-            return AddOrUpdateIdentity(dataStore, newIdentity, isDeveloper);
+            return AddOrUpdateIdentity(dataStore, newIdentity, developerLoginId);
         }
 
         return existing;

@@ -14,7 +14,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     }
 
     // Update this anytime incompatible changes happen with a released version.
-    private const long SchemaVersionValue = 0x0006;
+    private const long SchemaVersionValue = 0x0007;
 
     private const string Metadata =
     @"CREATE TABLE Metadata (" +
@@ -30,7 +30,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "Name TEXT NOT NULL COLLATE NOCASE," +
         "InternalId TEXT NOT NULL," +
         "Avatar TEXT NOT NULL COLLATE NOCASE," +
-        "IsDeveloper INTEGER NOT NULL," +
+        "DeveloperLoginId TEXT NOT NULL," +
         "TimeUpdated INTEGER NOT NULL" +
     ");" +
 
@@ -89,6 +89,10 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "TimeUpdated INTEGER NOT NULL" +
     ");" +
 
+    // While Name and ProjectId should be unique, it is possible renaming occurs and
+    // we might have a collision if we have cached a repository prior to rename and
+    // then encounter a different repository with that name. Therefore we will not
+    // create a unique index on ProjectId and Name.
     // Repository InternalId is a Guid, so by definition is unique.
     "CREATE UNIQUE INDEX IDX_Repository_InternalId ON Repository (InternalId);";
 
@@ -138,7 +142,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     private const string PullRequests =
     @"CREATE TABLE PullRequests (" +
         "Id INTEGER PRIMARY KEY NOT NULL," +
-        "RepositoryName TEXT NOT NULL COLLATE NOCASE," +
+        "RepositoryId INTEGER NOT NULL," +
         "DeveloperLogin TEXT NOT NULL COLLATE NOCASE," +
         "Results TEXT NOT NULL," +
         "ProjectId INTEGER NOT NULL," +
@@ -148,7 +152,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
 
     // Developer Pull requests are unique on Org / Project / Repository and
     // the developer login, and the view.
-    "CREATE UNIQUE INDEX IDX_PullRequests_ProjectIdRepositoryNameDeveloperLoginViewId ON PullRequests (ProjectId, RepositoryName, DeveloperLogin, ViewId);";
+    "CREATE UNIQUE INDEX IDX_PullRequests_ProjectIdRepositoryIdDeveloperLoginViewId ON PullRequests (ProjectId, RepositoryId, DeveloperLogin, ViewId);";
 
     // All Sqls together.
     private static readonly List<string> _schemaSqlsValue =

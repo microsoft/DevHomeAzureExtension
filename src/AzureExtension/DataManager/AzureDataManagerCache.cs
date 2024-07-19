@@ -150,7 +150,7 @@ public partial class AzureDataManager
     private void UpdateOrganization(Account account, DeveloperId.DeveloperId developerId, VssConnection connection, CancellationToken cancellationToken)
     {
         // Update account identity information:
-        var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, true);
+        var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, developerId.LoginId);
 
         _log.Verbose($"Updating organization: {account.AccountName}");
         var organization = Organization.GetOrCreate(DataStore, account.AccountUri);

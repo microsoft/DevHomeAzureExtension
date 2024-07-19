@@ -12,6 +12,7 @@ using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.TeamFoundation.Core.WebApi;
+using Microsoft.TeamFoundation.Policy.WebApi;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.VisualStudio.Services.WebApi;
@@ -260,6 +261,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         }
 
         return GetPullRequests(repositoryUri.Organization, repositoryUri.Project, repositoryUri.Repository, developerId, view);
+    }
+
+    public PullRequests? GetPullRequestsForLoggedInDeveloperIds()
+    {
+        return null;
     }
 
     private async Task UpdateDataForQueriesAsync(DataStoreOperationParameters parameters)
@@ -548,6 +554,18 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 project = Project.GetOrCreateByTeamProject(DataStore, teamProject, org.Id);
             }
 
+            var repository = Repository.Get(DataStore, project.Id, azureUri.Repository);
+            if (repository is null)
+            {
+                var gitRepository = await gitClient.GetRepositoryAsync(project.InternalId, azureUri.Repository);
+                if (gitRepository is null)
+                {
+                    throw new RepositoryNotFoundException(azureUri.Repository);
+                }
+
+                repository = Repository.GetOrCreate(DataStore, gitRepository, project.Id);
+            }
+
             var searchCriteria = new GitPullRequestSearchCriteria
             {
                 Status = PullRequestStatus.Active,
@@ -570,24 +588,77 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     break;
             }
 
-            var pullRequests = await gitClient.GetPullRequestsAsync(project.InternalId, azureUri.Repository, searchCriteria, null, null, PullRequestResultLimit);
+            var pullRequests = await gitClient.GetPullRequestsAsync(project.InternalId, repository.InternalId, searchCriteria, null, null, PullRequestResultLimit);
             if (pullRequests == null || pullRequests.Count == 0)
             {
                 // If PRs were null or empty, this is a valid result, so create an empty record.
-                PullRequests.GetOrCreate(DataStore, azureUri.Repository, project.Id, parameters.DeveloperId.LoginId, parameters.PullRequestView, new JsonObject().ToJsonString());
+                PullRequests.GetOrCreate(DataStore, repository.Id, project.Id, parameters.DeveloperId.LoginId, parameters.PullRequestView, new JsonObject().ToJsonString());
+
+                // If we had any statuses they should be removed here.
                 return;
             }
 
-            // Convert relevant pull request items to Json.
             dynamic pullRequestsObj = new ExpandoObject();
             var pullRequestsObjDict = (IDictionary<string, object>)pullRequestsObj;
+
+            var policyClient = result.Connection!.GetClient<PolicyHttpClient>();
             foreach (var pullRequest in pullRequests)
             {
+                var status = PolicyStatus.Unknown;
+                var statusReason = string.Empty;
+                try
+                {
+                    // ArtifactId is null in the pull request object and it is not the correct object. The ArtifactId for the
+                    // Policy Evaluations API is this:
+                    // vstfs:///CodeReview/CodeReviewId/{projectId}/{pullRequestId}
+                    var artifactId = $"vstfs:///CodeReview/CodeReviewId/{project.InternalId}/{pullRequest.PullRequestId}";
+                    Log.Information($"ArtifactId: {artifactId}");
+
+                    var policyEvaluations = await policyClient.GetPolicyEvaluationsAsync(project.InternalId, artifactId);
+                    if (policyEvaluations != null)
+                    {
+                        var countApplicablePolicies = 0;
+                        foreach (var policyEvaluation in policyEvaluations)
+                        {
+                            if (policyEvaluation.Configuration.IsEnabled && policyEvaluation.Configuration.IsBlocking)
+                            {
+                                ++countApplicablePolicies;
+                                var evalStatus = PullRequestPolicyStatus.GetFromPolicyEvaluationStatus(policyEvaluation.Status);
+                                if (evalStatus < status)
+                                {
+                                    statusReason = policyEvaluation.Configuration.Type.DisplayName;
+                                    status = evalStatus;
+                                }
+
+                                Log.Information($"  Policy: {policyEvaluation.EvaluationId}  Name: {policyEvaluation.Configuration.Type.DisplayName}  Enabled: {policyEvaluation.Configuration.IsEnabled}  Blocking: {policyEvaluation.Configuration.IsBlocking}  {policyEvaluation.Status}");
+                            }
+                        }
+
+                        if (countApplicablePolicies == 0)
+                        {
+                            // If there is no applicable policy, treat the policy status as Approved.
+                            status = PolicyStatus.Approved;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, $"Failed getting policy evaluations for pull request: {pullRequest.PullRequestId} {pullRequest.Url}");
+                }
+
+                // Set record
+                Log.Information($"PullRequest Status: {status}  Reason: {statusReason}");
+
+                //// If this was a developer pull request, track status for notifications.
+
                 dynamic pullRequestObj = new ExpandoObject();
                 var pullRequestObjFields = (IDictionary<string, object>)pullRequestObj;
 
                 pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
                 pullRequestObjFields.Add("Title", pullRequest.Title);
+                pullRequestObjFields.Add("Status", pullRequest.Status);
+                pullRequestObjFields.Add("PolicyStatus", status.ToString());
+                pullRequestObjFields.Add("PolicyStatusReason", statusReason);
 
                 var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy, result.Connection);
                 pullRequestObjFields.Add("CreatedBy", creator);
@@ -611,10 +682,84 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             };
 
             var serializedJson = JsonSerializer.Serialize(pullRequestsObj, serializerOptions);
-            PullRequests.GetOrCreate(DataStore, azureUri.Repository, project.Id, parameters.DeveloperId.LoginId, parameters.PullRequestView, serializedJson);
+            PullRequests.GetOrCreate(DataStore, repository.Id, project.Id, parameters.DeveloperId.LoginId, parameters.PullRequestView, serializedJson);
         } // Foreach AzureUri
 
         return;
+    }
+
+    public async Task UpdatePullRequestsForLoggedInDeveloperIdsAsync(RequestOptions? options = null, Guid? requestor = null)
+    {
+        ValidateDataStore();
+        var parameters = new DataStoreOperationParameters
+        {
+            RequestOptions = options ?? RequestOptions.RequestOptionsDefault(),
+            OperationName = "UpdatePullRequestsForLoggedInDeveloperIdsAsync",
+            PullRequestView = PullRequestView.Mine,
+            Requestor = requestor ?? Guid.NewGuid(),
+        };
+
+        dynamic context = new ExpandoObject();
+        var contextDict = (IDictionary<string, object>)context;
+        contextDict.Add("Requestor", parameters.Requestor);
+
+        try
+        {
+            await UpdateDataStoreAsync(parameters, UpdateDataForDeveloperPullRequestsAsync);
+        }
+        catch (Exception ex)
+        {
+            contextDict.Add("ErrorMessage", ex.Message);
+            SendErrorUpdateEvent(_log, this, parameters.Requestor, context, ex);
+            return;
+        }
+
+        SendPullRequestUpdateEvent(_log, this, parameters.Requestor, context);
+    }
+
+    private async Task UpdateDataForDeveloperPullRequestsAsync(DataStoreOperationParameters parameters)
+    {
+        _log.Debug($"Inside UpdateDataForDeveloperPullRequestsAsync with Parameters: {parameters}");
+
+        dynamic context = new ExpandoObject();
+        var contextDict = (IDictionary<string, object>)context;
+        contextDict.Add("Requestor", parameters.Requestor);
+
+        try
+        {
+            // This is a loop over a subset of repositories with a specific developer ID and pull request view specified.
+            var repositoryReferences = RepositoryReference.GetAll(DataStore);
+            foreach (var repositoryRef in repositoryReferences)
+            {
+                var uri = new AzureUri(repositoryRef.Repository.CloneUrl);
+                var developerId = repositoryRef.Developer.DeveloperLoginId;
+
+                var uris = new List<AzureUri>
+                {
+                    new(repositoryRef.Repository.CloneUrl),
+                };
+
+                var suboperationParameters = new DataStoreOperationParameters
+                {
+                    Uris = uris,
+                    DeveloperId = repositoryRef.Developer.DeveloperId,
+                    RequestOptions = parameters.RequestOptions,
+                    OperationName = "UpdateDataForDeveloperPullRequestsAsync",
+                    PullRequestView = PullRequestView.Mine,
+                    Requestor = parameters.Requestor,
+                };
+
+                await UpdateDataForPullRequestsAsync(suboperationParameters);
+            }
+        }
+        catch (Exception ex)
+        {
+            contextDict.Add("ErrorMessage", ex.Message);
+            SendErrorUpdateEvent(_log, this, parameters.Requestor, context, ex);
+            return;
+        }
+
+        SendDeveloperUpdateEvent(_log, this, parameters.Requestor, context);
     }
 
     public TeamProject GetTeamProject(string projectName, DeveloperId.DeveloperId developerId, Uri connection)
@@ -651,12 +796,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     private async Task UpdateDataStoreAsync(DataStoreOperationParameters parameters, Func<DataStoreOperationParameters, Task> asyncAction)
     {
         parameters.RequestOptions ??= RequestOptions.RequestOptionsDefault();
-        if (parameters.DeveloperId == null)
-        {
-            _log.Error($"Specified DeveloperId was not found: {parameters.LoginId}");
-            throw new ArgumentException($"Specified DeveloperId was not found:");
-        }
-
         using var tx = DataStore.Connection!.BeginTransaction();
 
         try
@@ -694,6 +833,11 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     private static void SendErrorUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception ex)
     {
         SendUpdateEvent(logger, source, DataManagerUpdateKind.Error, requestor, context, ex);
+    }
+
+    private static void SendDeveloperUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex = null)
+    {
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.Developer, requestor, context, ex);
     }
 
     private static void SendCancelUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex = null)
@@ -765,6 +909,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     public IEnumerable<Repository> GetRepositories()
     {
         ValidateDataStore();
+        return Repository.GetAll(DataStore);
+    }
+
+    public IEnumerable<Repository> GetDeveloperRepositories()
+    {
+        ValidateDataStore();
         return Repository.GetAllWithReference(DataStore);
     }
 
@@ -792,12 +942,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         Query.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
         PullRequests.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
         WorkItemType.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
-        Identity.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
 
         // The following are not yet pruned, need to ensure there are no current key references
         // before deletion.
         // * Projects are referenced by Pull Requests and Queries.
         // * Organizations are referenced by Projects.
+        // * Identity is referenced by ProjectReference and RepositoryReference
     }
 
     // Sets a last-updated in the MetaData.
