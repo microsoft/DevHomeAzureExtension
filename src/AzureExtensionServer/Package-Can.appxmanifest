@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" xmlns:genTemplate="http://schemas.microsoft.com/appx/developer/templatestudio" xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10" xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10" IgnorableNamespaces="uap uap3 rescap genTemplate">
-  <Identity Name="Microsoft.Windows.DevHomeAzureExtension" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="0.0.0.0" />
+  <Identity Name="Microsoft.Windows.DevHomeAzureExtension.Can" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="0.0.0.0" />
   <Properties>
-    <DisplayName>Dev Home Azure Extension</DisplayName>
+    <DisplayName>Dev Home Azure Extension (Can)</DisplayName>
     <PublisherDisplayName>Microsoft Corporation</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -14,7 +14,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="DevHomeAzureExtension.exe" EntryPoint="$targetentrypoint$">
-      <uap:VisualElements DisplayName="ms-resource:AppDisplayNameStable" Description="ms-resource:AppDescription" AppListEntry="none" BackgroundColor="transparent" Square150x150Logo="Assets\MedTile.png" Square44x44Logo="Assets\AppList.png">
+      <uap:VisualElements DisplayName="ms-resource:AppDisplayNameCanary" Description="ms-resource:AppDescription" AppListEntry="none" BackgroundColor="transparent" Square150x150Logo="Assets\MedTile.png" Square44x44Logo="Assets\AppList.png">
         <uap:DefaultTile Wide310x150Logo="Assets\WideTile.png" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
@@ -22,23 +22,23 @@
         <com:Extension Category="windows.comServer">
           <com:ComServer>
             <com:ExeServer Executable="DevHomeAzureExtension.exe" Arguments="-RegisterProcessAsComServer" DisplayName="Azure Provider Widget">
-              <com:Class Id="B91B13BB-B3B4-4F2E-9EF9-554757F33E1C" DisplayName="Azure Provider Widget" />
+              <com:Class Id="5C844D91-B497-4D59-AE73-CDC895B1EB2F" DisplayName="Azure Provider Widget" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
         <com:Extension Category="windows.comServer">
           <com:ComServer>
             <com:ExeServer Executable="DevHomeAzureExtension.exe" Arguments="-RegisterProcessAsComServer" DisplayName="Azure Extension Provider">
-              <com:Class Id="182AF84F-D5E1-469C-9742-536EFEA94630" DisplayName="Azure Extension Provider" />
+              <com:Class Id="0F3605DE-92CF-4FE0-9BCD-A3519EA67D1B" DisplayName="Azure Extension Provider" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
         <uap3:Extension Category="windows.appExtension">
-          <uap3:AppExtension Name="com.microsoft.devhome" Id="PG-SP-ID" PublicFolder="Public" DisplayName="ms-resource:AppDisplayNameStable" Description="ms-resource:AppDescription">
+          <uap3:AppExtension Name="com.microsoft.devhome" Id="PG-SP-ID" PublicFolder="Public" DisplayName="ms-resource:AppDisplayNameCanary" Description="ms-resource:AppDescription">
             <uap3:Properties>
               <DevHomeProvider>
                 <Activation>
-                  <CreateInstance ClassId="182AF84F-D5E1-469C-9742-536EFEA94630" />
+                  <CreateInstance ClassId="0F3605DE-92CF-4FE0-9BCD-A3519EA67D1B" />
                 </Activation>
                 <SupportedInterfaces>
                   <DeveloperId />
@@ -62,7 +62,7 @@
           </com:ComServer>
         </com:Extension>
         <uap3:Extension Category="windows.appExtension">
-          <uap3:AppExtension Name="com.microsoft.windows.widgets" DisplayName="ms-resource:WidgetProviderDisplayNameStable" Id="01" PublicFolder="Public">
+          <uap3:AppExtension Name="com.microsoft.windows.widgets" DisplayName="ms-resource:WidgetProviderDisplayNameCanary" Id="01" PublicFolder="Public">
             <uap3:Properties>
               <WidgetProvider>
                 <ProviderIcons>
@@ -70,7 +70,7 @@
                 </ProviderIcons>
                 <Activation>
                   <!-- Apps exports COM interface which implements IWidgetProvider -->
-                  <CreateInstance ClassId="B91B13BB-B3B4-4F2E-9EF9-554757F33E1C" />
+                  <CreateInstance ClassId="5C844D91-B497-4D59-AE73-CDC895B1EB2F" />
                 </Activation>
                 <Definitions>
                   <Definition Id="Azure_QueryList" DisplayName="Query Result" Description="Azure Query List Widget" IsCustomizable="true">
