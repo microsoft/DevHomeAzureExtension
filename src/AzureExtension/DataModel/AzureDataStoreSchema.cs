@@ -14,7 +14,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     }
 
     // Update this anytime incompatible changes happen with a released version.
-    private const long SchemaVersionValue = 0x0008;
+    private const long SchemaVersionValue = 0x0007;
 
     private const string Metadata =
     @"CREATE TABLE Metadata (" +
