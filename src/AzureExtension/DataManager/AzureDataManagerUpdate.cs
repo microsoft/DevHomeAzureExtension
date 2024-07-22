@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.DataManager;
+using DevHomeAzureExtension.DataModel;
 using Microsoft.TeamFoundation.Policy.WebApi;
 using Serilog;
 
@@ -50,22 +51,14 @@ public partial class AzureDataManager
         await dataManager.UpdatePullRequestsForLoggedInDeveloperIdsAsync(null, identifier);
 
         // Show any new notifications that were created from the pull request update.
-        /*
         var notifications = dataManager.GetNotifications();
         foreach (var notification in notifications)
         {
             // Show notifications for failed checkruns for Developer users.
-            if (notification.Type == NotificationType.CheckRunFailed && notification.User.IsDeveloper)
-            {
-                notification.ShowToast();
-            }
-
-            // Show notifications for new reviews.
-            if (notification.Type == NotificationType.NewReview)
+            if (notification.Type == NotificationType.PullRequestRejected || notification.Type == NotificationType.PullRequestApproved)
             {
                 notification.ShowToast();
             }
         }
-        */
     }
 }

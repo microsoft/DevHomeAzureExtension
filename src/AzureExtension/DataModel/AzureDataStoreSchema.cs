@@ -14,7 +14,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
     }
 
     // Update this anytime incompatible changes happen with a released version.
-    private const long SchemaVersionValue = 0x0007;
+    private const long SchemaVersionValue = 0x0008;
 
     private const string Metadata =
     @"CREATE TABLE Metadata (" +
@@ -154,6 +154,39 @@ public class AzureDataStoreSchema : IDataStoreSchema
     // the developer login, and the view.
     "CREATE UNIQUE INDEX IDX_PullRequests_ProjectIdRepositoryIdDeveloperLoginViewId ON PullRequests (ProjectId, RepositoryId, DeveloperLogin, ViewId);";
 
+    // PullRequsetPolicyStatus is a snapshot of a developer's Pull Requests.
+    private const string PullRequestPolicyStatus =
+    @"CREATE TABLE PullRequestPolicyStatus (" +
+        "Id INTEGER PRIMARY KEY NOT NULL," +
+        "ArtifactId TEXT NULL COLLATE NOCASE," +
+        "ProjectId INTEGER NOT NULL," +
+        "RepositoryId INTEGER NOT NULL," +
+        "PullRequestId INTEGER NOT NULL," +
+        "Title TEXT NULL COLLATE NOCASE," +
+        "PolicyStatusId INTEGER NOT NULL," +
+        "PolicyStatusReason TEXT NULL COLLATE NOCASE," +
+        "PullRequestStatusId INTEGER NOT NULL," +
+        "TargetBranchName TEXT NULL COLLATE NOCASE," +
+        "HtmlUrl TEXT NULL COLLATE NOCASE," +
+        "TimeUpdated INTEGER NOT NULL," +
+        "TimeCreated INTEGER NOT NULL" +
+    ");";
+
+    private const string Notification =
+    @"CREATE TABLE Notification (" +
+        "Id INTEGER PRIMARY KEY NOT NULL," +
+        "TypeId INTEGER NOT NULL," +
+        "ProjectId INTEGER NOT NULL," +
+        "RepositoryId INTEGER NOT NULL," +
+        "Title TEXT NOT NULL COLLATE NOCASE," +
+        "Description TEXT NOT NULL COLLATE NOCASE," +
+        "Identifier TEXT NULL COLLATE NOCASE," +
+        "Result TEXT NULL COLLATE NOCASE," +
+        "HtmlUrl TEXT NULL COLLATE NOCASE," +
+        "ToastState INTEGER NOT NULL," +
+        "TimeCreated INTEGER NOT NULL" +
+    ");";
+
     // All Sqls together.
     private static readonly List<string> _schemaSqlsValue =
     [
@@ -167,5 +200,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
         Query,
         WorkItemType,
         PullRequests,
+        PullRequestPolicyStatus,
+        Notification,
     ];
 }

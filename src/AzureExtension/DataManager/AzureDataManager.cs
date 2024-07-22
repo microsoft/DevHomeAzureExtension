@@ -46,6 +46,10 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Most data that has not been updated within this time will be removed.
     private static readonly TimeSpan _dataRetentionTime = TimeSpan.FromDays(1);
 
+    private static readonly TimeSpan _notificationRetentionTime = TimeSpan.FromDays(7);
+
+    private static readonly TimeSpan _pullRequestStaleTime = TimeSpan.FromDays(1);
+
     private static readonly string _lastUpdatedKeyName = "LastUpdated";
 
     private static readonly string _name = nameof(AzureDataManager);
@@ -257,6 +261,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     {
         ValidateDataStore();
         return WorkItemType.Get(DataStore, id);
+    }
+
+    public IEnumerable<Notification> GetNotifications(DateTime? since = null, bool includeToasted = false)
+    {
+        ValidateDataStore();
+        return Notification.Get(DataStore, since, includeToasted);
     }
 
     public PullRequests? GetPullRequests(string organization, string project, string repositoryName, string developerId, PullRequestView view)
@@ -494,7 +504,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 #if DEBUG
                 WriteIndented = true,
 #else
-            WriteIndented = false,
+                WriteIndented = false,
 #endif
             };
 
@@ -534,20 +544,20 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         // Iterate over and process each Uri in the set.
         foreach (var azureUri in parameters.Uris)
         {
-            var result = GetConnection(azureUri.Connection, parameters.DeveloperId);
-            if (result.Result != ResultType.Success)
+            var connectionResult = GetConnection(azureUri.Connection, parameters.DeveloperId);
+            if (connectionResult.Result != ResultType.Success)
             {
-                if (result.Exception != null)
+                if (connectionResult.Exception != null)
                 {
-                    throw result.Exception;
+                    throw connectionResult.Exception;
                 }
                 else
                 {
-                    throw new AzureAuthorizationException($"Failed getting connection: {azureUri.Connection} for {parameters.DeveloperId.LoginId} with {result.Error}");
+                    throw new AzureAuthorizationException($"Failed getting connection: {azureUri.Connection} for {parameters.DeveloperId.LoginId} with {connectionResult.Error}");
                 }
             }
 
-            var gitClient = result.Connection!.GetClient<GitHttpClient>();
+            var gitClient = connectionResult.Connection!.GetClient<GitHttpClient>();
             if (gitClient == null)
             {
                 throw new AzureClientException($"Failed getting GitHttpClient for {parameters.DeveloperId.LoginId} and {azureUri.Connection}");
@@ -590,10 +600,10 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 case PullRequestView.Unknown:
                     throw new ArgumentException("PullRequestView is unknown");
                 case PullRequestView.Mine:
-                    searchCriteria.CreatorId = result.Connection!.AuthorizedIdentity.Id;
+                    searchCriteria.CreatorId = connectionResult.Connection!.AuthorizedIdentity.Id;
                     break;
                 case PullRequestView.Assigned:
-                    searchCriteria.ReviewerId = result.Connection!.AuthorizedIdentity.Id;
+                    searchCriteria.ReviewerId = connectionResult.Connection!.AuthorizedIdentity.Id;
                     break;
                 case PullRequestView.All:
                     /* Nothing different for this */
@@ -601,96 +611,14 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             }
 
             var pullRequests = await gitClient.GetPullRequestsAsync(project.InternalId, repository.InternalId, searchCriteria, null, null, PullRequestResultLimit);
-            if (pullRequests == null || pullRequests.Count == 0)
-            {
-                // If PRs were null or empty, this is a valid result, so create an empty record.
-                PullRequests.GetOrCreate(DataStore, repository.Id, project.Id, parameters.DeveloperId.LoginId, parameters.PullRequestView, new JsonObject().ToJsonString());
-
-                // If we had any statuses they should be removed here.
-                return;
-            }
-
-            dynamic pullRequestsObj = new ExpandoObject();
-            var pullRequestsObjDict = (IDictionary<string, object>)pullRequestsObj;
-
-            var policyClient = result.Connection!.GetClient<PolicyHttpClient>();
-            foreach (var pullRequest in pullRequests)
-            {
-                var status = PolicyStatus.Unknown;
-                var statusReason = string.Empty;
-                try
-                {
-                    // ArtifactId is null in the pull request object and it is not the correct object. The ArtifactId for the
-                    // Policy Evaluations API is this:
-                    // vstfs:///CodeReview/CodeReviewId/{projectId}/{pullRequestId}
-                    var artifactId = $"vstfs:///CodeReview/CodeReviewId/{project.InternalId}/{pullRequest.PullRequestId}";
-                    var policyEvaluations = await policyClient.GetPolicyEvaluationsAsync(project.InternalId, artifactId);
-                    if (policyEvaluations != null)
-                    {
-                        var countApplicablePolicies = 0;
-                        foreach (var policyEvaluation in policyEvaluations)
-                        {
-                            if (policyEvaluation.Configuration.IsEnabled && policyEvaluation.Configuration.IsBlocking)
-                            {
-                                ++countApplicablePolicies;
-                                var evalStatus = PullRequestPolicyStatus.GetFromPolicyEvaluationStatus(policyEvaluation.Status);
-                                if (evalStatus < status)
-                                {
-                                    statusReason = policyEvaluation.Configuration.Type.DisplayName;
-                                    status = evalStatus;
-                                }
-                            }
-                        }
-
-                        if (countApplicablePolicies == 0)
-                        {
-                            // If there is no applicable policy, treat the policy status as Approved.
-                            status = PolicyStatus.Approved;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, $"Failed getting policy evaluations for pull request: {pullRequest.PullRequestId} {pullRequest.Url}");
-                }
-
-                // Set record
-                Log.Debug($"PullRequest: {pullRequest.PullRequestId}  Status: {status}  Reason: {statusReason}");
-
-                //// If this was a developer pull request, track status for notifications.
-
-                dynamic pullRequestObj = new ExpandoObject();
-                var pullRequestObjFields = (IDictionary<string, object>)pullRequestObj;
-
-                pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
-                pullRequestObjFields.Add("Title", pullRequest.Title);
-                pullRequestObjFields.Add("Status", pullRequest.Status);
-                pullRequestObjFields.Add("PolicyStatus", status.ToString());
-                pullRequestObjFields.Add("PolicyStatusReason", statusReason);
-
-                var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy, result.Connection);
-                pullRequestObjFields.Add("CreatedBy", creator.Id);
-                pullRequestObjFields.Add("CreationDate", pullRequest.CreationDate.Ticks);
-                pullRequestObjFields.Add("TargetBranch", pullRequest.TargetRefName);
-
-                // The Links lack an html url for these results, construct the Url.
-                var htmlUrl = $"{project.ConnectionUri}_git/{azureUri.Repository}/pullrequest/{pullRequest.PullRequestId}";
-                pullRequestObjFields.Add("HtmlUrl", htmlUrl);
-
-                pullRequestsObjDict.Add(pullRequest.PullRequestId.ToString(CultureInfo.InvariantCulture), pullRequestObj);
-            }
-
-            JsonSerializerOptions serializerOptions = new()
-            {
-#if DEBUG
-                WriteIndented = true,
-#else
-            WriteIndented = false,
-#endif
-            };
-
-            var serializedJson = JsonSerializer.Serialize(pullRequestsObj, serializerOptions);
-            PullRequests.GetOrCreate(DataStore, repository.Id, project.Id, parameters.DeveloperId.LoginId, parameters.PullRequestView, serializedJson);
+            await ProcessPullRequests(
+                connectionResult.Connection!,
+                pullRequests,
+                project,
+                repository,
+                parameters.DeveloperId.LoginId,
+                parameters.PullRequestView,
+                parameters.OperationName == "UpdateDataForDeveloperPullRequestsAsync");
         } // Foreach AzureUri
 
         return;
@@ -770,7 +698,218 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         SendDeveloperUpdateEvent(_log, this, parameters.Requestor, context);
     }
 
-    public TeamProject GetTeamProject(string projectName, DeveloperId.DeveloperId developerId, Uri connection)
+    private async Task ProcessPullRequests(
+        VssConnection connection,
+        List<GitPullRequest>? pullRequests,
+        Project project,
+        Repository repository,
+        string loginId,
+        PullRequestView view,
+        bool isDeveloper)
+    {
+        if (pullRequests is null || pullRequests.Count == 0)
+        {
+            // If PRs were null or empty, this is a valid result, so create an empty record.
+            PullRequests.GetOrCreate(DataStore, repository.Id, project.Id, loginId, view, new JsonObject().ToJsonString());
+            return;
+        }
+
+        dynamic pullRequestsObj = new ExpandoObject();
+        var pullRequestsObjDict = (IDictionary<string, object>)pullRequestsObj;
+        var policyClient = connection.GetClient<PolicyHttpClient>();
+
+        foreach (var pullRequest in pullRequests)
+        {
+            var status = PolicyStatus.Unknown;
+            var statusReason = string.Empty;
+
+            // ArtifactId is null in the pull request object and it is not the correct object. The ArtifactId for the
+            // Policy Evaluations API is this:
+            // vstfs:///CodeReview/CodeReviewId/{projectId}/{pullRequestId}
+            var artifactId = $"vstfs:///CodeReview/CodeReviewId/{project.InternalId}/{pullRequest.PullRequestId}";
+
+            // Url in the GitPullRequest object is a REST Api Url, and the links lack an html Url, so we must build it.
+            var htmlUrl = $"{repository.CloneUrl}/pullrequest/{pullRequest.PullRequestId}";
+
+            try
+            {
+                var policyEvaluations = await policyClient.GetPolicyEvaluationsAsync(project.InternalId, artifactId);
+                GetPolicyStatus(policyEvaluations, out status, out statusReason);
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, $"Failed getting policy evaluations for pull request: {pullRequest.PullRequestId} {pullRequest.Url}");
+            }
+
+            if (isDeveloper)
+            {
+                CreatePullRequestStatus(pullRequest, artifactId, project.Id, repository.Id, status, statusReason, htmlUrl);
+            }
+
+            dynamic pullRequestObj = new ExpandoObject();
+            var pullRequestObjFields = (IDictionary<string, object>)pullRequestObj;
+
+            pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
+            pullRequestObjFields.Add("Title", pullRequest.Title);
+            pullRequestObjFields.Add("Status", pullRequest.Status);
+            pullRequestObjFields.Add("PolicyStatus", status.ToString());
+            pullRequestObjFields.Add("PolicyStatusReason", statusReason);
+
+            var creator = Identity.GetOrCreateIdentity(DataStore, pullRequest.CreatedBy, connection);
+            pullRequestObjFields.Add("CreatedBy", creator.Id);
+            pullRequestObjFields.Add("CreationDate", pullRequest.CreationDate.Ticks);
+            pullRequestObjFields.Add("TargetBranch", pullRequest.TargetRefName);
+            pullRequestObjFields.Add("HtmlUrl", htmlUrl);
+
+            pullRequestsObjDict.Add(pullRequest.PullRequestId.ToString(CultureInfo.InvariantCulture), pullRequestObj);
+        }
+
+        JsonSerializerOptions serializerOptions = new()
+        {
+#if DEBUG
+            WriteIndented = true,
+#else
+            WriteIndented = false,
+#endif
+        };
+
+        var serializedJson = JsonSerializer.Serialize(pullRequestsObj, serializerOptions);
+        PullRequests.GetOrCreate(DataStore, repository.Id, project.Id, loginId, view, serializedJson);
+    }
+
+    // Gets PolicyStatus and reason for a given list of PolicyEvaluationRecords
+    private void GetPolicyStatus(List<PolicyEvaluationRecord> policyEvaluations, out PolicyStatus status, out string statusReason)
+    {
+        status = PolicyStatus.Unknown;
+        statusReason = string.Empty;
+
+        if (policyEvaluations != null)
+        {
+            var countApplicablePolicies = 0;
+            foreach (var policyEvaluation in policyEvaluations)
+            {
+                if (policyEvaluation.Configuration.IsEnabled && policyEvaluation.Configuration.IsBlocking)
+                {
+                    ++countApplicablePolicies;
+                    var evalStatus = PullRequestPolicyStatus.GetFromPolicyEvaluationStatus(policyEvaluation.Status);
+                    if (evalStatus < status)
+                    {
+                        statusReason = policyEvaluation.Configuration.Type.DisplayName;
+                        status = evalStatus;
+                    }
+                }
+            }
+
+            if (countApplicablePolicies == 0)
+            {
+                // If there is no applicable policy, treat the policy status as Approved.
+                status = PolicyStatus.Approved;
+            }
+        }
+    }
+
+    private void CreatePullRequestStatus(GitPullRequest pullRequest, string artifactId, long projectId, long repositoryId, PolicyStatus status, string reason, string htmlUrl)
+    {
+        _log.Debug($"PullRequest: {pullRequest.PullRequestId}  Status: {status}  Reason: {reason}");
+        var prevStatus = PullRequestPolicyStatus.Get(DataStore, artifactId);
+        var curStatus = PullRequestPolicyStatus.Add(DataStore, pullRequest, artifactId, projectId, repositoryId, status, reason, htmlUrl);
+
+        if (ShouldCreateRejectedNotification(curStatus, prevStatus))
+        {
+            _log.Information($"Creating Rejected Notification for {curStatus}");
+            Notification.Create(DataStore, curStatus, NotificationType.PullRequestRejected);
+        }
+
+        if (ShouldCreateApprovalNotification(curStatus, prevStatus))
+        {
+            _log.Information($"Creating Approved Notification for {curStatus}");
+            Notification.Create(DataStore, curStatus, NotificationType.PullRequestApproved);
+        }
+    }
+
+    private bool ShouldCreateRejectedNotification(PullRequestPolicyStatus curStatus, PullRequestPolicyStatus? prevStatus)
+    {
+        // If the pull request is not recent, do not create a notification for it.
+        /* No UpdatedAt time on the pull request, hard to know
+        if ((DateTime.Now - curStatus.PullRequest.UpdatedAt) > PullRequestStaleTime)
+        {
+            return false;
+        }
+        */
+
+        // If the Pull Request is completed or abandoned then there is nothing to do.
+        if (curStatus.CompletedOrAbandoned)
+        {
+            return false;
+        }
+
+        // Compare pull request status.
+        if (prevStatus is null)
+        {
+            // No previous status for this commit, assume new PR or freshly pushed commit with
+            // checks likely running. Any check failures here are assumed to be notification worthy.
+            if (curStatus.Rejected)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            // A failure isn't necessarily notification worthy if we've already seen it.
+            // We do not wish to spam the user with failure notifications.
+            if (curStatus.Rejected)
+            {
+                // If the previous status was not failed, or the failure was for a different
+                // reason, then create a new notification.
+                if (!prevStatus.Rejected || curStatus.PolicyStatusReason != prevStatus.PolicyStatusReason)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private bool ShouldCreateApprovalNotification(PullRequestPolicyStatus curStatus, PullRequestPolicyStatus? prevStatus)
+    {
+        // If the pull request is not recent, do not create a notification for it.
+        /* No UpdatedAt time on the pull request, hard to know
+        if ((DateTime.Now - curStatus.PullRequest.UpdatedAt) > PullRequestStaleTime)
+        {
+            return false;
+        }
+        */
+
+        // If the Pull Request is completed or abandoned then there is nothing to do.
+        if (curStatus.CompletedOrAbandoned)
+        {
+            return false;
+        }
+
+        // Compare pull request status.
+        if (prevStatus is null)
+        {
+            // No previous status for this PR, it may have been approved between updates.
+            if (curStatus.Approved)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            // Only post success notifications if it wasn't previously successful.
+            // We do not wish to spam the user with success notifications.
+            if (curStatus.Approved && !prevStatus.Approved)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private TeamProject GetTeamProject(string projectName, DeveloperId.DeveloperId developerId, Uri connection)
     {
         var result = GetConnection(connection, developerId);
         if (result.Result != ResultType.Success)
@@ -950,6 +1089,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         Query.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
         PullRequests.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
         WorkItemType.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
+        Notification.DeleteBefore(DataStore, DateTime.UtcNow - _notificationRetentionTime);
 
         // The following are not yet pruned, need to ensure there are no current key references
         // before deletion.

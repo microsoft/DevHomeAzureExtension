@@ -714,4 +714,16 @@
     <value>Launch</value>
     <comment>Text shown in the button to launch Dev Box.</comment>
   </data>
+  <data name="Notifications_Toast_Button.Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+    <comment>Shown in Toast Notification Dismiss Button</comment>
+  </data>
+  <data name="Notifications_Toast_PullRequestApproved.Title" xml:space="preserve">
+    <value>Approved</value>
+    <comment>Shown in Toast Notification, title line</comment>
+  </data>
+  <data name="Notifications_Toast_PullRequestRejected.Title" xml:space="preserve">
+    <value>Rejected</value>
+    <comment>Shown in Toast Notification, title line</comment>
+  </data>
 </root>
