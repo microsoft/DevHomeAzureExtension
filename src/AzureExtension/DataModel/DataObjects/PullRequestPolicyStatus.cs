@@ -43,8 +43,10 @@ public class PullRequestPolicyStatus
 
     public string HtmlUrl { get; set; } = string.Empty;
 
+    // Time of the last pull request update (push), if it exists.
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
 
+    // Time the pull request was created.
     public long TimeCreated { get; set; } = DataStore.NoForeignKey;
 
     public override string ToString() => ArtifactId;
@@ -114,7 +116,7 @@ public class PullRequestPolicyStatus
     public static PullRequestPolicyStatus Create(GitPullRequest pullRequest, string artifactId, long projectId, long repositoryId, PolicyStatus policyStatus, string reason, string htmlUrl)
     {
         // Get Current status of this pull request, and create a summary capture.
-        return new PullRequestPolicyStatus
+        var status = new PullRequestPolicyStatus
         {
             ArtifactId = artifactId,
             ProjectId = projectId,
@@ -126,8 +128,26 @@ public class PullRequestPolicyStatus
             TargetBranchName = pullRequest.TargetRefName,
             PullRequestStatusId = (long)pullRequest.Status,
             HtmlUrl = htmlUrl,
-            TimeCreated = DateTime.UtcNow.ToDataStoreInteger(),
+            TimeCreated = pullRequest.CreationDate.ToUniversalTime().ToDataStoreInteger(),
         };
+
+        // Set TimeUpdated to be the most recent commit push time if it exists.
+        if (pullRequest.LastMergeSourceCommit?.Push is not null)
+        {
+            status.TimeUpdated = pullRequest.LastMergeSourceCommit.Push.Date.ToUniversalTime().ToDataStoreInteger();
+            if (status.TimeUpdated < status.TimeCreated)
+            {
+                // First commits will often be pushed before the pull request is created. In this case,
+                // we want the TimeUpdated to be at a minimum the TimeCreated.
+                status.TimeUpdated = status.TimeCreated;
+            }
+        }
+        else
+        {
+            status.TimeUpdated = status.TimeCreated;
+        }
+
+        return status;
     }
 
     public static PullRequestPolicyStatus? Get(DataStore dataStore, string artifactId)
@@ -174,16 +194,15 @@ public class PullRequestPolicyStatus
         Log.Verbose(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 
-    public static void DeleteUnreferenced(DataStore dataStore)
+    public static void DeleteBefore(DataStore dataStore, DateTime date)
     {
-        // Delete any where the HeadSha has no match in pull requests, as that means either the pull request
-        // no longer exists, or it has pushed new changes and the HeadSha is different, triggering new checks.
-        // In either case it is safe to remove the associated PullRequestPolicyStatus.
-        var sql = @"DELETE FROM PullRequestPolicyStatus WHERE HeadSha NOT IN (SELECT HeadSha FROM PullRequest)";
+        // Delete notifications older than the date listed.
+        var sql = @"DELETE FROM PullRequestPolicyStatus WHERE TimeUpdated < $Time;";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
-        Log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        command.Parameters.AddWithValue("$Time", date.ToDataStoreInteger());
+        Log.Debug(DataStore.GetCommandLogMessage(sql, command));
         var rowsDeleted = command.ExecuteNonQuery();
-        Log.Verbose(DataStore.GetDeletedLogMessage(rowsDeleted));
+        Log.Debug(DataStore.GetDeletedLogMessage(rowsDeleted));
     }
 }

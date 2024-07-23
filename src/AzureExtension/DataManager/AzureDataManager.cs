@@ -46,9 +46,17 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
     // Most data that has not been updated within this time will be removed.
     private static readonly TimeSpan _dataRetentionTime = TimeSpan.FromDays(1);
 
+    // This is how long we will keep a notification in the datastore.
     private static readonly TimeSpan _notificationRetentionTime = TimeSpan.FromDays(7);
 
-    private static readonly TimeSpan _pullRequestStaleTime = TimeSpan.FromDays(1);
+    // Pull requests without a push in this amount of time are considered too old to
+    // generate new notifications.
+    private static readonly TimeSpan _pullRequestIsAncientTime = TimeSpan.FromDays(14);
+
+    // The amount of time we will retain a pull request status record. If a very old pull
+    // request is resurrected and updated beyond this time it will be treated as a new
+    // pull request as the previous status record will be gone.
+    private static readonly TimeSpan _pullRequestStatusRetentionTime = TimeSpan.FromDays(30);
 
     private static readonly string _lastUpdatedKeyName = "LastUpdated";
 
@@ -743,6 +751,22 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
             if (isDeveloper)
             {
+                // Pull requests do not fully populate commit information. If this is a developer pull request, fetch the
+                // additional commit information about the last merged source to determine when the last time the pull request
+                // was pushed a commit.
+                if (pullRequest.LastMergeSourceCommit is not null)
+                {
+                    var gitClient = connection.GetClient<GitHttpClient>();
+                    if (gitClient is not null)
+                    {
+                        var commitRef = await gitClient.GetCommitAsync(pullRequest.LastMergeSourceCommit.CommitId, repository.InternalId);
+                        if (commitRef is not null)
+                        {
+                            pullRequest.LastMergeSourceCommit = commitRef;
+                        }
+                    }
+                }
+
                 CreatePullRequestStatus(pullRequest, artifactId, project.Id, repository.Id, status, statusReason, htmlUrl);
             }
 
@@ -829,13 +853,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     private bool ShouldCreateRejectedNotification(PullRequestPolicyStatus curStatus, PullRequestPolicyStatus? prevStatus)
     {
-        // If the pull request is not recent, do not create a notification for it.
-        /* No UpdatedAt time on the pull request, hard to know
-        if ((DateTime.Now - curStatus.PullRequest.UpdatedAt) > PullRequestStaleTime)
+        // If the pull request is not recently updated, ignore it. This is to prevent ancient pull requests
+        // from showing notifications.
+        if ((DateTime.UtcNow - curStatus.UpdatedAt) > _pullRequestIsAncientTime)
         {
             return false;
         }
-        */
 
         // If the Pull Request is completed or abandoned then there is nothing to do.
         if (curStatus.CompletedOrAbandoned)
@@ -873,13 +896,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
     private bool ShouldCreateApprovalNotification(PullRequestPolicyStatus curStatus, PullRequestPolicyStatus? prevStatus)
     {
-        // If the pull request is not recent, do not create a notification for it.
-        /* No UpdatedAt time on the pull request, hard to know
-        if ((DateTime.Now - curStatus.PullRequest.UpdatedAt) > PullRequestStaleTime)
+        // If the pull request is not recently updated, ignore it. This is to prevent ancient pull requests
+        // from showing notifications.
+        if ((DateTime.UtcNow - curStatus.UpdatedAt) > _pullRequestIsAncientTime)
         {
             return false;
         }
-        */
 
         // If the Pull Request is completed or abandoned then there is nothing to do.
         if (curStatus.CompletedOrAbandoned)
@@ -1090,6 +1112,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         PullRequests.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
         WorkItemType.DeleteBefore(DataStore, DateTime.UtcNow - _dataRetentionTime);
         Notification.DeleteBefore(DataStore, DateTime.UtcNow - _notificationRetentionTime);
+        PullRequestPolicyStatus.DeleteBefore(DataStore, DateTime.UtcNow - _pullRequestStatusRetentionTime);
 
         // The following are not yet pruned, need to ensure there are no current key references
         // before deletion.

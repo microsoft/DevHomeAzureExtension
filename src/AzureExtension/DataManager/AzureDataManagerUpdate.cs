@@ -37,12 +37,13 @@ public partial class AzureDataManager
 
     public static async Task UpdateDeveloperPullRequests()
     {
-        Log.Debug($"Executing UpdateDeveloperPullRequests");
+        var log = Log.ForContext("SourceContext", $"UpdateDeveloperPullRequests");
+        log.Debug($"Executing UpdateDeveloperPullRequests");
 
         var cacheManager = CacheManager.GetInstance();
         if (cacheManager.UpdateInProgress)
         {
-            Log.Information("Cache is being updated, skipping Developer Pull Request Update");
+            log.Information("Cache is being updated, skipping Developer Pull Request Update");
             return;
         }
 
