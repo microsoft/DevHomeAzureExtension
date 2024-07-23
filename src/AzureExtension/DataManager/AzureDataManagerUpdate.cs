@@ -18,7 +18,7 @@ public partial class AzureDataManager
     {
         // Only update per the update interval.
         // This is intended to be dynamic in the future.
-        if (DateTime.Now - _lastUpdateTime < _updateInterval)
+        if (DateTime.UtcNow - _lastUpdateTime < _updateInterval)
         {
             return;
         }
@@ -32,7 +32,7 @@ public partial class AzureDataManager
             Log.Error(ex, "Update failed unexpectedly.");
         }
 
-        _lastUpdateTime = DateTime.Now;
+        _lastUpdateTime = DateTime.UtcNow;
     }
 
     public static async Task UpdateDeveloperPullRequests()
