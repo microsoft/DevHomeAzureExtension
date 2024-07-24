@@ -178,7 +178,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             LoginId = developerLogin,
             DeveloperId = DeveloperIdProvider.GetInstance().GetDeveloperIdFromAccountIdentifier(developerLogin),
             RequestOptions = options ?? RequestOptions.RequestOptionsDefault(),
-            OperationName = "UpdateDataForQueryAsync",
+            OperationName = nameof(UpdateDataForQueriesAsync),
             Requestor = requestor ?? Guid.NewGuid(),
         };
 
@@ -218,7 +218,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             DeveloperId = DeveloperIdProvider.GetInstance().GetDeveloperIdFromAccountIdentifier(developerLogin),
             PullRequestView = view,
             RequestOptions = options ?? RequestOptions.RequestOptionsDefault(),
-            OperationName = "UpdateDataForPullRequestsAsync",
+            OperationName = nameof(UpdateDataForPullRequestsAsync),
             Requestor = requestor ?? Guid.NewGuid(),
         };
 
@@ -621,7 +621,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                 repository,
                 parameters.DeveloperId.LoginId,
                 parameters.PullRequestView,
-                parameters.OperationName == "UpdateDataForDeveloperPullRequestsAsync");
+                parameters.OperationName == nameof(UpdateDataForDeveloperPullRequestsAsync));
         } // Foreach AzureUri
 
         return;
@@ -633,7 +633,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         var parameters = new DataStoreOperationParameters
         {
             RequestOptions = options ?? RequestOptions.RequestOptionsDefault(),
-            OperationName = "UpdatePullRequestsForLoggedInDeveloperIdsAsync",
+            OperationName = nameof(UpdatePullRequestsForLoggedInDeveloperIdsAsync),
             PullRequestView = PullRequestView.Mine,
             Requestor = requestor ?? Guid.NewGuid(),
         };
@@ -681,7 +681,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
                     Uris = uris,
                     DeveloperId = repositoryRef.Developer.DeveloperId,
                     RequestOptions = parameters.RequestOptions,
-                    OperationName = "UpdateDataForDeveloperPullRequestsAsync",
+                    OperationName = nameof(UpdateDataForDeveloperPullRequestsAsync),
                     PullRequestView = PullRequestView.Mine,
                     Requestor = parameters.Requestor,
                 };
