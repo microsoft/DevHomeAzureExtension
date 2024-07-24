@@ -47,6 +47,4 @@ public interface IAzureDataManager : IDisposable
     PullRequests? GetPullRequests(string organization, string project, string repositoryName, string developerId, PullRequestView view);
 
     PullRequests? GetPullRequests(AzureUri repositoryUri, string developerId, PullRequestView view);
-
-    PullRequests? GetPullRequestsForLoggedInDeveloperIds();
 }

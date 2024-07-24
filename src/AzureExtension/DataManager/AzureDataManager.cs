@@ -293,11 +293,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         return GetPullRequests(repositoryUri.Organization, repositoryUri.Project, repositoryUri.Repository, developerId, view);
     }
 
-    public PullRequests? GetPullRequestsForLoggedInDeveloperIds()
-    {
-        return null;
-    }
-
     private async Task UpdateDataForQueriesAsync(DataStoreOperationParameters parameters)
     {
         _log.Debug($"Inside UpdateDataForQueriesAsync with Parameters: {parameters}");

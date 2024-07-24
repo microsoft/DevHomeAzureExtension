@@ -45,7 +45,6 @@ public class Identity
     public string Avatar { get; set; } = string.Empty;
 
     // The DeveloperLoginId associated with this identity, if one exists.
-    // Empty means there is no associated LoggedInDeveloperId.
     public string? DeveloperLoginId { get; set; }
 
     [JsonIgnore]
