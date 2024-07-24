@@ -46,7 +46,7 @@ public class Identity
 
     // The DeveloperLoginId associated with this identity, if one exists.
     // Empty means there is no associated LoggedInDeveloperId.
-    public string DeveloperLoginId { get; set; } = string.Empty;
+    public string? DeveloperLoginId { get; set; }
 
     [JsonIgnore]
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
@@ -73,7 +73,7 @@ public class Identity
             }
 
             var devIdProvider = DeveloperIdProvider.GetInstance();
-            return devIdProvider.GetDeveloperIdFromAccountIdentifier(DeveloperLoginId);
+            return devIdProvider.GetDeveloperIdFromAccountIdentifier(DeveloperLoginId!);
         }
     }
 
@@ -163,7 +163,7 @@ public class Identity
         };
     }
 
-    public static Identity AddOrUpdateIdentity(DataStore dataStore, Identity identity, string developerLoginId = "")
+    public static Identity AddOrUpdateIdentity(DataStore dataStore, Identity identity, string? developerLoginId = null)
     {
         // Check for existing Identity data.
         var existingIdentity = GetByInternalId(dataStore, identity.InternalId);
@@ -171,7 +171,6 @@ public class Identity
         {
             identity.Id = existingIdentity.Id;
 
-            // If this is a developer, set to developer, but do not set it.
             // We presume not a developer unless it is explicitly set.
             if (!string.IsNullOrEmpty(developerLoginId))
             {

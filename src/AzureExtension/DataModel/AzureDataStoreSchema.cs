@@ -30,7 +30,7 @@ public class AzureDataStoreSchema : IDataStoreSchema
         "Name TEXT NOT NULL COLLATE NOCASE," +
         "InternalId TEXT NOT NULL," +
         "Avatar TEXT NOT NULL COLLATE NOCASE," +
-        "DeveloperLoginId TEXT NOT NULL," +
+        "DeveloperLoginId TEXT," +
         "TimeUpdated INTEGER NOT NULL" +
     ");" +
 

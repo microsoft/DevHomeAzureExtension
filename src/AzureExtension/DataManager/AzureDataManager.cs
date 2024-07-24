@@ -676,8 +676,6 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             foreach (var repositoryRef in repositoryReferences)
             {
                 var uri = new AzureUri(repositoryRef.Repository.CloneUrl);
-                var developerId = repositoryRef.Developer.DeveloperLoginId;
-
                 var uris = new List<AzureUri>
                 {
                     new(repositoryRef.Repository.CloneUrl),
