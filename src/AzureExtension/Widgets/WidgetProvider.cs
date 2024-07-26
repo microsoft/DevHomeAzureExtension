@@ -9,7 +9,13 @@ namespace DevHomeAzureExtension.Widgets;
 
 [ComVisible(true)]
 [ClassInterface(ClassInterfaceType.None)]
+#if CANARY_BUILD
+[Guid("5C844D91-B497-4D59-AE73-CDC895B1EB2F")]
+#elif STABLE_BUILD
 [Guid("B91B13BB-B3B4-4F2E-9EF9-554757F33E1C")]
+#else
+[Guid("1A7EFA8B-2CFA-4130-93B0-92BC0230C84E")]
+#endif
 public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 {
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(WidgetProvider));

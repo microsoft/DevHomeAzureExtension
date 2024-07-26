@@ -717,7 +717,8 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
             // ArtifactId is null in the pull request object and it is not the correct object. The ArtifactId for the
             // Policy Evaluations API is this:
-            // vstfs:///CodeReview/CodeReviewId/{projectId}/{pullRequestId}
+            //     vstfs:///CodeReview/CodeReviewId/{projectId}/{pullRequestId}
+            // Documentation: https://learn.microsoft.com/en-us/dotnet/api/microsoft.teamfoundation.policy.webapi.policyevaluationrecord.artifactid
             var artifactId = $"vstfs:///CodeReview/CodeReviewId/{project.InternalId}/{pullRequest.PullRequestId}";
 
             // Url in the GitPullRequest object is a REST Api Url, and the links lack an html Url, so we must build it.
@@ -868,7 +869,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             {
                 // If the previous status was not failed, or the failure was for a different
                 // reason, then create a new notification.
-                if (!prevStatus.Rejected || curStatus.PolicyStatusReason != prevStatus.PolicyStatusReason)
+                if (!prevStatus.Rejected || (curStatus.PolicyStatusReason != prevStatus.PolicyStatusReason))
                 {
                     return true;
                 }

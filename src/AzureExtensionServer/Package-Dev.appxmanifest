@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" xmlns:genTemplate="http://schemas.microsoft.com/appx/developer/templatestudio" xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10" xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10" IgnorableNamespaces="uap uap3 rescap genTemplate">
-  <Identity Name="Microsoft.Windows.DevHomeAzureExtension" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="0.0.0.0" />
+  <Identity Name="Microsoft.Windows.DevHomeAzureExtension.Dev" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="0.0.0.0" />
   <Properties>
-    <DisplayName>Dev Home Azure Extension</DisplayName>
+    <DisplayName>Dev Home Azure Extension (Dev)</DisplayName>
     <PublisherDisplayName>Microsoft Corporation</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -14,7 +14,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="DevHomeAzureExtension.exe" EntryPoint="$targetentrypoint$">
-      <uap:VisualElements DisplayName="ms-resource:AppDisplayNameStable" Description="ms-resource:AppDescription" AppListEntry="none" BackgroundColor="transparent" Square150x150Logo="Assets\MedTile.png" Square44x44Logo="Assets\AppList.png">
+      <uap:VisualElements DisplayName="ms-resource:AppDisplayNameDev" Description="ms-resource:AppDescription" AppListEntry="none" BackgroundColor="transparent" Square150x150Logo="Assets\MedTile.png" Square44x44Logo="Assets\AppList.png">
         <uap:DefaultTile Wide310x150Logo="Assets\WideTile.png" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
@@ -22,23 +22,23 @@
         <com:Extension Category="windows.comServer">
           <com:ComServer>
             <com:ExeServer Executable="DevHomeAzureExtension.exe" Arguments="-RegisterProcessAsComServer" DisplayName="Azure Provider Widget">
-              <com:Class Id="B91B13BB-B3B4-4F2E-9EF9-554757F33E1C" DisplayName="Azure Provider Widget" />
+              <com:Class Id="1A7EFA8B-2CFA-4130-93B0-92BC0230C84E" DisplayName="Azure Provider Widget" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
         <com:Extension Category="windows.comServer">
           <com:ComServer>
             <com:ExeServer Executable="DevHomeAzureExtension.exe" Arguments="-RegisterProcessAsComServer" DisplayName="Azure Extension Provider">
-              <com:Class Id="182AF84F-D5E1-469C-9742-536EFEA94630" DisplayName="Azure Extension Provider" />
+              <com:Class Id="28A2AB40-26EA-48BF-A8BC-49FEC9B7C18C" DisplayName="Azure Extension Provider" />
             </com:ExeServer>
           </com:ComServer>
         </com:Extension>
         <uap3:Extension Category="windows.appExtension">
-          <uap3:AppExtension Name="com.microsoft.devhome" Id="PG-SP-ID" PublicFolder="Public" DisplayName="ms-resource:AppDisplayNameStable" Description="ms-resource:AppDescription">
+          <uap3:AppExtension Name="com.microsoft.devhome" Id="PG-SP-ID" PublicFolder="Public" DisplayName="ms-resource:AppDisplayNameDev" Description="ms-resource:AppDescription">
             <uap3:Properties>
               <DevHomeProvider>
                 <Activation>
-                  <CreateInstance ClassId="182AF84F-D5E1-469C-9742-536EFEA94630" />
+                  <CreateInstance ClassId="28A2AB40-26EA-48BF-A8BC-49FEC9B7C18C" />
                 </Activation>
                 <SupportedInterfaces>
                   <DeveloperId />
@@ -62,7 +62,7 @@
           </com:ComServer>
         </com:Extension>
         <uap3:Extension Category="windows.appExtension">
-          <uap3:AppExtension Name="com.microsoft.windows.widgets" DisplayName="ms-resource:WidgetProviderDisplayNameStable" Id="01" PublicFolder="Public">
+          <uap3:AppExtension Name="com.microsoft.windows.widgets" DisplayName="ms-resource:WidgetProviderDisplayNameDev" Id="01" PublicFolder="Public">
             <uap3:Properties>
               <WidgetProvider>
                 <ProviderIcons>
@@ -70,7 +70,7 @@
                 </ProviderIcons>
                 <Activation>
                   <!-- Apps exports COM interface which implements IWidgetProvider -->
-                  <CreateInstance ClassId="B91B13BB-B3B4-4F2E-9EF9-554757F33E1C" />
+                  <CreateInstance ClassId="1A7EFA8B-2CFA-4130-93B0-92BC0230C84E" />
                 </Activation>
                 <Definitions>
                   <Definition Id="Azure_QueryList" DisplayName="Query Result" Description="Azure Query List Widget" IsCustomizable="true">
@@ -148,43 +148,6 @@
                     </ThemeResources>
                   </Definition>
                   <Definition Id="Azure_PullRequests" DisplayName="Pull Requests" Description="Azure DevOps Pull Requests Widget" IsCustomizable="true">
-                    <Capabilities>
-                      <Capability>
-                        <Size Name="small" />
-                      </Capability>
-                      <Capability>
-                        <Size Name="medium" />
-                      </Capability>
-                      <Capability>
-                        <Size Name="large" />
-                      </Capability>
-                    </Capabilities>
-                    <ThemeResources>
-                      <Icons>
-                        <Icon Path="Widgets\Assets\azureIcon.png" />
-                      </Icons>
-                      <Screenshots>
-                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="Dev Home icon" />
-                      </Screenshots>
-                      <DarkMode>
-                        <Icons>
-                          <Icon Path="Widgets\Assets\azureIcon.png" />
-                        </Icons>
-                        <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="Dev Home icon" />
-                        </Screenshots>
-                      </DarkMode>
-                      <LightMode>
-                        <Icons>
-                          <Icon Path="Widgets\Assets\azureIcon.png" />
-                        </Icons>
-                        <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="Dev Home icon" />
-                        </Screenshots>
-                      </LightMode>
-                    </ThemeResources>
-                  </Definition>
-                  <Definition Id="Azure_MyPullRequests" DisplayName="My Pull Requests" Description="Azure DevOps Developer Pull Requests Widget" IsCustomizable="false">
                     <Capabilities>
                       <Capability>
                         <Size Name="small" />

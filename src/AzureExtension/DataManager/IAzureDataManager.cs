@@ -42,8 +42,11 @@ public interface IAzureDataManager : IDisposable
 
     IEnumerable<Repository> GetDeveloperRepositories();
 
+<<<<<<< HEAD
     IEnumerable<PullRequests> GetPullRequestsForLoggedInDeveloperIds();
 
+=======
+>>>>>>> main
     // Repository name may not be unique across projects, and projects may not be unique across
     // organizations, so we need all three to identify the repository.
     PullRequests? GetPullRequests(string organization, string project, string repositoryName, string developerId, PullRequestView view);
