@@ -37,7 +37,7 @@ public class PullRequests
 
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
 
-    public override string ToString() => DeveloperLogin + "/" + Repository.Name;
+    public override string ToString() => $"{DeveloperLogin}/{Repository.Name}";
 
     [Write(false)]
     private DataStore? DataStore { get; set; }
