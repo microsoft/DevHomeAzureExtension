@@ -12,6 +12,7 @@ public enum DataManagerUpdateKind
     Error,
     Cache,
     Cancel,
+    Developer,
 }
 
 public class DataManagerUpdateEventArgs : EventArgs

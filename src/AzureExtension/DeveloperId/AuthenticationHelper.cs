@@ -287,7 +287,7 @@ public class AuthenticationHelper : IAuthenticationHelper
 
     public async Task<AuthenticationResult?> ObtainTokenForLoggedInDeveloperAccount(string[] scopes, string loginId)
     {
-        _log.Information($"ObtainTokenForLoggedInDeveloperAccount");
+        _log.Debug($"ObtainTokenForLoggedInDeveloperAccount");
         AuthenticationResult = null;
 
         var existingAccount = await GetDeveloperAccountFromCache(loginId);
