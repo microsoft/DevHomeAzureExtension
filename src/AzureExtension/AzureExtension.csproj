@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Widgets\AzurePullRequestsDeveloperWidget.cs~RF26ed9c4.TMP" />
     <None Remove="Widgets\Templates\AzureLoadingTemplate.json" />
     <None Remove="Widgets\Templates\AzurePullRequestsConfigurationTemplate.json" />
     <None Remove="Widgets\Templates\AzurePullRequestsTemplate.json" />

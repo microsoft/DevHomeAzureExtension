@@ -12,6 +12,7 @@ public enum CacheManagerUpdateKind
     Cleared,
     Error,
     Cancel,
+    Account,
 }
 
 public class CacheManagerUpdateEventArgs : EventArgs

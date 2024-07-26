@@ -165,7 +165,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
 
             if (e.Kind == DataManagerUpdateKind.Error)
             {
-                DataState = WidgetDataState.Failed;
+                DataState = WidgetDataState.FailedUpdate;
                 DataErrorMessage = e.Context.ErrorMessage;
 
                 // The DataManager log will have detailed exception info, use the short message.
@@ -176,6 +176,15 @@ internal sealed class AzureQueryListWidget : AzureWidget
             DataState = WidgetDataState.Okay;
             DataErrorMessage = string.Empty;
             LoadContentData();
+        }
+
+        // If we failed data state, any data update might be an opportunity to retry since any
+        // update means a transaction has completed.
+        if (DataState == WidgetDataState.FailedRead)
+        {
+            Log.Debug("Retrying datastore read.");
+            LoadContentData();
+            return;
         }
     }
 
@@ -331,7 +340,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
         catch (Exception e)
         {
             Log.Error(e, "Error retrieving data.");
-            DataState = WidgetDataState.Failed;
+            DataState = WidgetDataState.FailedRead;
             return;
         }
     }

@@ -36,6 +36,8 @@ public abstract class AzureWidget : WidgetImpl
 
     protected string DeveloperLoginId { get; set; } = string.Empty;
 
+    protected bool DeveloperIdLoginRequired { get; set; } = true;
+
     protected bool CanSave
     {
         get; set;
@@ -181,6 +183,8 @@ public abstract class AzureWidget : WidgetImpl
 
     public override void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
     {
+        // Set CanSave to false so user will have to Submit again before Saving.
+        CanSave = false;
         SavedConfigurationData = ConfigurationData;
         SetConfigure();
     }
@@ -235,6 +239,13 @@ public abstract class AzureWidget : WidgetImpl
             return false;
         }
 
+        if (!DeveloperIdLoginRequired)
+        {
+            // At least one user is logged in, and this widget does not require a specific
+            // DeveloperId so we are in a good state.
+            return true;
+        }
+
         if (string.IsNullOrEmpty(DeveloperLoginId))
         {
             // User has not yet chosen a DeveloperId, but there is at least one available, so the
@@ -283,7 +294,7 @@ public abstract class AzureWidget : WidgetImpl
             return;
         }
 
-        if (!Pinned || !CanSave)
+        if (SupportsCustomization && (!Pinned || !CanSave))
         {
             SetConfigure();
             return;
