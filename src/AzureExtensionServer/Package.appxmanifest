@@ -184,7 +184,7 @@
                       </LightMode>
                     </ThemeResources>
                   </Definition>
-                  <Definition Id="Azure_MyPullRequests" DisplayName="My Pull Requests" Description="Azure DevOps Developer Pull Requests Widget" IsCustomizable="false">
+                  <Definition Id="Azure_MyPRs" DisplayName="My Pull Requests" Description="Azure DevOps Developer Pull Requests Widget" IsCustomizable="false">
                     <Capabilities>
                       <Capability>
                         <Size Name="small" />

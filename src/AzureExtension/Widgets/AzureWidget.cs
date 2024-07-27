@@ -38,6 +38,8 @@ public abstract class AzureWidget : WidgetImpl
 
     protected bool DeveloperIdLoginRequired { get; set; } = true;
 
+    protected bool LoadedDataSuccessfully { get; set; }
+
     protected bool CanSave
     {
         get; set;
@@ -158,6 +160,7 @@ public abstract class AzureWidget : WidgetImpl
                     SavedConfigurationData = string.Empty;
                     ContentData = EmptyJson;
                     DataState = WidgetDataState.Unknown;
+                    LoadedDataSuccessfully = false;
                     SetActive();
                 }
 
