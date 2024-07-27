@@ -59,6 +59,12 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
 
                 // The DataManager log will have detailed exception info, use the short message.
                 Log.Error($"Developer pull request update failed. {e.Context.ErrorMessage}");
+
+                if (!LoadedDataSuccessfully)
+                {
+                    SetLoading();
+                }
+
                 return;
             }
 
@@ -104,6 +110,11 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
 
     public override void LoadContentData()
     {
+        if (!LoadedDataSuccessfully)
+        {
+            SetLoading();
+        }
+
         try
         {
             // This can throw if DataStore is not connected.
@@ -169,12 +180,18 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
             itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
 
             ContentData = itemsData.ToJsonString();
+            DataState = WidgetDataState.Okay;
             UpdateActivityState();
          }
         catch (Exception e)
         {
             Log.Error(e, "Error retrieving data.");
             DataState = WidgetDataState.FailedRead;
+            if (!LoadedDataSuccessfully)
+            {
+                SetLoading();
+            }
+
             return;
         }
     }

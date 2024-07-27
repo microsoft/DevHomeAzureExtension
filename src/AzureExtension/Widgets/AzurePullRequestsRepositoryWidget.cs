@@ -243,13 +243,13 @@ internal sealed class AzurePullRequestsRepositoryWidget : AzurePullRequestsBaseW
 
     public override void LoadContentData()
     {
+        if (!LoadedDataSuccessfully)
+        {
+            SetLoading();
+        }
+
         try
         {
-            if (!LoadedDataSuccessfully)
-            {
-                SetLoading();
-            }
-
             var developerId = GetDevId(DeveloperLoginId);
             if (developerId == null)
             {
@@ -300,6 +300,11 @@ internal sealed class AzurePullRequestsRepositoryWidget : AzurePullRequestsBaseW
 
                     itemsArray.Add(item);
                 }
+            }
+
+            if (string.IsNullOrEmpty(WidgetTitle))
+            {
+                WidgetTitle = azureUri.Repository;
             }
 
             itemsData.Add("maxItemsDisplayed", AzureDataManager.PullRequestResultLimit);

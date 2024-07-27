@@ -760,6 +760,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
             pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
             pullRequestObjFields.Add("Title", pullRequest.Title);
+            pullRequestObjFields.Add("RepositoryId", repository.Id);
             pullRequestObjFields.Add("Status", pullRequest.Status);
             pullRequestObjFields.Add("PolicyStatus", status.ToString());
             pullRequestObjFields.Add("PolicyStatusReason", statusReason);
