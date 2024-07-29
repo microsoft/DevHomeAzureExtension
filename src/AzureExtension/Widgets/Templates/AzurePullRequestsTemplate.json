@@ -66,6 +66,19 @@
                 }
               ],
               "width": "stretch"
+            },
+            {
+              "type": "Column",
+              "width": "auto",
+              "items": [
+                {
+                  "type": "Image",
+                  "style": "Person",
+                  "url": "data:image/png;base64,${status_icon}",
+                  "height": "15px"
+                }
+              ],
+              "verticalContentAlignment": "Center"
             }
           ]
         },
