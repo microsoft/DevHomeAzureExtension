@@ -726,4 +726,9 @@
     <value>Rejected</value>
     <comment>Shown in Toast Notification, title line</comment>
   </data>
+  <data name="Widget_Template.LoadingFindingPullRequests" xml:space="preserve">
+    <value>Finding your pull requests.
+This may take several minutes.</value>
+    <comment>Shown in Widget</comment>
+  </data>
 </root>

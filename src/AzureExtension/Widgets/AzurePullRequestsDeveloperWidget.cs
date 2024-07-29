@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Client;
 using DevHomeAzureExtension.DataManager;
@@ -22,27 +23,7 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
         SupportsCustomization = false;
         DeveloperIdLoginRequired = false;
         _cacheManager = CacheManager.GetInstance();
-        _cacheManager.OnUpdate += HandleCacheManagerUpdate;
-    }
-
-    ~AzurePullRequestsDeveloperWidget()
-    {
-        try
-        {
-            _cacheManager.OnUpdate -= HandleCacheManagerUpdate;
-        }
-        catch
-        {
-            // Best effort.
-        }
-    }
-
-    private void HandleCacheManagerUpdate(object? source, CacheManagerUpdateEventArgs e)
-    {
-        if (e.Kind == CacheManagerUpdateKind.Updated)
-        {
-            ////
-        }
+        LoadingMessage = Resources.GetResource("Widget_Template/LoadingFindingPullRequests", Log);
     }
 
     // Data loading methods
@@ -110,25 +91,16 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
 
     public override void LoadContentData()
     {
-        if (!LoadedDataSuccessfully)
+        if (_cacheManager.NeverUpdated)
         {
             SetLoading();
+            return;
         }
 
         try
         {
             // This can throw if DataStore is not connected.
             var pullRequestsList = DataManager!.GetPullRequestsForLoggedInDeveloperIds();
-
-            if (!pullRequestsList.Any() && _cacheManager.UpdateInProgress)
-            {
-                // First time load might not find any pull requests becuase we haven't updated the
-                // repository cache yet.
-                Log.Debug("Cache is being updated, displaying loading page.");
-                SetLoading();
-                return;
-            }
-
             var itemsData = new JsonObject();
             var itemsArray = new JsonArray();
 
@@ -164,20 +136,20 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
                 }
             }
 
-            try
+            // Sort all pull requests by creation date, descending so newer are at the top of the list.
+            var sortedItems = itemsArray.OrderByDescending(x => x?["dateTicks"]?.GetValue<long>());
+            var sortedItemsArray = new JsonArray();
+            foreach (var item in sortedItems)
             {
-                // Sort all pull requests by creation date, descending so newer are at the top of the list.
-                var sortedItems = itemsArray.OrderByDescending(x => x?["dateTicks"]?.GetValue<long>());
-            }
-            catch (Exception innerJsonEx)
-            {
-                Log.Error(innerJsonEx, $"Json sort failed {innerJsonEx.Message}");
+                // Parent is read-only and fixed, use deep clone to re-parent the node.
+                var itemClone = item?.DeepClone();
+                sortedItemsArray.Add(itemClone);
             }
 
             itemsData.Add("maxItemsDisplayed", AzureDataManager.PullRequestResultLimit);
-            itemsData.Add("items", itemsArray);
+            itemsData.Add("items", sortedItemsArray);
             itemsData.Add("widgetTitle", WidgetTitle);
-            itemsData.Add("is_loading_data", DataState == WidgetDataState.Unknown);
+            itemsData.Add("is_loading_data", !LoadedDataSuccessfully);
 
             ContentData = itemsData.ToJsonString();
             DataState = WidgetDataState.Okay;
@@ -187,6 +159,7 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
         {
             Log.Error(e, "Error retrieving data.");
             DataState = WidgetDataState.FailedRead;
+
             if (!LoadedDataSuccessfully)
             {
                 SetLoading();
@@ -213,7 +186,7 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
         {
             WidgetPageState.SignIn => GetSignIn(),
             WidgetPageState.Content => ContentData,
-            WidgetPageState.Loading => EmptyJson,
+            WidgetPageState.Loading => GetLoadingMessage(),
             _ => throw new NotImplementedException(Page.GetType().Name),
         };
     }

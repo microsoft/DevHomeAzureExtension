@@ -7,11 +7,11 @@
             "type": "Container",
             "items": [
                 {
-                    "type": "TextBlock",
-                    "text": "%Widget_Template/Loading%",
-                    "wrap": true,
-                    "weight": "bolder",
-                    "horizontalAlignment": "Center"
+                  "type": "TextBlock",
+                  "text": "${if(loadingMessage, loadingMessage, '%Widget_Template/Loading%')}",
+                  "wrap": true,
+                  "weight": "bolder",
+                  "horizontalAlignment": "Center"
                 }
             ],
             "horizontalAlignment": "Center",

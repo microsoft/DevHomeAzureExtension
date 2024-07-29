@@ -34,6 +34,8 @@ public abstract class AzureWidget : WidgetImpl
 
     protected string ContentData { get; set; } = EmptyJson;
 
+    protected string LoadingMessage { get; set; } = string.Empty;
+
     protected string DeveloperLoginId { get; set; } = string.Empty;
 
     protected bool DeveloperIdLoginRequired { get; set; } = true;
@@ -263,6 +265,19 @@ public abstract class AzureWidget : WidgetImpl
         }
 
         return false;
+    }
+
+    public virtual string GetLoadingMessage()
+    {
+        if (string.IsNullOrEmpty(LoadingMessage))
+        {
+            return EmptyJson;
+        }
+
+        return new JsonObject
+        {
+            { "loadingMessage", LoadingMessage },
+        }.ToJsonString();
     }
 
     protected DeveloperId.DeveloperId? GetDevId(string login)

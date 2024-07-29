@@ -32,6 +32,8 @@ public class CacheManager : IDisposable
 
     public bool UpdateInProgress { get; private set; }
 
+    public bool NeverUpdated => LastUpdated == DateTime.MinValue;
+
     public DateTime LastUpdated
     {
         get => GetLastUpdated();

@@ -119,7 +119,7 @@ internal abstract class AzurePullRequestsBaseWidget : AzureWidget
             WidgetPageState.SignIn => GetSignIn(),
             WidgetPageState.Configure => GetConfiguration(string.Empty),
             WidgetPageState.Content => ContentData,
-            WidgetPageState.Loading => EmptyJson,
+            WidgetPageState.Loading => GetLoadingMessage(),
             _ => throw new NotImplementedException(Page.GetType().Name),
         };
     }
