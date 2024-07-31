@@ -104,10 +104,15 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
             var itemsData = new JsonObject();
             var itemsArray = new JsonArray();
 
-            foreach (var pullRequests in pullRequestsList)
+            foreach (var pullRequests in pullRequestsList.Where(x => x is not null))
             {
-                var pullRequestsResults = pullRequests is null ? [] : JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
-                foreach (var element in pullRequestsResults!)
+                var pullRequestsResults = JsonConvert.DeserializeObject<Dictionary<string, object>>(pullRequests.Results);
+                if (pullRequestsResults is null)
+                {
+                    continue;
+                }
+
+                foreach (var element in pullRequestsResults)
                 {
                     var workItem = JsonObject.Parse(element.Value.ToStringInvariant());
 
@@ -137,7 +142,7 @@ internal sealed class AzurePullRequestsDeveloperWidget : AzurePullRequestsBaseWi
             }
 
             // Sort all pull requests by creation date, descending so newer are at the top of the list.
-            var sortedItems = itemsArray.OrderByDescending(x => x?["dateTicks"]?.GetValue<long>());
+            var sortedItems = itemsArray.Where(x => x is not null).OrderByDescending(x => x?["dateTicks"]?.GetValue<long>());
             var sortedItemsArray = new JsonArray();
             foreach (var item in sortedItems)
             {

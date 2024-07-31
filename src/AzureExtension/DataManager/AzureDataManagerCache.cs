@@ -24,7 +24,7 @@ public partial class AzureDataManager
 
     private static readonly int _pullRequestRepositoryLimit = 25;
 
-    private static readonly TimeSpan _orgUpdateSleepTime = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan _orgUpdateDelayTime = TimeSpan.FromSeconds(5);
 
     public async Task UpdateDataForAccountsAsync(RequestOptions? options = null, Guid? requestor = null)
     {
@@ -119,10 +119,10 @@ public partial class AzureDataManager
                     SendAccountUpdateEvent(_log, this, requestorGuid, orgUpdateContext, firstException);
                     ++accountsUpdated;
 
-                    // Sleep to allow widgets and other code to respond to the event and use the database.
+                    // Delay to allow widgets and other code to respond to the event and use the database.
                     // This is to prevent DOS'ing widgets using the datastore during large cache updates of
                     // many organizations.
-                    Thread.Sleep(_orgUpdateSleepTime);
+                    await Task.Delay(_orgUpdateDelayTime);
                 }
                 catch (Exception ex) when (IsCancelException(ex))
                 {
