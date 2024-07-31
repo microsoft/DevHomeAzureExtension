@@ -122,7 +122,7 @@ public partial class AzureDataManager
                     // Delay to allow widgets and other code to respond to the event and use the database.
                     // This is to prevent DOS'ing widgets using the datastore during large cache updates of
                     // many organizations.
-                    await Task.Delay(_orgUpdateDelayTime);
+                    await Task.Delay(_orgUpdateDelayTime, cancellationToken);
                 }
                 catch (Exception ex) when (IsCancelException(ex))
                 {
