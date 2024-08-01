@@ -145,4 +145,40 @@
     <value>Azure (Preview)</value>
     <comment>The display name of our widgets provider</comment>
   </data>
+  <data name="Widget_Description_MyPullRequets" xml:space="preserve">
+    <value>Azure DevOps All My Pull Requests Widget</value>
+    <comment>Widget Description</comment>
+  </data>
+  <data name="Widget_Description_PullRequests" xml:space="preserve">
+    <value>Azure DevOps Pull Requests Widget</value>
+    <comment>Widget Description</comment>
+  </data>
+  <data name="Widget_Description_QueryList" xml:space="preserve">
+    <value>Azure Query List Widget</value>
+    <comment>Widget Description</comment>
+  </data>
+  <data name="Widget_Description_QueryTiles" xml:space="preserve">
+    <value>Azure DevOps Query Tiles Widget</value>
+    <comment>Widget Description</comment>
+  </data>
+  <data name="Widget_DisplayName_MyPullRequests" xml:space="preserve">
+    <value>My Pull Requests</value>
+    <comment>Widget Display Name</comment>
+  </data>
+  <data name="Widget_DisplayName_PullRequests" xml:space="preserve">
+    <value>Pull Requests</value>
+    <comment>Widget Display Name</comment>
+  </data>
+  <data name="Widget_DisplayName_QueryList" xml:space="preserve">
+    <value>Query Result</value>
+    <comment>Widget Display Name</comment>
+  </data>
+  <data name="Widget_DisplayName_QueryTiles" xml:space="preserve">
+    <value>Query Tiles</value>
+    <comment>Widget Display Name</comment>
+  </data>
+  <data name="Widget_Screenshot_DisplayAltText" xml:space="preserve">
+    <value>Dev Home icon</value>
+    <comment>Alternate text for screenshot image</comment>
+  </data>
 </root>
