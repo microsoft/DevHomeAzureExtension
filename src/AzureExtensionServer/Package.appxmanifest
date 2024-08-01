@@ -90,14 +90,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                        <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryList" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotDark.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryList" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -105,7 +105,7 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryList" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
@@ -127,14 +127,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                        <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryTiles" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryTiles" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -142,7 +142,7 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryTiles" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
@@ -164,14 +164,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_PullRequests" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_PullRequests" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -179,7 +179,7 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_PullRequests" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
@@ -201,14 +201,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_MyPullRequests" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_MyPullRequests" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -216,7 +216,7 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_Screenshot_DisplayAltText" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_MyPullRequests" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>

@@ -177,8 +177,17 @@
     <value>Query Tiles</value>
     <comment>Widget Display Name</comment>
   </data>
-  <data name="Widget_Screenshot_DisplayAltText" xml:space="preserve">
-    <value>Dev Home icon</value>
+  <data name="Widget_ScreenshotAltDisplay_MyPullRequests" xml:space="preserve">
+    <value>My Pull Requests widget preview image</value>
+  </data>
+  <data name="Widget_ScreenshotAltDisplay_PullRequests" xml:space="preserve">
+    <value>Pull Requests widget preview image</value>
+  </data>
+  <data name="Widget_ScreenshotAltDisplay_QueryList" xml:space="preserve">
+    <value>Query List widget preview image</value>
     <comment>Alternate text for screenshot image</comment>
+  </data>
+  <data name="Widget_ScreenshotAltDisplay_QueryTiles" xml:space="preserve">
+    <value>Query Tiles widget preview image</value>
   </data>
 </root>
