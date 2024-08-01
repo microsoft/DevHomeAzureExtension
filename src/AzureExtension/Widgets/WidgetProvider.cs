@@ -25,7 +25,8 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         _log.Debug("Provider Constructed");
         _widgetDefinitionRegistry.Add("Azure_QueryList", new WidgetImplFactory<AzureQueryListWidget>());
         _widgetDefinitionRegistry.Add("Azure_QueryTiles", new WidgetImplFactory<AzureQueryTilesWidget>());
-        _widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsWidget>());
+        _widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsRepositoryWidget>());
+        _widgetDefinitionRegistry.Add("Azure_MyPRs", new WidgetImplFactory<AzurePullRequestsDeveloperWidget>());
         RecoverRunningWidgets();
     }
 

@@ -11,6 +11,7 @@ public enum DataManagerUpdateKind
     PullRequest,
     Error,
     Cache,
+    Account,
     Cancel,
     Developer,
 }

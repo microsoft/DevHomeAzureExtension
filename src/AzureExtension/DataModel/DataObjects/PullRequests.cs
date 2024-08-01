@@ -154,6 +154,23 @@ public class PullRequests
         return Get(dataStore, project.Id, repository.Id, developerLogin, view);
     }
 
+    public static IEnumerable<PullRequests> GetAllForDeveloper(DataStore dataStore)
+    {
+        var sql = @"SELECT * FROM PullRequests WHERE ViewId = @ViewId;";
+        var param = new
+        {
+            ViewId = (long)PullRequestView.Mine,
+        };
+
+        var pullRequestsSet = dataStore.Connection!.Query<PullRequests>(sql, param, null) ?? [];
+        foreach (var pullRequestsEntry in pullRequestsSet)
+        {
+            pullRequestsEntry.DataStore = dataStore;
+        }
+
+        return pullRequestsSet;
+    }
+
     public static PullRequests GetOrCreate(DataStore dataStore, long repositoryId, long projectId, string developerId, PullRequestView view, string pullRequests)
     {
         var newDeveloperPullRequests = Create(repositoryId, projectId, developerId, view, pullRequests);

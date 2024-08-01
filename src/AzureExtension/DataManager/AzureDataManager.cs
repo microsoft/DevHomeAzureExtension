@@ -627,6 +627,12 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
         return;
     }
 
+    public IEnumerable<PullRequests> GetPullRequestsForLoggedInDeveloperIds()
+    {
+        ValidateDataStore();
+        return PullRequests.GetAllForDeveloper(DataStore);
+    }
+
     public async Task UpdatePullRequestsForLoggedInDeveloperIdsAsync(RequestOptions? options = null, Guid? requestor = null)
     {
         ValidateDataStore();
@@ -653,50 +659,35 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
             return;
         }
 
-        SendPullRequestUpdateEvent(_log, this, parameters.Requestor, context);
+        SendDeveloperUpdateEvent(_log, this, parameters.Requestor, context);
     }
 
     private async Task UpdateDataForDeveloperPullRequestsAsync(DataStoreOperationParameters parameters)
     {
         _log.Debug($"Inside UpdateDataForDeveloperPullRequestsAsync with Parameters: {parameters}");
 
-        dynamic context = new ExpandoObject();
-        var contextDict = (IDictionary<string, object>)context;
-        contextDict.Add("Requestor", parameters.Requestor);
-
-        try
+        // This is a loop over a subset of repositories with a specific developer ID and pull request view specified.
+        var repositoryReferences = RepositoryReference.GetAll(DataStore);
+        foreach (var repositoryRef in repositoryReferences)
         {
-            // This is a loop over a subset of repositories with a specific developer ID and pull request view specified.
-            var repositoryReferences = RepositoryReference.GetAll(DataStore);
-            foreach (var repositoryRef in repositoryReferences)
+            var uri = new AzureUri(repositoryRef.Repository.CloneUrl);
+            var uris = new List<AzureUri>
             {
-                var uri = new AzureUri(repositoryRef.Repository.CloneUrl);
-                var uris = new List<AzureUri>
-                {
-                    new(repositoryRef.Repository.CloneUrl),
-                };
+                new(repositoryRef.Repository.CloneUrl),
+            };
 
-                var suboperationParameters = new DataStoreOperationParameters
-                {
-                    Uris = uris,
-                    DeveloperId = repositoryRef.Developer.DeveloperId,
-                    RequestOptions = parameters.RequestOptions,
-                    OperationName = nameof(UpdateDataForDeveloperPullRequestsAsync),
-                    PullRequestView = PullRequestView.Mine,
-                    Requestor = parameters.Requestor,
-                };
+            var suboperationParameters = new DataStoreOperationParameters
+            {
+                Uris = uris,
+                DeveloperId = repositoryRef.Developer.DeveloperId,
+                RequestOptions = parameters.RequestOptions,
+                OperationName = nameof(UpdateDataForDeveloperPullRequestsAsync),
+                PullRequestView = PullRequestView.Mine,
+                Requestor = parameters.Requestor,
+            };
 
-                await UpdateDataForPullRequestsAsync(suboperationParameters);
-            }
+            await UpdateDataForPullRequestsAsync(suboperationParameters);
         }
-        catch (Exception ex)
-        {
-            contextDict.Add("ErrorMessage", ex.Message);
-            SendErrorUpdateEvent(_log, this, parameters.Requestor, context, ex);
-            return;
-        }
-
-        SendDeveloperUpdateEvent(_log, this, parameters.Requestor, context);
     }
 
     private async Task ProcessPullRequests(
@@ -769,6 +760,7 @@ public partial class AzureDataManager : IAzureDataManager, IDisposable
 
             pullRequestObjFields.Add("Id", pullRequest.PullRequestId);
             pullRequestObjFields.Add("Title", pullRequest.Title);
+            pullRequestObjFields.Add("RepositoryId", repository.Id);
             pullRequestObjFields.Add("Status", pullRequest.Status);
             pullRequestObjFields.Add("PolicyStatus", status.ToString());
             pullRequestObjFields.Add("PolicyStatusReason", statusReason);
