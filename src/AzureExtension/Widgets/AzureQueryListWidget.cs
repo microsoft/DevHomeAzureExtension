@@ -319,7 +319,7 @@ internal sealed class AzureQueryListWidget : AzureWidget
                         { "status_icon", GetIconForStatusState(workItem["System.State"]?.GetValue<string>()) },
                         { "number", element.Key },
                         { "date", TimeSpanHelper.DateTimeOffsetToDisplayString(dateTime, Log) },
-                        { "user", creator.Avatar },
+                        { "user", creator.Name },
                         { "status", workItem["System.State"]?.GetValue<string>() ?? string.Empty },
                         { "avatar", creator.Avatar },
                     };
