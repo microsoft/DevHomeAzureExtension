@@ -183,7 +183,7 @@ internal sealed class AzureQueryTilesWidget : AzureWidget
 
             if (e.Kind == DataManagerUpdateKind.Error)
             {
-                DataState = WidgetDataState.Failed;
+                DataState = WidgetDataState.FailedUpdate;
                 DataErrorMessage = e.Context.ErrorMessage;
 
                 // The DataManager log will have detailed exception info, use the short message.

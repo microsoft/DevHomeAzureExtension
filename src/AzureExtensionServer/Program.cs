@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using DevHomeAzureExtension.Contracts;
+using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.DataModel;
 using DevHomeAzureExtension.DevBox;
 using DevHomeAzureExtension.DevBox.Models;
@@ -157,13 +158,29 @@ public sealed class Program
         widgetServer.RegisterWidget(() => widgetProviderInstance);
 
         // Cache manager updates account data.
-        using var cacheManager = DataManager.CacheManager.GetInstance();
+        using var cacheManager = CacheManager.GetInstance();
         cacheManager?.Start();
+
+        // Set up the data updater. This will schedule updating the Developer Pull Requests.
+        using var dataUpdater = new DataUpdater(AzureDataManager.Update);
+        _ = dataUpdater.Start();
+
+        // Add an update whenever CacheManager is updated.
+        CacheManager.GetInstance().OnUpdate += HandleCacheUpdate;
 
         // This will make the main thread wait until the event is signaled by the extension class.
         // Since we have single instance of the extension object, we exit as soon as it is disposed.
         extensionDisposedEvent.WaitOne();
         Log.Information($"Extension is disposed.");
+    }
+
+    private static void HandleCacheUpdate(object? source, CacheManagerUpdateEventArgs e)
+    {
+        if (e.Kind == CacheManagerUpdateKind.Updated)
+        {
+            Log.Debug("Cache was updated, updating developer pull requests.");
+            _ = AzureDataManager.UpdateDeveloperPullRequests();
+        }
     }
 
     private static void LogPackageInformation()

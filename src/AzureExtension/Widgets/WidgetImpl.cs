@@ -19,6 +19,8 @@ public abstract class WidgetImpl
 
     protected ILogger Log => _log.Value;
 
+    protected bool SupportsCustomization { get; set; } = true;
+
     protected string Name => GetType().Name;
 
     protected string Id { get; set; } = string.Empty;

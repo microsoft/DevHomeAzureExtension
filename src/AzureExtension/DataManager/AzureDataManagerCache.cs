@@ -24,6 +24,8 @@ public partial class AzureDataManager
 
     private static readonly int _pullRequestRepositoryLimit = 25;
 
+    private static readonly TimeSpan _orgUpdateDelayTime = TimeSpan.FromSeconds(5);
+
     public async Task UpdateDataForAccountsAsync(RequestOptions? options = null, Guid? requestor = null)
     {
         // A parameterless call will always update the data, effectively a 'force update'.
@@ -104,11 +106,23 @@ public partial class AzureDataManager
                         continue;
                     }
 
+                    var orgStartTime = DateTime.UtcNow;
+
                     UpdateOrganization(account, developerId, connection, cancellationToken);
 
                     tx.Commit();
                     _log.Information($"Updated organization: {account.AccountName}");
+
+                    // Send an update event once the transaction is completed so anyone waiting on the DB to be
+                    // available has an opportunity to use it.
+                    var orgUpdateContext = CreateUpdateEventContext(0, 1, 0, DateTime.UtcNow - orgStartTime);
+                    SendAccountUpdateEvent(_log, this, requestorGuid, orgUpdateContext, firstException);
                     ++accountsUpdated;
+
+                    // Delay to allow widgets and other code to respond to the event and use the database.
+                    // This is to prevent DOS'ing widgets using the datastore during large cache updates of
+                    // many organizations.
+                    await Task.Delay(_orgUpdateDelayTime, cancellationToken);
                 }
                 catch (Exception ex) when (IsCancelException(ex))
                 {
@@ -150,7 +164,7 @@ public partial class AzureDataManager
     private void UpdateOrganization(Account account, DeveloperId.DeveloperId developerId, VssConnection connection, CancellationToken cancellationToken)
     {
         // Update account identity information:
-        var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, true);
+        var identity = Identity.GetOrCreateIdentity(DataStore, connection.AuthorizedIdentity, connection, developerId.LoginId);
 
         _log.Verbose($"Updating organization: {account.AccountName}");
         var organization = Organization.GetOrCreate(DataStore, account.AccountUri);
@@ -311,6 +325,11 @@ public partial class AzureDataManager
     private static void SendCacheUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex)
     {
         SendUpdateEvent(logger, source, DataManagerUpdateKind.Cache, requestor, context, ex);
+    }
+
+    private static void SendAccountUpdateEvent(ILogger logger, object? source, Guid requestor, dynamic context, Exception? ex)
+    {
+        SendUpdateEvent(logger, source, DataManagerUpdateKind.Account, requestor, context, ex);
     }
 
     private static bool IsCancelException(Exception ex)

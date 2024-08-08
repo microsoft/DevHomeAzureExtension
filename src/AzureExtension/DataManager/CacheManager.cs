@@ -14,7 +14,7 @@ public class CacheManager : IDisposable
     private static readonly string _cacheManagerLastUpdatedMetaDataKey = "CacheManagerLastUpdated";
 
     // Frequency the CacheManager checks for an update.
-    private static readonly TimeSpan _updateInterval = TimeSpan.FromHours(4);
+    private static readonly TimeSpan _updateInterval = TimeSpan.FromMinutes(15);
 
     private static readonly TimeSpan _defaultAccountUpdateFrequency = TimeSpan.FromDays(3);
 
@@ -31,6 +31,8 @@ public class CacheManager : IDisposable
     private IAzureDataManager DataManager { get; }
 
     public bool UpdateInProgress { get; private set; }
+
+    public bool NeverUpdated => LastUpdated == DateTime.MinValue;
 
     public DateTime LastUpdated
     {
@@ -193,6 +195,15 @@ public class CacheManager : IDisposable
             Log.Debug("DataManager update received");
             switch (e.Kind)
             {
+                case DataManagerUpdateKind.Account:
+                    // Account is sent after each organization has been updated, but the entire cache
+                    // is not necessarily updated. We will treat this as an update is still in progress, and
+                    // notify others who may be waiting for an opportunity to query the database.
+                    // Receiving this event means a transaction was just completed and the datastore is
+                    // briefly unlocked for queries.
+                    SendUpdateEvent(this, CacheManagerUpdateKind.Account);
+                    break;
+
                 case DataManagerUpdateKind.Cache:
                     lock (_stateLock)
                     {

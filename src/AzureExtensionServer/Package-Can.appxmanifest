@@ -73,7 +73,7 @@
                   <CreateInstance ClassId="5C844D91-B497-4D59-AE73-CDC895B1EB2F" />
                 </Activation>
                 <Definitions>
-                  <Definition Id="Azure_QueryList" DisplayName="Query Result" Description="Azure Query List Widget" IsCustomizable="true">
+                  <Definition Id="Azure_QueryList" DisplayName="ms-resource:Widget_DisplayName_QueryList" Description="ms-resource:Widget_Description_QueryList" IsCustomizable="true">
                     <Capabilities>
                       <Capability>
                         <Size Name="small" />
@@ -90,14 +90,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="Dev Home icon" />
+                        <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryList" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotDark.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryList" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -105,12 +105,12 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryResultScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryList" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
                   </Definition>
-                  <Definition Id="Azure_QueryTiles" DisplayName="Query Tiles" Description="Azure DevOps Query Tiles Widget" IsCustomizable="true">
+                  <Definition Id="Azure_QueryTiles" DisplayName="ms-resource:Widget_DisplayName_QueryTiles" Description="ms-resource:Widget_Description_QueryTiles" IsCustomizable="true">
                     <Capabilities>
                       <Capability>
                         <Size Name="small" />
@@ -127,14 +127,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="Dev Home icon" />
+                        <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryTiles" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryTiles" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -142,12 +142,12 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\QueryTilesScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_QueryTiles" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>
                   </Definition>
-                  <Definition Id="Azure_PullRequests" DisplayName="Pull Requests" Description="Azure DevOps Pull Requests Widget" IsCustomizable="true">
+                  <Definition Id="Azure_PullRequests" DisplayName="ms-resource:Widget_DisplayName_PullRequests" Description="ms-resource:Widget_Description_PullRequests" IsCustomizable="true">
                     <Capabilities>
                       <Capability>
                         <Size Name="small" />
@@ -164,14 +164,14 @@
                         <Icon Path="Widgets\Assets\azureIcon.png" />
                       </Icons>
                       <Screenshots>
-                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="Dev Home icon" />
+                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_PullRequests" />
                       </Screenshots>
                       <DarkMode>
                         <Icons>
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_PullRequests" />
                         </Screenshots>
                       </DarkMode>
                       <LightMode>
@@ -179,7 +179,44 @@
                           <Icon Path="Widgets\Assets\azureIcon.png" />
                         </Icons>
                         <Screenshots>
-                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="Dev Home icon" />
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_PullRequests" />
+                        </Screenshots>
+                      </LightMode>
+                    </ThemeResources>
+                  </Definition>
+                  <Definition Id="Azure_MyPRs" DisplayName="ms-resource:Widget_DisplayName_MyPullRequests" Description="ms-resource:Widget_Description_MyPullRequests" IsCustomizable="false">
+                    <Capabilities>
+                      <Capability>
+                        <Size Name="small" />
+                      </Capability>
+                      <Capability>
+                        <Size Name="medium" />
+                      </Capability>
+                      <Capability>
+                        <Size Name="large" />
+                      </Capability>
+                    </Capabilities>
+                    <ThemeResources>
+                      <Icons>
+                        <Icon Path="Widgets\Assets\azureIcon.png" />
+                      </Icons>
+                      <Screenshots>
+                        <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_MyPullRequests" />
+                      </Screenshots>
+                      <DarkMode>
+                        <Icons>
+                          <Icon Path="Widgets\Assets\azureIcon.png" />
+                        </Icons>
+                        <Screenshots>
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotDark.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_MyPullRequests" />
+                        </Screenshots>
+                      </DarkMode>
+                      <LightMode>
+                        <Icons>
+                          <Icon Path="Widgets\Assets\azureIcon.png" />
+                        </Icons>
+                        <Screenshots>
+                          <Screenshot Path="Widgets\Assets\PullRequestsScreenshotLight.png" DisplayAltText="ms-resource:Widget_ScreenshotAltDisplay_MyPullRequests" />
                         </Screenshots>
                       </LightMode>
                     </ThemeResources>

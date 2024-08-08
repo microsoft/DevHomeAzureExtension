@@ -11,7 +11,9 @@ public enum DataManagerUpdateKind
     PullRequest,
     Error,
     Cache,
+    Account,
     Cancel,
+    Developer,
 }
 
 public class DataManagerUpdateEventArgs : EventArgs

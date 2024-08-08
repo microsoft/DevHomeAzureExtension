@@ -22,7 +22,8 @@ public class PullRequests
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
 
-    public string RepositoryName { get; set; } = string.Empty;
+    // Key in Repository table
+    public long RepositoryId { get; set; } = DataStore.NoForeignKey;
 
     // Key in Project table
     public long ProjectId { get; set; } = DataStore.NoForeignKey;
@@ -36,7 +37,7 @@ public class PullRequests
 
     public long TimeUpdated { get; set; } = DataStore.NoForeignKey;
 
-    public override string ToString() => DeveloperLogin + "/" + RepositoryName;
+    public override string ToString() => $"{DeveloperLogin}/{Repository.Name}";
 
     [Write(false)]
     private DataStore? DataStore { get; set; }
@@ -44,6 +45,10 @@ public class PullRequests
     [Write(false)]
     [Computed]
     public Project Project => Project.Get(DataStore, ProjectId);
+
+    [Write(false)]
+    [Computed]
+    public Repository Repository => Repository.Get(DataStore, RepositoryId);
 
     [Write(false)]
     [Computed]
@@ -57,11 +62,11 @@ public class PullRequests
     [Computed]
     public DateTime UpdatedAt => TimeUpdated.ToDateTime();
 
-    private static PullRequests Create(string repositoryName, long projectId, string developerLogin, PullRequestView view, string pullRequests)
+    private static PullRequests Create(long repositoryId, long projectId, string developerLogin, PullRequestView view, string pullRequests)
     {
         return new PullRequests
         {
-            RepositoryName = repositoryName,
+            RepositoryId = repositoryId,
             ProjectId = projectId,
             DeveloperLogin = developerLogin,
             Results = pullRequests,
@@ -72,7 +77,7 @@ public class PullRequests
 
     private static PullRequests AddOrUpdate(DataStore dataStore, PullRequests pullRequests)
     {
-        var existing = Get(dataStore, pullRequests.ProjectId, pullRequests.RepositoryName, pullRequests.DeveloperLogin, pullRequests.View);
+        var existing = Get(dataStore, pullRequests.ProjectId, pullRequests.RepositoryId, pullRequests.DeveloperLogin, pullRequests.View);
         if (existing is not null)
         {
             // Update threshold is in case there are many requests in a short period of time.
@@ -110,13 +115,13 @@ public class PullRequests
         return pullRequests ?? new PullRequests();
     }
 
-    public static PullRequests? Get(DataStore dataStore, long projectId, string repositoryName, string developerLogin, PullRequestView view)
+    public static PullRequests? Get(DataStore dataStore, long projectId, long repositoryId, string developerLogin, PullRequestView view)
     {
-        var sql = @"SELECT * FROM PullRequests WHERE ProjectId = @ProjectId AND RepositoryName = @RepositoryName AND DeveloperLogin = @DeveloperLogin AND ViewId = @ViewId;";
+        var sql = @"SELECT * FROM PullRequests WHERE ProjectId = @ProjectId AND RepositoryId = @RepositoryId AND DeveloperLogin = @DeveloperLogin AND ViewId = @ViewId;";
         var param = new
         {
             ProjectId = projectId,
-            RepositoryName = repositoryName,
+            RepositoryId = repositoryId,
             DeveloperLogin = developerLogin,
             ViewId = (long)view,
         };
@@ -140,12 +145,35 @@ public class PullRequests
             return null;
         }
 
-        return Get(dataStore, project.Id, repositoryName, developerLogin, view);
+        var repository = Repository.Get(dataStore, project.Id, repositoryName);
+        if (repository == null)
+        {
+            return null;
+        }
+
+        return Get(dataStore, project.Id, repository.Id, developerLogin, view);
     }
 
-    public static PullRequests GetOrCreate(DataStore dataStore, string repositoryName, long projectId, string developerId, PullRequestView view, string pullRequests)
+    public static IEnumerable<PullRequests> GetAllForDeveloper(DataStore dataStore)
     {
-        var newDeveloperPullRequests = Create(repositoryName, projectId, developerId, view, pullRequests);
+        var sql = @"SELECT * FROM PullRequests WHERE ViewId = @ViewId;";
+        var param = new
+        {
+            ViewId = (long)PullRequestView.Mine,
+        };
+
+        var pullRequestsSet = dataStore.Connection!.Query<PullRequests>(sql, param, null) ?? [];
+        foreach (var pullRequestsEntry in pullRequestsSet)
+        {
+            pullRequestsEntry.DataStore = dataStore;
+        }
+
+        return pullRequestsSet;
+    }
+
+    public static PullRequests GetOrCreate(DataStore dataStore, long repositoryId, long projectId, string developerId, PullRequestView view, string pullRequests)
+    {
+        var newDeveloperPullRequests = Create(repositoryId, projectId, developerId, view, pullRequests);
         return AddOrUpdate(dataStore, newDeveloperPullRequests);
     }
 
