@@ -14,7 +14,13 @@ using Serilog;
 namespace DevHomeAzureExtension;
 
 [ComVisible(true)]
+#if CANARY_BUILD
+[Guid("0F3605DE-92CF-4FE0-9BCD-A3519EA67D1B")]
+#elif STABLE_BUILD
 [Guid("182AF84F-D5E1-469C-9742-536EFEA94630")]
+#else
+[Guid("28A2AB40-26EA-48BF-A8BC-49FEC9B7C18C")]
+#endif
 [ComDefaultInterface(typeof(IExtension))]
 public sealed class AzureExtension : IExtension
 {

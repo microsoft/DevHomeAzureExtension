@@ -34,7 +34,13 @@ public abstract class AzureWidget : WidgetImpl
 
     protected string ContentData { get; set; } = EmptyJson;
 
+    protected string LoadingMessage { get; set; } = string.Empty;
+
     protected string DeveloperLoginId { get; set; } = string.Empty;
+
+    protected bool DeveloperIdLoginRequired { get; set; } = true;
+
+    protected bool LoadedDataSuccessfully { get; set; }
 
     protected bool CanSave
     {
@@ -156,6 +162,7 @@ public abstract class AzureWidget : WidgetImpl
                     SavedConfigurationData = string.Empty;
                     ContentData = EmptyJson;
                     DataState = WidgetDataState.Unknown;
+                    LoadedDataSuccessfully = false;
                     SetActive();
                 }
 
@@ -181,6 +188,8 @@ public abstract class AzureWidget : WidgetImpl
 
     public override void OnCustomizationRequested(WidgetCustomizationRequestedArgs customizationRequestedArgs)
     {
+        // Set CanSave to false so user will have to Submit again before Saving.
+        CanSave = false;
         SavedConfigurationData = ConfigurationData;
         SetConfigure();
     }
@@ -235,6 +244,13 @@ public abstract class AzureWidget : WidgetImpl
             return false;
         }
 
+        if (!DeveloperIdLoginRequired)
+        {
+            // At least one user is logged in, and this widget does not require a specific
+            // DeveloperId so we are in a good state.
+            return true;
+        }
+
         if (string.IsNullOrEmpty(DeveloperLoginId))
         {
             // User has not yet chosen a DeveloperId, but there is at least one available, so the
@@ -249,6 +265,19 @@ public abstract class AzureWidget : WidgetImpl
         }
 
         return false;
+    }
+
+    public virtual string GetLoadingMessage()
+    {
+        if (string.IsNullOrEmpty(LoadingMessage))
+        {
+            return EmptyJson;
+        }
+
+        return new JsonObject
+        {
+            { "loadingMessage", LoadingMessage },
+        }.ToJsonString();
     }
 
     protected DeveloperId.DeveloperId? GetDevId(string login)
@@ -283,7 +312,7 @@ public abstract class AzureWidget : WidgetImpl
             return;
         }
 
-        if (!Pinned || !CanSave)
+        if (SupportsCustomization && (!Pinned || !CanSave))
         {
             SetConfigure();
             return;

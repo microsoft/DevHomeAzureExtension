@@ -21,6 +21,7 @@ public class Repository
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
 
+    // Name should be unique within a project scope.
     public string Name { get; set; } = string.Empty;
 
     // Guid representation by ADO.
@@ -130,6 +131,29 @@ public class Repository
         return repository ?? new Repository();
     }
 
+    public static Repository? GetByName(DataStore? dataStore, long projectId, string name)
+    {
+        if (dataStore == null)
+        {
+            return null;
+        }
+
+        var sql = @"SELECT * FROM Repository WHERE ProjectId = @ProjectId AND Name = @Name;";
+        var param = new
+        {
+            ProjectId = projectId,
+            Name = name,
+        };
+
+        var repository = dataStore.Connection!.QueryFirstOrDefault<Repository>(sql, param, null);
+        if (repository != null)
+        {
+            repository.DataStore = dataStore;
+        }
+
+        return repository;
+    }
+
     public static IEnumerable<Repository> GetAll(DataStore dataStore)
     {
         var repositories = dataStore.Connection!.GetAll<Repository>() ?? [];
@@ -163,6 +187,27 @@ public class Repository
     public static Repository? Get(DataStore dataStore, GitRepository repository)
     {
         return GetByInternalId(dataStore, repository.Id.ToString());
+    }
+
+    public static Repository? Get(DataStore dataStore, long projectId, string repositoryName)
+    {
+        var sql = @"SELECT * FROM Repository WHERE ProjectId = @ProjectId AND Name = @RepositoryName;";
+        var param = new
+        {
+            ProjectId = projectId,
+            RepositoryName = repositoryName,
+        };
+
+        // In rare cases we might have a rename situation that results in more than one record.
+        // This should be an extremely rare edge case that can be resolved in the next repository
+        // cache update so we will assume a single record is correct.
+        var repository = dataStore.Connection!.QueryFirstOrDefault<Repository>(sql, param, null);
+        if (repository != null)
+        {
+            repository.DataStore = dataStore;
+        }
+
+        return repository;
     }
 
     public static IEnumerable<Repository> GetAllWithReference(DataStore dataStore)

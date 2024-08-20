@@ -9,7 +9,13 @@ namespace DevHomeAzureExtension.Widgets;
 
 [ComVisible(true)]
 [ClassInterface(ClassInterfaceType.None)]
+#if CANARY_BUILD
+[Guid("5C844D91-B497-4D59-AE73-CDC895B1EB2F")]
+#elif STABLE_BUILD
 [Guid("B91B13BB-B3B4-4F2E-9EF9-554757F33E1C")]
+#else
+[Guid("1A7EFA8B-2CFA-4130-93B0-92BC0230C84E")]
+#endif
 public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
 {
     private readonly ILogger _log = Log.ForContext("SourceContext", nameof(WidgetProvider));
@@ -19,7 +25,8 @@ public sealed class WidgetProvider : IWidgetProvider, IWidgetProvider2
         _log.Debug("Provider Constructed");
         _widgetDefinitionRegistry.Add("Azure_QueryList", new WidgetImplFactory<AzureQueryListWidget>());
         _widgetDefinitionRegistry.Add("Azure_QueryTiles", new WidgetImplFactory<AzureQueryTilesWidget>());
-        _widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsWidget>());
+        _widgetDefinitionRegistry.Add("Azure_PullRequests", new WidgetImplFactory<AzurePullRequestsRepositoryWidget>());
+        _widgetDefinitionRegistry.Add("Azure_MyPRs", new WidgetImplFactory<AzurePullRequestsDeveloperWidget>());
         RecoverRunningWidgets();
     }
 

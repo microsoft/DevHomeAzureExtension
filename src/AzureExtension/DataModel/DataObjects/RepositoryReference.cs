@@ -15,11 +15,11 @@ namespace DevHomeAzureExtension.DataModel;
 [Table("RepositoryReference")]
 public class RepositoryReference
 {
-    private static readonly Lazy<ILogger> _log = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(RepositoryReference)}"));
+    private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", $"DataModel/{nameof(RepositoryReference)}"));
 
-    private static readonly ILogger Log = _log.Value;
+    private static readonly ILogger _log = _logger.Value;
 
-    private static readonly long WeightPullRequest = 1;
+    private static readonly long _weightPullRequest = 1;
 
     [Key]
     public long Id { get; set; } = DataStore.NoForeignKey;
@@ -33,11 +33,15 @@ public class RepositoryReference
 
     [Write(false)]
     [Computed]
-    public long Value => PullRequestCount * WeightPullRequest;
+    public long Value => PullRequestCount * _weightPullRequest;
 
     [Write(false)]
     [Computed]
     public Identity Developer => Identity.Get(DataStore, DeveloperId);
+
+    [Write(false)]
+    [Computed]
+    public Repository Repository => Repository.Get(DataStore, RepositoryId);
 
     [Write(false)]
     private DataStore? DataStore { get; set; }
@@ -99,13 +103,25 @@ public class RepositoryReference
         return repositoryReference;
     }
 
+    public static IEnumerable<RepositoryReference> GetAll(DataStore dataStore)
+    {
+        var repositoryReferences = dataStore.Connection!.GetAll<RepositoryReference>() ?? [];
+        foreach (var repositoryReference in repositoryReferences)
+        {
+            repositoryReference.DataStore = dataStore;
+        }
+
+        _log.Verbose("Getting all repository references.");
+        return repositoryReferences;
+    }
+
     public static void DeleteUnreferenced(DataStore dataStore)
     {
         // Delete any RepositoryReferences for repositories that do not exist.
         var sql = @"DELETE FROM RepositoryReference WHERE (RepositoryId NOT IN (SELECT Id FROM Repository)) OR (DeveloperId NOT IN (SELECT Id FROM Identity))";
         var command = dataStore.Connection!.CreateCommand();
         command.CommandText = sql;
-        Log.Verbose(DataStore.GetCommandLogMessage(sql, command));
+        _log.Verbose(DataStore.GetCommandLogMessage(sql, command));
         command.ExecuteNonQuery();
     }
 }
