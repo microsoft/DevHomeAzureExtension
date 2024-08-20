@@ -40,7 +40,9 @@ Please pick the best language and best tools and frameworks necessary to match t
 
 The example is only shown as inspiration, you do not need to incorporate it.
 
-Please format your output using the same file and folder format as the example. Do not output anything besides the answer to the prompt.";
+Please format your output using the same file and folder format as the example. Do not output anything besides the answer to the prompt.
+
+Do not repeat the reference codespace definition in your response.";
 
         var userMessage = $@"==== EXAMPLE PROMPT: {topSample.Prompt} ====
 
