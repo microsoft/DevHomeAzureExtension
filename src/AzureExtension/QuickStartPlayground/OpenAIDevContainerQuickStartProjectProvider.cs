@@ -88,6 +88,7 @@ public sealed partial class OpenAIDevContainerQuickStartProjectProvider : DevCon
             ""placeholder"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input") + @""",
             ""tooltip"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input") + @""",
             ""isRequired"": true,
+            ""maxLength"": 500,
             ""errorMessage"": """ + Resources.GetResource(@"QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input_ErrorMsg") + @""",
             ""style"": ""Password"",
             ""id"": ""Key""
