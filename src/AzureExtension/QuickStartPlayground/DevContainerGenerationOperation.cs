@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
 using System.Text.Json;
 using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
@@ -84,6 +84,8 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
                     ReportProgress(Resources.GetResource(@"QuickstartPlayground_Progress_WriteOutput"), 85);
                     CreateFilesInOutputFolder(codeSpaceDefinitionString, _outputFolder);
+
+                    ValidateJsonFilesInOutputFolder(_outputFolder);
 
                     // Docker validation is only done on debug builds for our internal validation purposes.
                     // For customer scenarios, we leave docker validation to the IDE.
@@ -175,22 +177,79 @@ public sealed class DevContainerGenerationOperation : IQuickStartProjectGenerati
 
                 if (!Directory.Exists(dirPath))
                 {
-                    Debug.WriteLine($"Creating directory: {dirPath}");
+                    _log.Information("Creating directory: {dirPath}", dirPath);
                     Directory.CreateDirectory(dirPath);
                 }
 
-                Debug.WriteLine($"Creating file: {filename}");
+                // There is a scenario where the model can get confused and accidentally include the devcontainer.json
+                // and the Dockerfile as part of the starter code definition- which means that the files are showing
+                // up twice in the inputString since they are already included in the devcontainer section.
+                // Explicit instructions have been added to protect against this, but it's not foolproof.
+                //
+                // We do not want to block the user from seeing the project files, so we will overwrite the file.
+                // In the case where we've seen this happen, the files are identical.
+                if (File.Exists(filename))
+                {
+                    _log.Error($"File already exists: {filename}");
+                }
+
+                _log.Information("Creating file: {filename}", filename);
                 File.WriteAllText(filename, string.Empty);
             }
             else
             {
                 if (string.IsNullOrEmpty(filename))
                 {
-                    Debug.WriteLine("Error: no filename set.");
+                    _log.Information("Error: no filename set.");
                     return;
                 }
 
                 File.AppendAllText(filename, line + Environment.NewLine);
+            }
+        }
+    }
+
+    public void ValidateJsonFilesInOutputFolder(StorageFolder outputFolder)
+    {
+        var jsonFiles = Directory.GetFiles(outputFolder.Path, "*.json", SearchOption.AllDirectories);
+
+        foreach (var jsonFile in jsonFiles)
+        {
+            try
+            {
+                // The model will create a devcontainer.json file, which may have // comments inside of it.
+                // JsonDocument will reject those, even though they are legal under the devcontainer schema.
+                // So, filter out any of those lines (logging them for debugging purposes).
+                if (Path.GetFileName(jsonFile).Equals("devcontainer.json", StringComparison.OrdinalIgnoreCase))
+                {
+                    var filteredJsonText = new StringBuilder();
+                    var lines = File.ReadLines(jsonFile);
+                    foreach (var line in lines)
+                    {
+                        if (line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+                        {
+                            _log.Information("Ignoring comment line: {line}", line);
+                        }
+                        else
+                        {
+                            filteredJsonText.AppendLine(line);
+                        }
+                    }
+
+                    _ = JsonDocument.Parse(filteredJsonText.ToString());
+                }
+                else
+                {
+                    var jsonText = File.ReadAllText(jsonFile);
+                    _ = JsonDocument.Parse(jsonText);
+                }
+            }
+            catch (JsonException ex)
+            {
+                // This exception won't be reported back to the user. From a UX standpoint, we do not want to
+                // block the user from at least seeing the project files, so we will not rethrow and instead
+                // log (this will be a telemetry event once the telemetry extension story is in place).
+                _log.Error(ex, "Error parsing JSON file: {jsonFile}", jsonFile);
             }
         }
     }
