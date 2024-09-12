@@ -339,15 +339,10 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         {
             return;
         }
-        else if (response.PowerState == Constants.DevBoxPowerStates.Unknown ||
-            response.PowerState == Constants.DevBoxPowerStates.Deallocated)
-        {
-            throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStateKey));
-        }
 
         // Start the Dev Box
         var startURI = new Uri($"{_baseAPI}:start?{Constants.APIVersion}");
-        var startRequest = await _managementService.HttpsRequestToDataPlane(startURI, _devId, HttpMethod.Post, null);
+        await _managementService.HttpsRequestToDataPlane(startURI, _devId, HttpMethod.Post, null);
         _log.Information("Starting the dev box to apply configuration");
 
         // Notify the user
