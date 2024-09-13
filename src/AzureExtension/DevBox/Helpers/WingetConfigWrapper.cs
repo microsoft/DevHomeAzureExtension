@@ -70,10 +70,6 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private readonly ManualResetEvent _resumeEvent = new(false);
 
-    private readonly ComputeSystemState _computeSystemState;
-
-    private readonly Func<string, IAsyncOperation<ComputeSystemOperationResult>> _connectAsync;
-
     // Using a common failure result for all the tasks
     // since we don't get any other information from the REST API
     private readonly ConfigurationUnitResultInformation _commonFailureResult = new(
@@ -93,23 +89,20 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     private bool _alreadyUpdatedUI;
 
+    private DevBoxInstance _devBox;
+
     public WingetConfigWrapper(
+        DevBoxInstance devBoxInstance,
         string configuration,
-        string baseAPI,
         IDevBoxManagementService devBoxManagementService,
-        IDeveloperId associatedDeveloperId,
-        Serilog.ILogger log,
-        ComputeSystemState computeSystemState,
-        Func<string, IAsyncOperation<ComputeSystemOperationResult>> connectAsync)
+        Serilog.ILogger log)
     {
-        _baseAPI = baseAPI;
+        _devBox = devBoxInstance;
+        _baseAPI = _devBox.DevBoxState.Uri;
         _taskAPI = $"{_baseAPI}{Constants.CustomizationAPI}{DateTime.Now.ToFileTimeUtc()}?{Constants.APIVersion}";
         _managementService = devBoxManagementService;
-        _devId = associatedDeveloperId;
+        _devId = _devBox.AssociatedDeveloperId;
         _log = log;
-        _computeSystemState = computeSystemState;
-        _connectAsync = connectAsync;
-
         Initialize(configuration);
     }
 
@@ -300,7 +293,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
                         if (_launchEvent.WaitOne(0))
                         {
                             _log.Information("Launching the dev box");
-                            _connectAsync(string.Empty).GetAwaiter().GetResult();
+                            _devBox.ConnectAsync(string.Empty).GetAwaiter().GetResult();
                             Thread.Sleep(TimeSpan.FromSeconds(30));
                             _launchEvent.Reset();
                         }
@@ -332,44 +325,40 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     private async Task HandleNonRunningState()
     {
         // Check if the dev box might have been started in the meantime
-        var stateRequest = await _managementService.HttpsRequestToDataPlane(new Uri(_baseAPI), _devId, HttpMethod.Get, null);
-        var response = JsonSerializer.Deserialize<DevBoxMachineState>(stateRequest.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
-
-        if (response.PowerState == Constants.DevBoxPowerStates.Running)
+        var stateResult = await _devBox.GetStateAsync();
+        if (stateResult.State == ComputeSystemState.Running)
         {
             return;
         }
 
         // Start the Dev Box
-        var startURI = new Uri($"{_baseAPI}:start?{Constants.APIVersion}");
-        await _managementService.HttpsRequestToDataPlane(startURI, _devId, HttpMethod.Post, null);
+        await _devBox.StartAsync(string.Empty);
         _log.Information("Starting the dev box to apply configuration");
 
         // Notify the user
         ConfigurationSetStateChanged?.Invoke(this, new(new(ConfigurationSetChangeEventType.SetStateChanged, ConfigurationSetState.StartingDevice, ConfigurationUnitState.Unknown, null, null)));
 
-        // Wait for the Dev Box to start with an initial wait of 3 minutes
-        var startState = string.Empty;
+        // Wait for the Dev Box to start with an initial wait of 3 minutes and a max of 15 minutes
+        var delay = TimeSpan.FromSeconds(30);
+        var waitTimeLeft = TimeSpan.FromMinutes(12);
         await Task.Delay(TimeSpan.FromMinutes(3));
 
-        // Keep polling for another 12 minutes
-        var tries = 0;
-        while (tries++ <= 24 && startState != Constants.DevBoxPowerStates.Running)
+        // Wait for the Dev Box to start, polling every 30 seconds
+        while ((waitTimeLeft > TimeSpan.Zero) && (_devBox.GetState() != ComputeSystemState.Running))
         {
-            await Task.Delay(TimeSpan.FromSeconds(30));
-            var poll = await _managementService.HttpsRequestToDataPlane(new Uri(_baseAPI), _devId, HttpMethod.Get, null);
-            var pollingResponse = JsonSerializer.Deserialize<DevBoxMachineState>(poll.JsonResponseRoot.ToString(), Constants.JsonOptions)!;
-            startState = pollingResponse.PowerState;
+            await Task.Delay(delay);
+            waitTimeLeft -= delay;
         }
 
         // If there was a timeout
-        if (tries == 25)
+        if (_devBox.GetState() != ComputeSystemState.Running)
         {
             throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStateKey));
         }
         else
         {
-            _log.Information($"Started successfully after {tries} tries");
+            var timeTaken = TimeSpan.FromMinutes(15) - waitTimeLeft;
+            _log.Information($"Started successfully after {timeTaken.Minutes} minutes");
         }
     }
 
@@ -379,7 +368,7 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         {
             try
             {
-                if (_computeSystemState != ComputeSystemState.Running)
+                if (_devBox.GetState() != ComputeSystemState.Running)
                 {
                     await HandleNonRunningState();
                 }

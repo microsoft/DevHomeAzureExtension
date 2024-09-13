@@ -623,7 +623,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
-        return new WingetConfigWrapper(configuration, DevBoxState.Uri, _devBoxManagementService, AssociatedDeveloperId, _log, GetState(), ConnectAsync);
+        return new WingetConfigWrapper(this, configuration, _devBoxManagementService, _log);
     }
 
     // Unsupported operations
