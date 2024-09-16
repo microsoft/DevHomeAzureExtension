@@ -1,1 +1,0 @@
-==== EXAMPLE PROMPT: Create a VS Code Codespaces ready environment to get started with a hello world application using C++ ====

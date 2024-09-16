@@ -20,7 +20,7 @@ parameters:
     - release
 
 variables:
-  MSIXVersion: '0.1200'
+  MSIXVersion: '0.1300'
   solution: '**/DevHomeAzureExtension.sln'
   appxPackageDir: 'AppxPackages'
   testOutputArtifactDir: 'TestResults'
@@ -41,6 +41,12 @@ extends:
     sdl:
       roslyn:
         enabled: true
+      binskim:
+        break: false
+        scanOutputDirectoryOnly: true
+      policheck:
+        break: false
+        severity: Note
       arrow:
         serviceConnection: DevHome Build VM Generation
       baseline:
@@ -147,6 +153,16 @@ extends:
               inputs:
                 filePath: 'build/scripts/Build.ps1'
                 arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
+
+            - task: PowerShell@2
+              displayName: Copy Binaries for Artifact Publishing
+              inputs:
+                targetType: inline
+                script: >-
+                  New-Item -Path '$(Build.ArtifactStagingDirectory)\rawBinaries' -ItemType Directory
+                  
+                  Get-ChildItem -Path "$(Build.SourcesDirectory)\buildoutput\*" -Include *.dll,*.exe,*.pdb -Recurse | Copy-Item -Destination "$(Build.ArtifactStagingDirectory)\rawBinaries" -verbose
+                pwsh: true
 
             - template: ./build/templates/EsrpSigning-Steps.yml@self
               parameters:
@@ -270,6 +286,10 @@ extends:
                 targetPath: $(appxPackageDir)\${{ configuration }}
                 sbomPackageName: devhomeazureextension.msixpackage
                 sbomPackageVersion: $(MSIXVersion)
+              - output: pipelineArtifact
+                displayName: 'Publish Binaries'
+                artifactName: binaries_${{ platform }}_${{ configuration }}
+                targetPath: $(Build.ArtifactStagingDirectory)\rawBinaries
 
     - stage: Build_MsixBundle
       dependsOn: Build_Msix
