@@ -46,6 +46,8 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
 
     public const string DevBoxErrorStateKey = "DevBox_ErrorStateKey";
 
+    public const string DevBoxErrorStartKey = "DevBox_ErrorStartKey";
+
     public event TypedEventHandler<IApplyConfigurationOperation, ApplyConfigurationActionRequiredEventArgs> ActionRequired = (s, e) => { };
 
     public event TypedEventHandler<IApplyConfigurationOperation, ConfigurationSetStateChangedEventArgs> ConfigurationSetStateChanged = (s, e) => { };
@@ -325,15 +327,22 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
     private async Task HandleNonRunningState()
     {
         // Check if the dev box might have been started in the meantime
-        var stateResult = await _devBox.GetStateAsync();
-        if (stateResult.State == ComputeSystemState.Running)
+        if (_devBox.GetState() == ComputeSystemState.Running)
         {
             return;
         }
 
         // Start the Dev Box
-        await _devBox.StartAsync(string.Empty);
-        _log.Information("Starting the dev box to apply configuration");
+        try
+        {
+            _log.Information("Starting the dev box to apply configuration");
+            var startResult = await _devBox.StartAsync(string.Empty);
+        }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "Unable to start the dev box");
+            throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStateKey, _devBox.DisplayName));
+        }
 
         // Notify the user
         ConfigurationSetStateChanged?.Invoke(this, new(new(ConfigurationSetChangeEventType.SetStateChanged, ConfigurationSetState.StartingDevice, ConfigurationUnitState.Unknown, null, null)));
@@ -353,13 +362,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         // If there was a timeout
         if (_devBox.GetState() != ComputeSystemState.Running)
         {
-            throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStateKey));
+            throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStateKey, _devBox.DisplayName));
         }
-        else
-        {
-            var timeTaken = TimeSpan.FromMinutes(15) - waitTimeLeft;
-            _log.Information($"Started successfully after {timeTaken.Minutes} minutes");
-        }
+
+        var timeTaken = TimeSpan.FromMinutes(15) - waitTimeLeft;
+        _log.Information($"Started successfully after {timeTaken.Minutes} minutes");
     }
 
     IAsyncOperation<ApplyConfigurationResult> IApplyConfigurationOperation.StartAsync()
