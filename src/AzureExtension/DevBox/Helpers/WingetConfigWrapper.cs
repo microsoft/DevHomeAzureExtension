@@ -347,10 +347,9 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         // Notify the user
         ConfigurationSetStateChanged?.Invoke(this, new(new(ConfigurationSetChangeEventType.SetStateChanged, ConfigurationSetState.StartingDevice, ConfigurationUnitState.Unknown, null, null)));
 
-        // Wait for the Dev Box to start with an initial wait of 3 minutes and a max of 15 minutes
+        // Wait for the Dev Box to start with a timeout of 15 minutes
         var delay = TimeSpan.FromSeconds(30);
-        var waitTimeLeft = TimeSpan.FromMinutes(12);
-        await Task.Delay(TimeSpan.FromMinutes(3));
+        var waitTimeLeft = TimeSpan.FromMinutes(15);
 
         // Wait for the Dev Box to start, polling every 30 seconds
         while ((waitTimeLeft > TimeSpan.Zero) && (_devBox.GetState() != ComputeSystemState.Running))
