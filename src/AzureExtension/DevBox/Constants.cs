@@ -82,7 +82,7 @@ public static class Constants
     /// </summary>
     public const uint IndefiniteProgress = 0;
 
-    public static readonly TimeSpan OneMinutePeriod = TimeSpan.FromMinutes(1);
+    public static readonly TimeSpan HalfMinutePeriod = TimeSpan.FromSeconds(30);
 
     public static readonly TimeSpan ThreeMinutePeriod = TimeSpan.FromMinutes(3);
 

@@ -551,12 +551,16 @@
     <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
   </data>
   <data name="DevBox_NoDefaultUserFailKey" xml:space="preserve">
-    <value>No default user logged in. Please login from the Settings page.</value>
+    <value>No default user logged in. Please login from the Settings page to view the associated Dev Boxes.</value>
     <comment>Error shown when no user name is sent to the extension.</comment>
   </data>
-  <data name="DevBox_NotRunningFailedKey" xml:space="preserve">
-    <value>The Dev Box isn't running. Please start the Dev Box and try again.</value>
-    <comment>Error shown when the operation fails due to the Dev Box not currently running.</comment>
+  <data name="DevBox_ErrorStartKey" xml:space="preserve">
+    <value>The Dev Box {0} couldn't be started</value>
+    <comment>Error shown when the start operation fails on the Dev Box.</comment>
+  </data>
+  <data name="DevBox_ErrorStateKey" xml:space="preserve">
+    <value>The Dev Box {0} isn't in a valid state</value>
+    <comment>Error shown when the operation fails due to the Dev Box not being in a valid state.</comment>
   </data>
   <data name="DevBox_AdaptiveCard_ResumeText" xml:space="preserve">
     <value>Resume</value>
