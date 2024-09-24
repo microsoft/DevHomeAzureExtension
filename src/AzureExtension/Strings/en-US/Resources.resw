@@ -551,7 +551,7 @@
     <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
   </data>
   <data name="DevBox_NoDefaultUserFailKey" xml:space="preserve">
-    <value>No default user logged in. Please login from the Settings page.</value>
+    <value>No default user logged in. Please login from the Settings page to view the associated Dev Boxes.</value>
     <comment>Error shown when no user name is sent to the extension.</comment>
   </data>
   <data name="DevBox_ErrorStartKey" xml:space="preserve">
