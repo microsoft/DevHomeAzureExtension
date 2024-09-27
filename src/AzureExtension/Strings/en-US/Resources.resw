@@ -734,4 +734,12 @@
     <value>Finding your pull requests. This may take several minutes.</value>
     <comment>Shown in Widget</comment>
   </data>
+  <data name="QuickstartPlaground_ChatStyle_NotValid" xml:space="preserve">
+    <value>This is not a valid</value>
+    <comment>Checking the validity of prompts being entered</comment>
+  </data>
+  <data name="QuickstartPlaground_ChatStyle_ValidPrompt" xml:space="preserve">
+    <value>That's a great prompt! Click the generate project below with that prompt to get your project files.</value>
+    <comment>Valid prompt message</comment>
+  </data>
 </root>
