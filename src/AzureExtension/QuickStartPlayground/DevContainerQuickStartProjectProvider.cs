@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using AzureExtension.QuickStartPlayground;
 using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
@@ -8,7 +9,7 @@ using Windows.Storage;
 
 namespace DevHomeAzureExtension.QuickStartPlayground;
 
-public abstract class DevContainerQuickStartProjectProvider : IQuickStartProjectProvider
+public abstract class DevContainerQuickStartProjectProvider : IQuickStartProjectProvider2
 {
     private readonly IAzureOpenAIService _azureOpenAIService;
     private readonly IInstalledAppsService _installedAppsService;
@@ -74,5 +75,15 @@ public abstract class DevContainerQuickStartProjectProvider : IQuickStartProject
         }
 
         return new DevContainerGenerationOperation(prompt, outputFolder, _azureOpenAIService, _installedAppsService);
+    }
+
+    public IQuickStartChatStyleGenerationOperation CreateChatStyleGenerationOperation(string prompt)
+    {
+        if (string.IsNullOrEmpty(prompt))
+        {
+            throw new ArgumentNullException(nameof(prompt));
+        }
+
+        return new WindowsChatStyleGeneration(prompt, _azureOpenAIService);
     }
 }
