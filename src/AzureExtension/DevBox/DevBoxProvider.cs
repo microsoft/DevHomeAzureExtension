@@ -180,6 +180,10 @@ public class DevBoxProvider : IComputeSystemProvider
                 {
                     errorMessage = Resources.GetResource(Constants.NoDefaultUserFailKey);
                 }
+                else if (ex.Message.Contains("WAM Error"))
+                {
+                    errorMessage = SimplifyWAMError(ex.Message);
+                }
                 else
                 {
                     errorMessage = Resources.GetResource(Constants.RetrievalFailKey, developerId.LoginId) + ex.Message;
@@ -189,6 +193,24 @@ public class DevBoxProvider : IComputeSystemProvider
                 return new ComputeSystemsResult(ex, errorMessage, string.Empty);
             }
         }).AsAsyncOperation();
+    }
+
+    // Handle common WAM errors
+    // Reference: https://learn.microsoft.com/en-us/entra/msal/dotnet/advanced/exceptions/wam-errors
+    private string SimplifyWAMError(string errorMessage)
+    {
+        if (errorMessage.Contains("3399614467"))
+        {
+            return Constants.DevBoxWAMError1 + "\n" + Constants.DevBoxWAMErrorRefer;
+        }
+        else if (errorMessage.Contains("3399614476"))
+        {
+            return Constants.DevBoxWAMError2 + "\n" + Constants.DevBoxWAMErrorRefer;
+        }
+        else
+        {
+            return errorMessage + "\n" + Constants.DevBoxWAMErrorRefer;
+        }
     }
 
     public ICreateComputeSystemOperation? CreateCreateComputeSystemOperation(IDeveloperId developerId, string inputJson)

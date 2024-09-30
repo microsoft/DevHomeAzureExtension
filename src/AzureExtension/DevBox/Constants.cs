@@ -221,6 +221,12 @@ public static class Constants
 
     public const string DevBoxUnableToCheckTaskbarPinning = "DevBox_UnableToCheckTaskbarPinningStatus";
 
+    public const string DevBoxWAMError1 = "DevBox_WAMError1";
+
+    public const string DevBoxWAMError2 = "DevBox_WAMError2";
+
+    public const string DevBoxWAMErrorRefer = "DevBox_WAMErrorRefer";
+
     /// <summary>
     /// Resource key for the error message to show with the log location for the configuration flow.
     /// </summary>
