@@ -201,15 +201,15 @@ public class DevBoxProvider : IComputeSystemProvider
     {
         if (errorMessage.Contains("3399614467"))
         {
-            return Constants.DevBoxWAMError1 + "\n" + Constants.DevBoxWAMErrorRefer;
+            return Constants.DevBoxWAMError1 + "\n" + Resources.GetResource(Constants.DevBoxWAMErrorRefer);
         }
         else if (errorMessage.Contains("3399614476"))
         {
-            return Constants.DevBoxWAMError2 + "\n" + Constants.DevBoxWAMErrorRefer;
+            return Constants.DevBoxWAMError2 + "\n" + Resources.GetResource(Constants.DevBoxWAMErrorRefer);
         }
         else
         {
-            return errorMessage + "\n" + Constants.DevBoxWAMErrorRefer;
+            return errorMessage + "\n" + Resources.GetResource(Constants.DevBoxWAMErrorRefer);
         }
     }
 
