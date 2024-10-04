@@ -735,15 +735,15 @@
     <comment>Shown in Widget</comment>
   </data>
   <data name="DevBox_WAMError1" xml:space="preserve">
-    <value>The user account has been deleted from the tenant directory. Ensure that the account with which the user tries to sign in is registered in Microsoft Entra ID.</value>
+    <value>Error : 3399614467. The user account has been deleted from the tenant directory. Ensure that the account with which the user tries to sign in is registered in Microsoft Entra ID.</value>
     <comment>Simplified error messages for WAM error 3399614467</comment>
   </data>
   <data name="DevBox_WAMError2" xml:space="preserve">
-    <value>Please refresh your multi-factor authentication. Account needs to be configured by the Microsoft Entra administrator with up-to-date MFA settings.</value>
+    <value>Error : 3399614476. Please refresh your multi-factor authentication. Account needs to be configured by the Microsoft Entra administrator with up-to-date MFA settings.</value>
     <comment>Simplified error messages for WAM error 3399614476</comment>
   </data>
   <data name="DevBox_WAMErrorRefer" xml:space="preserve">
     <value>For more details, please refer to https://learn.microsoft.com/en-us/entra/msal/dotnet/advanced/exceptions/wam-errors</value>
-    <comment>Redirect link to MS Learn page for additional info on WAM errors</comment>
+    <comment>{Locked="https://learn.microsoft.com/en-us/entra/msal/dotnet/advanced/exceptions/wam-errors"} Redirect link to MS Learn page for additional info on WAM errors</comment>
   </data>
 </root>
