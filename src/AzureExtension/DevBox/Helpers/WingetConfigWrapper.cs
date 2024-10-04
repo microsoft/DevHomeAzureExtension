@@ -333,15 +333,11 @@ public class WingetConfigWrapper : IApplyConfigurationOperation, IDisposable
         }
 
         // Start the Dev Box
-        try
+        _log.Information("Starting the dev box to apply configuration");
+        var startResult = (await _devBox.StartAsync(string.Empty)).Result;
+        if (startResult.Status != ProviderOperationStatus.Success)
         {
-            _log.Information("Starting the dev box to apply configuration");
-            var startResult = await _devBox.StartAsync(string.Empty);
-        }
-        catch (Exception ex)
-        {
-            _log.Error(ex, "Unable to start the dev box");
-            throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStateKey, _devBox.DisplayName));
+            throw new InvalidOperationException(Resources.GetResource(DevBoxErrorStartKey, _devBox.DisplayName));
         }
 
         // Notify the user
