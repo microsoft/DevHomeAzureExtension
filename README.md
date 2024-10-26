@@ -13,7 +13,7 @@ Related repositories include:
 
 ## Installing and running Dev Home Azure Extension
 
-> **Note**: The Dev Home Azure Extension requires Dev Home. Dev Home requires Windows 11 21H2 (build 22000) or later.
+> **Note**: The Dev Home Azure Extension requires Dev Home. Dev Home requires Windows 11 version 21H2 (build 22000) or Windows 10 version 22H2 (build 19045) or newer.
 
 ### Dev Home Extensions library [Recommended]
 You can install the Dev Home Azure Extension from the Extensions library within Dev Home. This page can be found in the left-hand navigation pane. The list of available extensions will provide links to install from the store.
@@ -66,11 +66,6 @@ If you would like to ask a question that you feel doesn't warrant an issue (yet)
 
 * Kayla Cinnamon, Senior Product Manager: [@cinnamon_msft](https://twitter.com/cinnamon_msft)
 * Clint Rutkas, Principal Product Manager: [@clintrutkas](https://twitter.com/clintrutkas)
-
-## Developer guidance
-
-* You must be running Windows 11 21H2 (build >= 10.0.22000.0) to run Dev Home
-* You must [enable Developer Mode in the Windows Settings app](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development)
 
 ## Building the code
 
