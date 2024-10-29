@@ -233,6 +233,3 @@ spelling_exclusion_path = .\exclusion.dic
 
 # CS8305: Type is for evaluation purposes only and is subject to change or removal in future updates.
 dotnet_diagnostic.CS8305.severity = suggestion
-
-[src/AzureExtension/Assets/QuickStartPlayground/Samples/csharp-hello-world/Program.cs]
-dotnet_diagnostic.SA1633.severity = none

@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using DevHomeAzureExtension.DevBox;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Providers;
-using DevHomeAzureExtension.QuickStartPlayground;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Windows.DevHome.SDK;
@@ -46,8 +45,6 @@ public sealed class AzureExtension : IExtension
                 return new object();
             case ProviderType.ComputeSystem:
                 return _host.Services.GetService<DevBoxProvider>();
-            case ProviderType.QuickStartProject:
-                return _host.Services.GetQuickStartProjectProviders();
             case ProviderType.Settings:
                 return _host.Services.GetService<SettingsProvider>();
             default:

@@ -8,7 +8,6 @@ using System.Text.Json.Nodes;
 using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.Helpers;
-using DevHomeAzureExtension.QuickStartPlayground;
 using Microsoft.Windows.DevHome.SDK;
 using Serilog;
 using Windows.Foundation;
@@ -62,11 +61,6 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
                 _log.Debug($"Verb: {verb}");
                 switch (verb)
                 {
-                    case "ClearOpenAIKey":
-                        _log.Information("Clearing OpenAI key");
-                        _aiCredentialService.RemoveCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId);
-                        break;
-
                     case "ToggleNotifications":
                         var currentNotificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
                         await LocalSettings.SaveSettingAsync(_notificationsEnabledString, currentNotificationsEnabled == "true" ? "false" : "true");
@@ -101,8 +95,6 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
     {
         try
         {
-            var hasOpenAIKey = _aiCredentialService.GetCredentials(OpenAIDevContainerQuickStartProjectProvider.LoginId, OpenAIDevContainerQuickStartProjectProvider.LoginId) is not null;
-
             var notificationsEnabled = LocalSettings.ReadSettingAsync<string>(_notificationsEnabledString).Result ?? "true";
             var notificationsEnabledString = (notificationsEnabled == "true") ? Resources.GetResource("Settings_NotificationsEnabled", _log) : Resources.GetResource("Settings_NotificationsDisabled", _log);
 
@@ -121,7 +113,6 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
 
             var settingsCardData = new SettingsCardData
             {
-                HasOpenAIKey = hasOpenAIKey,
                 NotificationsEnabled = notificationsEnabledString,
                 CacheLastUpdated = lastUpdatedString,
                 UpdateAzureData = updateAzureDataString,
@@ -167,7 +158,6 @@ internal sealed class SettingsUIController(IAICredentialService aiCredentialServ
     {
         return
         [
-            "QuickstartPlayground_OpenAI_ClearKey",
             "Settings_ViewLogs",
         ];
     }

@@ -8,7 +8,6 @@ using DevHomeAzureExtension.DevBox;
 using DevHomeAzureExtension.DevBox.Models;
 using DevHomeAzureExtension.DeveloperId;
 using DevHomeAzureExtension.Providers;
-using DevHomeAzureExtension.QuickStartPlayground;
 using DevHomeAzureExtension.Services.DevBox;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -275,9 +274,6 @@ public sealed class Program
                 services.AddSingleton<IDevBoxCreationManager, DevBoxCreationManager>();
                 services.AddSingleton<DevBoxInstanceFactory>(sp => (developerId, dexBoxMachine) => ActivatorUtilities.CreateInstance<DevBoxInstance>(sp, developerId, dexBoxMachine));
                 services.AddSingleton<CreateComputeSystemOperationFactory>(sp => (devId, userOptions) => ActivatorUtilities.CreateInstance<CreateComputeSystemOperation>(sp, devId, userOptions));
-
-                // Quick Start Project
-                services.AddQuickStartPlayground();
             }).
         Build();
 
