@@ -5,7 +5,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using DevHomeAzureExtension.Contracts;
 using DevHomeAzureExtension.DataManager;
 using DevHomeAzureExtension.Helpers;
 using Microsoft.Windows.DevHome.SDK;
@@ -14,13 +13,11 @@ using Windows.Foundation;
 
 namespace DevHomeAzureExtension.Providers;
 
-internal sealed class SettingsUIController(IAICredentialService aiCredentialService) : IExtensionAdaptiveCardSession
+internal sealed class SettingsUIController() : IExtensionAdaptiveCardSession
 {
     private static readonly Lazy<ILogger> _logger = new(() => Serilog.Log.ForContext("SourceContext", nameof(SettingsUIController)));
 
     private static readonly ILogger _log = _logger.Value;
-
-    private readonly IAICredentialService _aiCredentialService = aiCredentialService;
 
     private static readonly string _notificationsEnabledString = "NotificationsEnabled";
 
