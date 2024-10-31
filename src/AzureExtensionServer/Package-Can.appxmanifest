@@ -44,7 +44,6 @@
                   <DeveloperId />
                   <Repository />
                   <ComputeSystem />
-                  <QuickStartProject />
                   <Settings />
                 </SupportedInterfaces>
               </DevHomeProvider>

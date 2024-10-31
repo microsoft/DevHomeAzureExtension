@@ -1,1 +1,0 @@
-Create a machine learning example project using Python and Tensorflow
