@@ -60,7 +60,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.14" />
     <PackageReference Include="Dapper" Version="2.0.123" />
     <PackageReference Include="Dapper.Contrib" Version="2.0.78" />
     <PackageReference Include="LibGit2Sharp" Version="0.29.0" />
@@ -203,12 +202,6 @@
     </Content>
     <Content Update="Widgets\Assets\UserStory.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Assets\QuickStartPlayground\Samples\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 

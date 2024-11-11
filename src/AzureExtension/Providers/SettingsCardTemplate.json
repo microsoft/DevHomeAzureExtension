@@ -8,17 +8,6 @@
           "type": "ActionSet",
           "actions": [
             {
-              "type": "Action.Execute",
-              "title": "%QuickstartPlayground_OpenAI_ClearKey%",
-              "verb": "ClearOpenAIKey",
-              "isEnabled": "${HasOpenAIKey}"
-            }
-          ]
-        },
-        {
-          "type": "ActionSet",
-          "actions": [
-            {
               "type": "Action.Submit",
               "title": "${NotificationsEnabled}",
               "verb": "ToggleNotifications",

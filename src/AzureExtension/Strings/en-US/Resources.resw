@@ -551,108 +551,20 @@
     <comment>Title text of the dialog asking to log in to the Dev Box.</comment>
   </data>
   <data name="DevBox_NoDefaultUserFailKey" xml:space="preserve">
-    <value>No default user logged in. Please login from the Settings page.</value>
+    <value>No default user logged in. Please login from the Settings page to view the associated Dev Boxes.</value>
     <comment>Error shown when no user name is sent to the extension.</comment>
   </data>
-  <data name="DevBox_NotRunningFailedKey" xml:space="preserve">
-    <value>The Dev Box isn't running. Please start the Dev Box and try again.</value>
-    <comment>Error shown when the operation fails due to the Dev Box not currently running.</comment>
+  <data name="DevBox_ErrorStartKey" xml:space="preserve">
+    <value>The Dev Box {0} couldn't be started</value>
+    <comment>Error shown when the start operation fails on the Dev Box.</comment>
+  </data>
+  <data name="DevBox_ErrorStateKey" xml:space="preserve">
+    <value>The Dev Box {0} isn't in a valid state</value>
+    <comment>Error shown when the operation fails due to the Dev Box not being in a valid state.</comment>
   </data>
   <data name="DevBox_AdaptiveCard_ResumeText" xml:space="preserve">
     <value>Resume</value>
     <comment>Text shown in the button to resume operations.</comment>
-  </data>
-  <data name="QuickStartProjectProviderUsingAzureOpenAIDisplayName" xml:space="preserve">
-    <value>Dev Container using Azure OpenAI</value>
-    <comment>{Locked="{Dev Container}", "{Azure}", "{OpenAI}"} Shown on the available QuickStartProject providers page</comment>
-  </data>
-  <data name="QuickStartProjectProviderUsingOpenAIDisplayName" xml:space="preserve">
-    <value>Dev Container using OpenAI</value>
-    <comment>{Locked="{Dev Container}", "{OpenAI}"} Shown on the available QuickStartProject providers page</comment>
-  </data>
-  <data name="QuickstartPlayground_ExamplePrompt1" xml:space="preserve">
-    <value>Create a portfolio website with NodeJS and Vue</value>
-    <comment>First example prompt to instruct how to use the Quickstart Playground feature</comment>
-  </data>
-  <data name="QuickstartPlayground_ExamplePrompt2" xml:space="preserve">
-    <value>Create a machine learning project with Python</value>
-    <comment>Second example prompt to instruct how to use the Quickstart Playground feature</comment>
-  </data>
-  <data name="QuickstartPlayground_ExamplePrompt3" xml:space="preserve">
-    <value>Create a new environment for building command line applications in C++</value>
-    <comment>Third example prompt to instruct how to use the Quickstart Playground feature</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetRecommendedLanguage" xml:space="preserve">
-    <value>Getting recommended language</value>
-    <comment>First step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetEnrichedPrompt" xml:space="preserve">
-    <value>Getting enriched prompt</value>
-    <comment>Second step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetSamples" xml:space="preserve">
-    <value>Getting samples</value>
-    <comment>Third step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetEmbeddings" xml:space="preserve">
-    <value>Finding most similar sample</value>
-    <comment>Fourth step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetContainerFiles" xml:space="preserve">
-    <value>Getting container files for environment</value>
-    <comment>Fifth step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetStarterCode" xml:space="preserve">
-    <value>Getting starter code</value>
-    <comment>Sixth step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_GetReadme" xml:space="preserve">
-    <value>Generating README file</value>
-    <comment>{Locked="README"} Seventh step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_WriteOutput" xml:space="preserve">
-    <value>Writing files to output folder</value>
-    <comment>Eighth step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_DockerValidation" xml:space="preserve">
-    <value>Verifying Docker image, this may take a while</value>
-    <comment>{Locked="Docker"} Nineth step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_Progress_Done" xml:space="preserve">
-    <value>Done!</value>
-    <comment>Last step in Quickstart Playground project generation</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text1" xml:space="preserve">
-    <value>To access this project, you need to add an OpenAI API key.</value>
-    <comment>First message in adaptive card to set OpenAI key.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text2" xml:space="preserve">
-    <value>Please click [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys), login to your OpenAI account, and create a new secret key.  Upon creation, paste the key below.</value>
-    <comment>{Locked="https://platform.openai.com/api-keys"} Second message in adaptive card to set OpenAI key.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text3" xml:space="preserve">
-    <value>Please also see these [terms and conditions](https://openai.com/policies) for using OpenAI.</value>
-    <comment>{Locked="https://openai.com/policies"} Third message in adaptive card to set OpenAI key.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Text4" xml:space="preserve">
-    <value>NOTE: You need to have available paid credits in your OpenAI account to use this feature. If you do not have credits, you will see an 'API key quota exceeded' error.</value>
-    <comment>Fourth message in adaptive card to set OpenAI key.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_Image_AltText" xml:space="preserve">
-    <value>Create OpenAI key</value>
-    <comment>Alt text for image showing OpenAI API key UI.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input" xml:space="preserve">
-    <value>OpenAI API Key</value>
-    <comment>Text placeholder for OpenAI API key input field.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_APIKey_Input_ErrorMsg" xml:space="preserve">
-    <value>API Key is required.</value>
-    <comment>Error message for OpenAI API key input field.</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_AdaptiveCard_InvalidAPIKey" xml:space="preserve">
-    <value>Invalid API Key</value>
-    <comment>Error message for invalid API key.</comment>
   </data>
   <data name="Continue" xml:space="preserve">
     <value>Continue</value>
@@ -661,50 +573,6 @@
   <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
     <comment>Text for cancel button.</comment>
-  </data>
-  <data name="QuickstartPlayground_Dependency_AppNameHeader" xml:space="preserve">
-    <value>App Name</value>
-    <comment>Column header on Adaptive Card for name of apps</comment>
-  </data>
-  <data name="QuickstartPlayground_Dependency_CancelAction" xml:space="preserve">
-    <value>Cancel</value>
-    <comment>Shown on button for canceling out of the dependency setup process</comment>
-  </data>
-  <data name="QuickstartPlayground_Dependency_CardInstructions" xml:space="preserve">
-    <value>To use this feature, please install the dependencies below</value>
-    <comment>Instruction statement on Adaptive Card to help user set up Quickstart dependencies</comment>
-  </data>
-  <data name="QuickstartPlayground_Dependency_CardName" xml:space="preserve">
-    <value>Dependency Checker</value>
-    <comment>Title of Adaptive Card to help user set up Quickstart dependencies</comment>
-  </data>
-  <data name="QuickstartPlayground_Dependency_DownloadHeader" xml:space="preserve">
-    <value>Installer Webpage</value>
-    <comment>Column header on Adaptive Card for where to download the associated app</comment>
-  </data>
-  <data name="QuickstartPlayground_Dependency_RefreshStatusAction" xml:space="preserve">
-    <value>Refresh Status</value>
-    <comment>Shown on button for requerying the state of dependencies needed by the Quickstart feature</comment>
-  </data>
-  <data name="QuickstartPlayground_FailedToLaunch" xml:space="preserve">
-    <value>Failed to launch {0}</value>
-    <comment>Locked="{0}" Error message shown when we failed to launch the {0} application for the generated Quickstart project.</comment>
-  </data>
-  <data name="QuickstartPlayground_FailureDuringProjectGeneration" xml:space="preserve">
-    <value>Failure when '{0}' with message '{1}'</value>
-    <comment>{Locked="{0}", "{1}"} Error message shown when we failed to generate the project where {0} mentions the step that failed and {1} mentions the exception message.</comment>
-  </data>
-  <data name="QuickstartPlayground_APIKeyFailureDuringProjectGeneration" xml:space="preserve">
-    <value>Failure to authenticate with API Key when '{0}'</value>
-    <comment>Locked="{0}" Error message shown when we failed with an API key error when generating the project where {0} mentions the step that failed.</comment>
-  </data>
-  <data name="QuickstartPlayground_SampleFailureDuringProjectGeneration" xml:space="preserve">
-    <value>Failed to find reference sample for '{0}'</value>
-    <comment>Locked="{0}" Error message shown when we failed to find the reference sample for the language mentioned by {0}</comment>
-  </data>
-  <data name="QuickstartPlayground_OpenAI_ClearKey" xml:space="preserve">
-    <value>Clear OpenAI key</value>
-    <comment>{Locked="OpenAI"} Text of button to clear OpenAI key.</comment>
   </data>
   <data name="DevBox_CheckLogs" xml:space="preserve">
     <value>Please check logs at C:\ProgramData\Microsoft\DevBoxAgent\Logs</value>
@@ -729,5 +597,17 @@
   <data name="Widget_Template.LoadingFindingPullRequests" xml:space="preserve">
     <value>Finding your pull requests. This may take several minutes.</value>
     <comment>Shown in Widget</comment>
+  </data>
+  <data name="DevBox_WAMError1" xml:space="preserve">
+    <value>Error : 3399614467. The user account has been deleted from the tenant directory. Ensure that the account with which the user tries to sign in is registered in Microsoft Entra ID.</value>
+    <comment>Simplified error messages for WAM error 3399614467</comment>
+  </data>
+  <data name="DevBox_WAMError2" xml:space="preserve">
+    <value>Error : 3399614476. Please refresh your multi-factor authentication. Account needs to be configured by the Microsoft Entra administrator with up-to-date MFA settings.</value>
+    <comment>Simplified error messages for WAM error 3399614476</comment>
+  </data>
+  <data name="DevBox_WAMErrorRefer" xml:space="preserve">
+    <value>For more details, please refer to https://learn.microsoft.com/en-us/entra/msal/dotnet/advanced/exceptions/wam-errors</value>
+    <comment>{Locked="https://learn.microsoft.com/en-us/entra/msal/dotnet/advanced/exceptions/wam-errors"} Redirect link to MS Learn page for additional info on WAM errors</comment>
   </data>
 </root>

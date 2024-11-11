@@ -31,7 +31,7 @@ public class TimeSpanService : ITimeSpanService
             case DevBoxActionToPerform.Create:
                 return DevBoxConstants.ThreeMinutePeriod;
             default:
-                return DevBoxConstants.OneMinutePeriod;
+                return DevBoxConstants.HalfMinutePeriod;
         }
     }
 }

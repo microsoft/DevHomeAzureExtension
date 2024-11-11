@@ -109,6 +109,8 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public event TypedEventHandler<IComputeSystem, ComputeSystemState>? StateChanged;
 
+    private bool _isPinOperationInProgress;
+
     public DevBoxInstance(
         IDevBoxManagementService devBoxManagementService,
         IDevBoxOperationWatcher devBoxOperationWatcher,
@@ -207,8 +209,10 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
         switch (state)
         {
             // Dev Box in process of being deleted
+            // or pinned/unpinned from start menu/taskbar.
             case ComputeSystemState.Deleting:
             case ComputeSystemState.Deleted:
+            case ComputeSystemState.Saving:
                 return ComputeSystemOperations.None;
             case ComputeSystemState.Saved:
                 // Dev Box in hibernation
@@ -459,6 +463,11 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
         _log.Information($"Getting State for devBox: '{DisplayName}', Provisioning: {provisioningState}, Action: {actionState}, Power: {powerState}");
 
+        if (_isPinOperationInProgress)
+        {
+            return ComputeSystemState.Saving;
+        }
+
         // This state is actually failed, but since ComputeSystemState doesn't have a failed state, we'll return unknown.
         if (provisioningState == Constants.DevBoxProvisioningStates.Failed
             || provisioningState == Constants.DevBoxProvisioningStates.ProvisionedWithWarning)
@@ -623,7 +632,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IApplyConfigurationOperation CreateApplyConfigurationOperation(string configuration)
     {
-        return new WingetConfigWrapper(configuration, DevBoxState.Uri, _devBoxManagementService, AssociatedDeveloperId, _log, GetState(), ConnectAsync);
+        return new WingetConfigWrapper(this, configuration, _devBoxManagementService, _log);
     }
 
     // Unsupported operations
@@ -710,6 +719,9 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
     {
         return Task.Run(() =>
         {
+            _isPinOperationInProgress = true;
+            StateChanged?.Invoke(this, GetState());
+
             try
             {
                 var errorString = ValidateWindowsAppAndItsParameters();
@@ -738,6 +750,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
                     exitCode = process.ExitCode;
                     if (exitCode == ExitCodeSuccess)
                     {
+                        _isPinOperationInProgress = false;
                         UpdateStateForUI();
                         return new ComputeSystemOperationResult();
                     }
@@ -749,6 +762,7 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
             catch (Exception ex)
             {
                 _log.Error(ex, $"Unable to perform the pinning action for DevBox: {DisplayName}");
+                _isPinOperationInProgress = false;
                 UpdateStateForUI();
                 return new ComputeSystemOperationResult(ex, Constants.OperationsDefaultErrorMsg, "Pinning action failed");
             }
@@ -757,29 +771,21 @@ public class DevBoxInstance : IComputeSystem, IComputeSystem2
 
     public IAsyncOperation<ComputeSystemOperationResult> PinToStartMenuAsync()
     {
-        // Since there is no 'Pinning' state we'll say that the state is saving
-        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("startMenu", "pin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> UnpinFromStartMenuAsync()
     {
-        // Since there is no 'Unpinning' state we'll say that the state is saving
-        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("startMenu", "unpin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> PinToTaskbarAsync()
     {
-        // Since there is no 'Pinning' state we'll say that the state is saving
-        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("taskbar", "pin");
     }
 
     public IAsyncOperation<ComputeSystemOperationResult> UnpinFromTaskbarAsync()
     {
-        // Since there is no 'Unpinning' state we'll say that the state is saving
-        StateChanged?.Invoke(this, ComputeSystemState.Saving);
         return DoPinActionAsync("taskbar", "unpin");
     }
 
